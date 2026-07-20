@@ -17,6 +17,12 @@ User
 CLI (Typer)
     │
     ▼
+Load Configuration
+    │
+    ▼
+Configure Logging
+    │
+    ▼
 Commands
     │
     ▼
@@ -78,6 +84,10 @@ Includes:
 - Git
 - Storage
 - Logging
+    - Centralized initialization
+    - Console handler
+    - File handler
+    - Configurable log level
 - Configuration
 
 ---
@@ -100,6 +110,8 @@ Infrastructure
 ```
 
 Lower layers never depend on upper layers.
+
+Services exchange structured data using models (DTOs), allowing commands to focus on presentation while services focus on business logic.
 
 ---
 

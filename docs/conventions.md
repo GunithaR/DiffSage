@@ -56,12 +56,10 @@ Separate each group with a blank line.
 
 ## Logging
 
-Never use print().
-
-Use:
-
-- typer.echo() for terminal output
-- logging package for application logs
+- Never use print()
+- Use typer.echo() for user-facing terminal output.
+- Use get_logger() for application logging.
+- configure_logging() must only be called once during application startup.
 
 ---
 
@@ -79,6 +77,14 @@ Example:
 
 ---
 
+## Configuration
+
+Commands should never load configuration directly.
+
+Services should receive configuration through the Settings model or dedicated abstractions.
+
+---
+
 ## Services
 
 Services must not interact directly with the terminal.
@@ -93,6 +99,17 @@ Commands may:
 - Display output
 
 Commands must not implement business logic.
+
+---
+
+## Code Quality
+
+Before committing:
+
+- ruff check . --fix
+- ruff format .
+- ruff check .
+- ruff format --check .
 
 ---
 
