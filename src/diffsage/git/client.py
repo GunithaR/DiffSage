@@ -38,4 +38,19 @@ class GitClient:
             ["rev-parse", "--show-toplevel"]
         )
         return Path(result.stdout.strip())
+    
+    def current_branch(self) -> str:
+        """Return the name of the current Git branch."""
         
+        result = self._run_git_command(
+            ["branch", "--show-current"],
+        )
+        return result.stdout.strip()
+
+    def current_commit(self) -> str:
+        """Return the hash of the current commit."""
+
+        result = self._run_git_command(
+            ["rev-parse", "HEAD"],
+        )
+        return result.stdout.strip()
