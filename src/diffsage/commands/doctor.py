@@ -29,7 +29,7 @@ def doctor() -> None:
     )
 
     virtual_env_status = "Active" if report.virtual_environment else "Inactive"
-    typer.echo(f"{status_icon(report.virtual_environment)} Virtual Env    : {virtual_env_status}")
+    typer.echo(f"{status_icon(report.virtual_environment)} Virtual Env.   : {virtual_env_status}")
 
     typer.echo(
         f"{status_icon(report.configuration_loaded)} Configuration  : {report.configuration_loaded}"

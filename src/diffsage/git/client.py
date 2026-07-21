@@ -1,0 +1,41 @@
+from pathlib import Path
+import subprocess
+
+class GitClient:
+    """Low-level client for executing Git commands."""
+
+    def __init__(self, repo_path: Path | str |None = None) -> None:
+        self._repo_path = Path(repo_path) if repo_path else Path.cwd()
+
+
+    def _run_git_command(self, args: list[str]) -> subprocess.CompletedProcess[str]:
+        """Execute a Git command and return the completed process."""
+
+        return subprocess.run(
+            ["git", *args],
+            cwd=self._repo_path,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+
+
+    def is_git_repository(self) -> bool:
+        """Return True if the repository path is inside a Git working tree."""
+        try:
+            result = self._run_git_command(
+                ["rev-parse", "--is-inside-work-tree"]
+            )
+            return result.stdout.strip() == "true"
+        
+        except subprocess.CalledProcessError:
+            return False
+        
+    def repository_root(self) -> Path:
+        """Return the root directory of the Git repository."""
+
+        result = self._run_git_command(
+            ["rev-parse", "--show-toplevel"]
+        )
+        return Path(result.stdout.strip())
+        

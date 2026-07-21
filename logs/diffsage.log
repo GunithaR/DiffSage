@@ -1,0 +1,9 @@
+2026-07-20 22:44:21,520 | INFO | diffsage.commands.doctor | Running doctor command.
+2026-07-20 22:44:21,520 | INFO | diffsage.services.doctor_service | Loading application settings.
+2026-07-20 22:45:55,127 | INFO | diffsage.commands.doctor | Running doctor command.
+2026-07-20 22:45:55,127 | INFO | diffsage.services.doctor_service | Loading application settings.
+2026-07-21 09:53:50,696 | INFO | diffsage.commands.doctor | Running doctor command.
+2026-07-21 09:53:50,696 | INFO | diffsage.services.doctor_service | Loading application settings.
+2026-07-21 09:54:03,150 | INFO | diffsage.commands.doctor | Running doctor command.
+2026-07-21 09:54:03,150 | INFO | diffsage.services.doctor_service | Loading application settings.
+2026-07-21 09:54:03,150 | DEBUG | diffsage.services.doctor_service | Loading application settings.
