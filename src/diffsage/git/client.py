@@ -90,3 +90,11 @@ class GitClient:
             deleted=deleted,
             untracked=untracked,
         )
+
+    def staged_diff(self) -> str:
+        """Return the staged diff"""
+
+        result = self._run_git_command(
+            ["diff", "--staged"]
+        )
+        return result.stdout.strip()

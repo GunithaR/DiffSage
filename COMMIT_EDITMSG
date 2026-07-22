@@ -1,0 +1,20 @@
+feat(git): implement repository status parsing
+
+- add GitStatus model
+- implement GitClient.status()
+- parse porcelain status output
+- support untracked, modified, added and deleted files
+- add comprehensive Git status tests
+
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+#
+# Date:      Wed Jul 22 15:35:15 2026 +0530
+#
+# On branch feature/git-service
+# Changes to be committed:
+#	modified:   logs/diffsage.log
+#	modified:   src/diffsage/git/client.py
+#	new file:   src/diffsage/models/git.py
+#	modified:   tests/git/test_client.py
+#

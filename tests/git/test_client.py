@@ -154,3 +154,18 @@ def test_status_returns_deleted_files(tmp_path: Path):
     status = client.status()
 
     assert status.deleted == ["README.md"]
+
+def test_staged_diff_returns_git_diff(tmp_path: Path):
+    init_git_repo(tmp_path)
+
+    readme = tmp_path / "README.md"
+    readme.write_text("# DiffSage\n")
+
+    run_git(["add", "README.md"], tmp_path)
+
+    client = GitClient(tmp_path)
+    diff = client.staged_diff()
+
+    assert "diff --git" in diff
+    assert "README.md" in diff
+    assert "+# DiffSage" in diff
