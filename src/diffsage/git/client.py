@@ -9,7 +9,6 @@ class GitClient:
     def __init__(self, repo_path: Path | str |None = None) -> None:
         self._repo_path = Path(repo_path) if repo_path else Path.cwd()
 
-
     def _run_git_command(self, args: list[str]) -> subprocess.CompletedProcess[str]:
         """Execute a Git command and return the completed process."""
 
@@ -20,7 +19,6 @@ class GitClient:
             text=True,
             check=True,
         )
-
 
     def is_git_repository(self) -> bool:
         """Return True if the repository path is inside a Git working tree."""
@@ -92,9 +90,17 @@ class GitClient:
         )
 
     def staged_diff(self) -> str:
-        """Return the staged diff"""
+        """Returns the staged diff"""
 
         result = self._run_git_command(
-            ["diff", "--staged"]
+            ["diff", "--staged"],
+        )
+        return result.stdout.strip()
+
+    def unstaged_diff(self) -> str:
+        """Returns the unstaged diff"""
+
+        result = self._run_git_command(
+            ["diff"],
         )
         return result.stdout.strip()

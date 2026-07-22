@@ -17,7 +17,6 @@ def run_git(
         text=True,
     )
 
-
 def init_git_repo(path: Path) -> None:
     """Initialize a Git repository for testing."""
 
@@ -41,7 +40,6 @@ def test_is_git_repository_returns_false_for_non_git_directory(tmp_path: Path):
 
     assert client.is_git_repository() is False
 
-
 def test_is_git_repository_returns_true_for_git_repository(tmp_path: Path):
     run_git(
         ["init"],
@@ -50,7 +48,6 @@ def test_is_git_repository_returns_true_for_git_repository(tmp_path: Path):
     client = GitClient(tmp_path)
 
     assert client.is_git_repository() is True
-
 
 def test_repository_root_returns_repository_root(tmp_path: Path):
     run_git(
@@ -61,7 +58,6 @@ def test_repository_root_returns_repository_root(tmp_path: Path):
 
     assert client.repository_root() == tmp_path
 
-
 def test_current_branch_returns_current_branch(tmp_path: Path):
     run_git(
         ["init", "--initial-branch=main"],
@@ -70,7 +66,6 @@ def test_current_branch_returns_current_branch(tmp_path: Path):
     client = GitClient(tmp_path)
 
     assert client.current_branch() == "main"
-
 
 def test_current_commit_returns_current_commit_hash(tmp_path: Path):
     init_git_repo(tmp_path)
@@ -97,7 +92,6 @@ def test_current_commit_returns_current_commit_hash(tmp_path: Path):
 
     assert client.current_commit() == expected
 
-
 def test_status_returns_untracked_files(tmp_path: Path):
     init_git_repo(tmp_path)
 
@@ -108,7 +102,6 @@ def test_status_returns_untracked_files(tmp_path: Path):
     status = client.status()
 
     assert status.untracked == ["README.md"]
-
 
 def test_status_returns_modified_files(tmp_path: Path):
     init_git_repo(tmp_path)
@@ -169,3 +162,21 @@ def test_staged_diff_returns_git_diff(tmp_path: Path):
     assert "diff --git" in diff
     assert "README.md" in diff
     assert "+# DiffSage" in diff
+
+def test_unstaged_diff_returns_git_diff(tmp_path: Path):
+    init_git_repo(tmp_path)
+
+    readme = tmp_path / "README.md"
+    readme.write_text("# DiffSage\n")
+
+    run_git(["add", "README.md"], tmp_path)
+    run_git(["commit", "-m", "Initial Commit"], tmp_path)
+
+    readme.write_text("# DiffSage\n\nModified")
+
+    client = GitClient(tmp_path)
+    diff = client.unstaged_diff()
+
+    assert "diff --git" in diff
+    assert "README.md" in diff
+    assert "+Modified" in diff
