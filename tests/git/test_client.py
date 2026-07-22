@@ -18,6 +18,24 @@ def run_git(
     )
 
 
+def init_git_repo(path: Path) -> None:
+    """Initialize a Git repository for testing."""
+
+    run_git(
+        ["init", "--initial-branch=main"],
+        path,
+    )
+
+    run_git(
+        ["config", "user.name", "Test User"],
+        path,
+    )
+
+    run_git(
+        ["config", "user.email", "test@example.com"],
+        path,
+    )
+
 def test_is_git_repository_returns_false_for_non_git_directory(tmp_path: Path):
     client = GitClient(tmp_path)
 
@@ -55,20 +73,7 @@ def test_current_branch_returns_current_branch(tmp_path: Path):
 
 
 def test_current_commit_returns_current_commit_hash(tmp_path: Path):
-    run_git(
-        ["init", "--initial-branch=main"],
-        tmp_path,
-    )
-
-    run_git(
-    ["config", "user.name", "Test User"],
-    tmp_path,
-    )
-
-    run_git(
-        ["config", "user.email", "test@example.com"],
-        tmp_path,
-    )
+    init_git_repo(tmp_path)
 
     readme = tmp_path / "README.md"
     readme.write_text("# DiffSage\n")
@@ -92,3 +97,60 @@ def test_current_commit_returns_current_commit_hash(tmp_path: Path):
 
     assert client.current_commit() == expected
 
+
+def test_status_returns_untracked_files(tmp_path: Path):
+    init_git_repo(tmp_path)
+
+    readme = tmp_path / "README.md"
+    readme.write_text("# DiffSage\n")
+
+    client = GitClient(tmp_path)
+    status = client.status()
+
+    assert status.untracked == ["README.md"]
+
+
+def test_status_returns_modified_files(tmp_path: Path):
+    init_git_repo(tmp_path)
+
+    readme = tmp_path / "README.md"
+    readme.write_text("# DiffSage\n")
+
+    run_git(["add", "README.md"], tmp_path)
+    run_git(["commit", "-m", "Initial commit"], tmp_path)
+
+    readme.write_text("# DiffSage\n\nModified")
+
+    client = GitClient(tmp_path)
+    status = client.status()
+
+    assert status.modified == ["README.md"]
+
+def test_status_returns_added_files(tmp_path: Path):
+    init_git_repo(tmp_path)
+
+    readme = tmp_path / "README.md"
+    readme.write_text("# DiffSage\n")
+
+    run_git(["add", "README.md"], tmp_path)
+
+    client = GitClient(tmp_path)
+    status = client.status()
+
+    assert status.added == ["README.md"]
+
+def test_status_returns_deleted_files(tmp_path: Path):
+    init_git_repo(tmp_path)
+
+    readme = tmp_path / "README.md"
+    readme.write_text("# DiffSage\n")
+
+    run_git(["add", "README.md"], tmp_path)
+    run_git(["commit", "-m", "Initial commit"], tmp_path)
+
+    readme.unlink()
+
+    client = GitClient(tmp_path)
+    status = client.status()
+
+    assert status.deleted == ["README.md"]

@@ -1,6 +1,8 @@
 from pathlib import Path
 import subprocess
 
+from diffsage.models.git import GitStatus
+
 class GitClient:
     """Low-level client for executing Git commands."""
 
@@ -54,3 +56,37 @@ class GitClient:
             ["rev-parse", "HEAD"],
         )
         return result.stdout.strip()
+    
+    def status(self) -> GitStatus:
+        """Return the current repository status."""
+
+        result = self._run_git_command(
+            ["status", "--porcelain"],
+        )
+
+        untracked = []
+        modified = []
+        added = []
+        deleted = []
+
+        # Parse Git porcelain status codes.
+        for line in result.stdout.splitlines():
+            status = line[:2]
+            path = line[3:]
+
+            match status:
+                case "??":
+                    untracked.append(path)
+                case " M":
+                    modified.append(path)
+                case "A ":
+                    added.append(path)
+                case " D":
+                    deleted.append(path)
+
+        return GitStatus(
+            modified=modified,
+            added=added,
+            deleted=deleted,
+            untracked=untracked,
+        )
