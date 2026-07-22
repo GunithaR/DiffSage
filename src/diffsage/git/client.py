@@ -1,7 +1,9 @@
 from pathlib import Path
+from datetime import datetime
 import subprocess
 
 from diffsage.models.git import GitStatus
+from diffsage.models.git import GitCommit
 
 class GitClient:
     """Low-level client for executing Git commands."""
@@ -104,3 +106,25 @@ class GitClient:
             ["diff"],
         )
         return result.stdout.strip()
+
+    def recent_commits(self, limit: int = 10) -> list[GitCommit]:
+        """Return the most recent commits."""
+
+        result = self._run_git_command(
+            ["log", f"-{limit}", '--pretty=format:%H%x09%an%x09%s%x09%aI'],
+        )
+
+        commits: list[GitCommit] = []
+
+        for line in result.stdout.splitlines():
+            hash_, author, message, date = line.split("\t")
+
+            commit = GitCommit(
+                hash=hash_,
+                author=author,
+                message=message,
+                date=datetime.fromisoformat(date)
+            )
+            commits.append(commit)
+
+        return commits

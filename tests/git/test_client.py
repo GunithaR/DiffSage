@@ -1,8 +1,10 @@
 import subprocess
 
 from pathlib import Path
+from datetime import datetime
 
 from diffsage.git.client import GitClient
+from diffsage.models.git import GitCommit
 
 
 def run_git(
@@ -180,3 +182,31 @@ def test_unstaged_diff_returns_git_diff(tmp_path: Path):
     assert "diff --git" in diff
     assert "README.md" in diff
     assert "+Modified" in diff
+
+def test_recent_commits_return_commit_history(tmp_path: Path):
+    init_git_repo(tmp_path)
+
+    readme = tmp_path / "README.md"
+    readme.write_text("# DiffSage\n")
+
+    run_git(["add", "README.md"], tmp_path)
+    run_git(["commit", "-m", "docs: add README"], tmp_path)
+
+    readme.write_text("# DiffSage\n\nUpdated\n")
+
+    run_git(["add", "README.md"], tmp_path)
+    run_git(["commit", "-m", "feat: update README"], tmp_path)
+
+    client = GitClient(tmp_path)
+    commits = client.recent_commits(limit=2)
+
+    assert len(commits) == 2
+
+    assert commits[0].message == "feat: update README"
+    assert commits[1].message == "docs: add README"
+
+    assert all(isinstance(commit, GitCommit) for commit in commits)
+    
+    assert commits[0].author == "Test User"
+    assert isinstance(commits[0].date, datetime)
+    assert len(commits[0].hash) >= 40
