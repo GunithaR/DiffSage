@@ -37,56 +37,46 @@ def init_git_repo(path: Path) -> None:
         path,
     )
 
+def init_git_repo_with_initial_commit(repo: Path) -> None:
+    """Create a Git repository with one initial commit"""
+
+    init_git_repo(repo)
+
+    readme = repo / "README.md"
+    readme.write_text("# DiffSage\n")
+
+    run_git(["add", "README.md"], repo)
+    run_git(["commit", "-m", "Initial Commit"], repo)
+
+
 def test_is_git_repository_returns_false_for_non_git_directory(tmp_path: Path):
     client = GitClient(tmp_path)
 
     assert client.is_git_repository() is False
 
 def test_is_git_repository_returns_true_for_git_repository(tmp_path: Path):
-    run_git(
-        ["init"],
-        tmp_path,
-    )
+    init_git_repo(tmp_path)
     client = GitClient(tmp_path)
 
     assert client.is_git_repository() is True
 
 def test_repository_root_returns_repository_root(tmp_path: Path):
-    run_git(
-        ["init"],
-        tmp_path,
-    )
+    init_git_repo(tmp_path)
     client = GitClient(tmp_path)
 
     assert client.repository_root() == tmp_path
 
 def test_current_branch_returns_current_branch(tmp_path: Path):
-    run_git(
-        ["init", "--initial-branch=main"],
-        tmp_path
-    )
+    init_git_repo(tmp_path)
     client = GitClient(tmp_path)
 
     assert client.current_branch() == "main"
 
 def test_current_commit_returns_current_commit_hash(tmp_path: Path):
-    init_git_repo(tmp_path)
-
-    readme = tmp_path / "README.md"
-    readme.write_text("# DiffSage\n")
-
-    run_git(
-        ["add", "README.md"],
-        tmp_path,
-    )
-
-    run_git(
-        ["commit", "-m", "Initial Commit"],
-        tmp_path,
-    )
+    init_git_repo_with_initial_commit(tmp_path)
 
     expected = run_git(
-        ["rev-parse", "HEAD"],
+        ["rev-parse", "HEAD"], 
         tmp_path,
     ).stdout.strip()
 
@@ -106,14 +96,9 @@ def test_status_returns_untracked_files(tmp_path: Path):
     assert status.untracked == ["README.md"]
 
 def test_status_returns_modified_files(tmp_path: Path):
-    init_git_repo(tmp_path)
+    init_git_repo_with_initial_commit(tmp_path)
 
     readme = tmp_path / "README.md"
-    readme.write_text("# DiffSage\n")
-
-    run_git(["add", "README.md"], tmp_path)
-    run_git(["commit", "-m", "Initial commit"], tmp_path)
-
     readme.write_text("# DiffSage\n\nModified")
 
     client = GitClient(tmp_path)
@@ -135,14 +120,9 @@ def test_status_returns_added_files(tmp_path: Path):
     assert status.added == ["README.md"]
 
 def test_status_returns_deleted_files(tmp_path: Path):
-    init_git_repo(tmp_path)
+    init_git_repo_with_initial_commit(tmp_path)
 
     readme = tmp_path / "README.md"
-    readme.write_text("# DiffSage\n")
-
-    run_git(["add", "README.md"], tmp_path)
-    run_git(["commit", "-m", "Initial commit"], tmp_path)
-
     readme.unlink()
 
     client = GitClient(tmp_path)
@@ -166,14 +146,9 @@ def test_staged_diff_returns_git_diff(tmp_path: Path):
     assert "+# DiffSage" in diff
 
 def test_unstaged_diff_returns_git_diff(tmp_path: Path):
-    init_git_repo(tmp_path)
+    init_git_repo_with_initial_commit(tmp_path)
 
     readme = tmp_path / "README.md"
-    readme.write_text("# DiffSage\n")
-
-    run_git(["add", "README.md"], tmp_path)
-    run_git(["commit", "-m", "Initial Commit"], tmp_path)
-
     readme.write_text("# DiffSage\n\nModified")
 
     client = GitClient(tmp_path)
@@ -206,7 +181,30 @@ def test_recent_commits_return_commit_history(tmp_path: Path):
     assert commits[1].message == "docs: add README"
 
     assert all(isinstance(commit, GitCommit) for commit in commits)
-    
+
     assert commits[0].author == "Test User"
     assert isinstance(commits[0].date, datetime)
     assert len(commits[0].hash) >= 40
+
+def test_branches_return_local_branches(tmp_path: Path):
+    init_git_repo_with_initial_commit(tmp_path)
+
+    run_git(["checkout", "-b", "feature"], tmp_path)
+
+    client = GitClient(tmp_path)
+    branches = client.branches()
+
+    assert set(branches) == {"main", "feature"}
+
+def test_tags_return_all_tags(tmp_path: Path):
+    init_git_repo_with_initial_commit(tmp_path)
+
+    run_git(["tag", "v0.1.0"], tmp_path)
+
+    run_git(["checkout", "-b", "feature"], tmp_path)
+    run_git(["tag", "v0.2.0"], tmp_path)
+
+    client = GitClient(tmp_path)
+    tags = client.tags()
+
+    assert set(tags) == {"v0.1.0", "v0.2.0"}

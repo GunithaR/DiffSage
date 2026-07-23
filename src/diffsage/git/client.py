@@ -111,7 +111,7 @@ class GitClient:
         """Return the most recent commits."""
 
         result = self._run_git_command(
-            ["log", f"-{limit}", '--pretty=format:%H%x09%an%x09%s%x09%aI'],
+            ["log", f"-{limit}", "--pretty=format:%H%x09%an%x09%s%x09%aI"],
         )
 
         commits: list[GitCommit] = []
@@ -128,3 +128,20 @@ class GitClient:
             commits.append(commit)
 
         return commits
+
+    def branches(self) -> list[str]:
+        """Return local branch names."""
+
+        result = self._run_git_command(
+            ["branch", "--format=%(refname:short)"],
+        )
+
+        return result.stdout.splitlines()
+
+    def tags(self) -> list[str]:
+        """Return tag names."""
+
+        result = self._run_git_command(
+            ["tag", "--format=%(refname:short)"],
+        )
+        return result.stdout.splitlines()
