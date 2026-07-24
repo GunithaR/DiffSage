@@ -6,48 +6,9 @@ from datetime import datetime
 from diffsage.git.client import GitClient
 from diffsage.models.git import GitCommit
 
-
-def run_git(
-    args: list[str],
-    cwd: Path,
-) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
-        ["git", *args],
-        cwd=cwd,
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-
-def init_git_repo(path: Path) -> None:
-    """Initialize a Git repository for testing."""
-
-    run_git(
-        ["init", "--initial-branch=main"],
-        path,
-    )
-
-    run_git(
-        ["config", "user.name", "Test User"],
-        path,
-    )
-
-    run_git(
-        ["config", "user.email", "test@example.com"],
-        path,
-    )
-
-def init_git_repo_with_initial_commit(repo: Path) -> None:
-    """Create a Git repository with one initial commit"""
-
-    init_git_repo(repo)
-
-    readme = repo / "README.md"
-    readme.write_text("# DiffSage\n")
-
-    run_git(["add", "README.md"], repo)
-    run_git(["commit", "-m", "Initial Commit"], repo)
-
+from tests.helpers import run_git
+from tests.helpers import init_git_repo
+from tests.helpers import init_git_repo_with_initial_commit
 
 def test_is_git_repository_returns_false_for_non_git_directory(tmp_path: Path):
     client = GitClient(tmp_path)
