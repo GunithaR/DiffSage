@@ -87,7 +87,9 @@ Services should receive configuration through the Settings model or dedicated ab
 
 ## Services
 
-Services must not interact directly with the terminal.
+Services must not interact directly with the terminal. 
+
+Services should communicate using domain models rather than raw subprocess output, provider-specific JSON, or formatted terminal text whenever practical.
 
 ---
 

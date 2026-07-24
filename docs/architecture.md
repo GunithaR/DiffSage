@@ -115,6 +115,41 @@ Services exchange structured data using models (DTOs), allowing commands to focu
 
 ---
 
+# AI Request Flow
+
+LLM-enabled features follow the same layered architecture.
+
+```
+Command
+    │
+    ▼
+GitService
+    │
+    ▼
+CommitContext
+    │
+    ▼
+PromptService
+    │
+    ▼
+BaseProvider
+    │
+    ▼
+ProviderResponse
+```
+
+Responsibilities:
+
+- **GitService** collects repository information and returns structured domain models.
+- **PromptService** transforms domain models into prompts for language models.
+- **BaseProvider** defines the common provider contract.
+- **Provider implementations** communicate with external LLM APIs and normalize provider-specific responses into `ProviderResponse`.
+- **Commands** orchestrate the workflow and present results to the user.
+
+This separation keeps Git logic, prompt generation, and provider implementations independent.
+
+---
+
 # Package Structure
 
 ```
@@ -141,6 +176,7 @@ src/diffsage/
 - Configuration abstraction
 - Replaceable infrastructure
 - Terminal-first user experience
+- Domain model driven communication between layers
 
 ---
 

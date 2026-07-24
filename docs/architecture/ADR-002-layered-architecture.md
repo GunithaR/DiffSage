@@ -29,6 +29,8 @@ Services
 Infrastructure
 ```
 
+Services communicate using structured domain models rather than raw subprocess output, provider-specific responses, or terminal-facing text. Each layer exposes abstractions appropriate to its responsibility.
+
 ---
 
 ## Alternatives
@@ -45,3 +47,5 @@ Advantages
 - Easier testing
 - Better maintainability
 - Clear separation of concerns
+- Layers remain independent through well-defined domain models.
+- Infrastructure implementations can change without affecting service logic.
