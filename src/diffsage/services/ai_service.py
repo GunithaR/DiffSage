@@ -1,14 +1,14 @@
-from diffsage.config.loader import load_settings
+from diffsage.config.settings import Settings
 from diffsage.models.provider import ProviderRequest, ProviderResponse
 from diffsage.providers.factory import create_provider
 
 class AIService:
     """Coordinates AI provider interactions."""
 
-    def ask(self, prompt: str) -> ProviderResponse:
+    def __init__(self, settings: Settings) -> None:
+        self._provider = create_provider(settings)
 
-        settings = load_settings()
-        provider = create_provider(settings)
+    def ask(self, prompt: str) -> ProviderResponse:
 
         request = ProviderRequest(
             prompt=prompt,
@@ -17,4 +17,4 @@ class AIService:
             max_tokens=1000,
         )
 
-        return provider.generate(request)
+        return self._provider.generate(request)
