@@ -16,6 +16,7 @@ def load_settings() -> Settings:
     try:
         return Settings(
             provider=os.getenv("DIFFSAGE_PROVIDER", defaults.provider),
+            api_key=os.getenv("DIFFSAGE_API_KEY", defaults.api_key),
             timeout=int(os.getenv("DIFFSAGE_TIMEOUT", defaults.timeout)),
             max_retries=int(os.getenv("DIFFSAGE_MAX_RETRIES", defaults.max_retries)),
             log_level=os.getenv("DIFFSAGE_LOG_LEVEL", defaults.log_level),

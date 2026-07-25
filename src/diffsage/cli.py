@@ -5,6 +5,7 @@ import typer
 from diffsage.commands.doctor import doctor
 from diffsage.config.loader import load_settings
 from diffsage.logging.logger import configure_logging
+from diffsage.commands.ask import ask
 
 app = typer.Typer(help="DiffSage: AI-powered Git workflow assistant.")
 
@@ -19,5 +20,5 @@ def main() -> None:
     """
     pass
 
-
 app.command()(doctor)
+app.command()(ask)
