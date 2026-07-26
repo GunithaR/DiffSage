@@ -33,6 +33,12 @@ dev = [
 [project.scripts]
 diffsage = "diffsage.cli:app"
 
+[tool.pytest.ini_options]
+# Ensure project-root imports (e.g. tests.helpers) work consistently
+# when running `pytest`.
+testpaths = ["tests"]
+pythonpath = ["."]
+
 [tool.setuptools]
 package-dir = { "" = "src" }
 
