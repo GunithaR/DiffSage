@@ -10,6 +10,7 @@ Requirements:
 - Keep the subject under 72 characters.
 - Leave one blank line after the subject.
 - Use 3–6 bullet points for the body when appropriate.
+- Use dashes (-) as bullets
 - Start each bullet with an imperative verb (e.g., Add, Update,
   Remove, Refactor, Fix).
 - End each line with a period

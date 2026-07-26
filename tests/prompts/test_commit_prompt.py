@@ -17,4 +17,4 @@ def test_build_commit_prompt_contains_commit_instructions():
 
     assert "Conventional Commit" in prompt
     assert "Return only the commit message" in prompt
-    assert "Do not include explanations" in prompt
+    assert "Do not use Markdown headings or explanations outside the commit." in prompt

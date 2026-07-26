@@ -145,3 +145,18 @@ class GitClient:
             ["tag", "--format=%(refname:short)"],
         )
         return result.stdout.splitlines()
+
+    def commit(self, message: str) -> None:
+        """Create a git commit with the provided commit message."""
+
+        lines = message.split("\n", 1)
+
+        subject = lines[0]
+        body = lines[1].strip() if len(lines) > 1 else ""
+
+        command = ["commit", "-m", subject]
+
+        if body:
+            command.extend(["-m", body])
+
+        self._run_git_command(command)
