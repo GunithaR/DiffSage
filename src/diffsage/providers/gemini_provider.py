@@ -6,7 +6,13 @@ from google.genai import errors as genai_errors
 from diffsage.providers.base import BaseProvider
 from diffsage.models.provider import ProviderRequest, ProviderResponse
 from diffsage.config.settings import Settings
-from diffsage.exceptions import ModelNotFoundError, ProviderError
+from diffsage.exceptions import (
+    AuthenticationError,
+    ModelNotFoundError,
+    ProviderError,
+    ProviderUnavailableError,
+    RateLimitError,
+)
 
 class GeminiProvider(BaseProvider):
 
@@ -27,9 +33,26 @@ class GeminiProvider(BaseProvider):
                 contents=request.prompt,
             )
         except genai_errors.APIError as e:
-            if e.status == "NOT_FOUND":
+            status = e.status
+
+            if status == "NOT_FOUND":
                 raise ModelNotFoundError(
                     f"Model '{request.model}' was not found."
+                ) from e
+
+            elif status == "UNAUTHENTICATED":
+                raise AuthenticationError(
+                    "Authentication with Gemini failed."
+                ) from e
+
+            elif status == "RESOURCE_EXHAUSTED":
+                raise RateLimitError(
+                    "Gemini API rate limit exceeded."
+                ) from e
+
+            elif status in ("UNAVAILABLE", "DEADLINE_EXCEEDED"):
+                raise ProviderUnavailableError(
+                    "Gemini service is currently unavailable."
                 ) from e
 
             raise ProviderError(

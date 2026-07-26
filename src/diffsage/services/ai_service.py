@@ -6,13 +6,14 @@ class AIService:
     """Coordinates AI provider interactions."""
 
     def __init__(self, settings: Settings) -> None:
+        self._settings = settings
         self._provider = create_provider(settings)
 
     def ask(self, prompt: str) -> ProviderResponse:
 
         request = ProviderRequest(
             prompt=prompt,
-            model="gemini-3.5-flash-lite", # TODO: Move model configuration into Settings.
+            model=self._settings.ai_model,
             temperature=0.2,
             max_tokens=1000,
         )
