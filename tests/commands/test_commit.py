@@ -23,11 +23,12 @@ def test_commit_exits_when_no_staged_diff_found():
         with pytest.raises(SystemExit):
             commit()
 
-def test_commit_generates_commit_message():
+def test_commit_calls_git_commit_on_confirmation():
     with (
         patch("diffsage.commands.commit.GitClient") as mock_git,
         patch("diffsage.commands.commit.build_commit_prompt") as mock_prompt,
-        patch("diffsage.commands.commit.AIService") as mock_ai
+        patch("diffsage.commands.commit.AIService") as mock_ai,
+        patch("diffsage.commands.commit.console.input", return_value="y"),
     ):
         git = mock_git.return_value
 
@@ -55,5 +56,4 @@ def test_commit_generates_commit_message():
 
         mock_prompt.assert_called_once_with("diff --git")
         ai.ask.assert_called_once_with("Prompt")
-
-
+        git.commit.assert_called_once_with("feat: add commit command")
