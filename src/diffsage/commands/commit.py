@@ -4,6 +4,7 @@ from diffsage.config.loader import load_settings
 from diffsage.git.client import GitClient
 from diffsage.prompts.commit import build_commit_prompt
 from diffsage.services.ai_service import AIService
+from diffsage.services.editor import EditorService
 
 console = Console()
 
@@ -36,6 +37,8 @@ def display_commit_message(message: str) -> None:
 
 def commit() -> None:
     git = GitClient()
+    editor = EditorService()
+
     message = generate_commit_message(git)
     display_commit_message(message)
 
@@ -51,18 +54,17 @@ def commit() -> None:
 
         if choice in ("", "y"):
             git.commit(message)
-
             console.print(f"[bold green]✓ Commit created successfully![/bold green] {message.splitlines()[0]}")
             break
 
         if choice == "e":
-            console.print("[yellow]Edit not implemented yet.[/yellow]")
+            message = editor.edit(message)
+            display_commit_message(message)
             continue
 
         if choice == "r":
             message = generate_commit_message(git)
             display_commit_message(message)
-            
             continue
 
         if choice == "n":
