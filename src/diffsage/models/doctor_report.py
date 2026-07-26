@@ -1,6 +1,5 @@
 from pydantic import BaseModel
 
-
 class DoctorReport(BaseModel):
     python_version: str
     git_installed: bool
