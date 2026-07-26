@@ -12,6 +12,7 @@ diff --git a/README.md b/README.md
     assert "diff --git a/README.md b/README.md" in prompt
     assert "+New Content" in prompt
 
+
 def test_build_commit_prompt_contains_commit_instructions():
     prompt = build_commit_prompt("dummy diff")
 

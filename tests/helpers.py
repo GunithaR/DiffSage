@@ -2,6 +2,7 @@ import subprocess
 
 from pathlib import Path
 
+
 def run_git(
     args: list[str],
     cwd: Path,

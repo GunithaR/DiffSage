@@ -4,6 +4,7 @@ from unittest.mock import patch, call
 from diffsage.commands.commit import commit
 from diffsage.models.provider import ProviderResponse
 
+
 def test_commit_exits_when_not_in_git_repository():
     with patch("diffsage.commands.commit.GitClient") as mock_git:
         git = mock_git.return_value
@@ -12,6 +13,7 @@ def test_commit_exits_when_not_in_git_repository():
 
         with pytest.raises(SystemExit):
             commit()
+
 
 def test_commit_exits_when_no_staged_diff_found():
     with patch("diffsage.commands.commit.GitClient") as mock_git:
@@ -22,6 +24,7 @@ def test_commit_exits_when_no_staged_diff_found():
 
         with pytest.raises(SystemExit):
             commit()
+
 
 def test_commit_calls_git_commit_on_confirmation():
     with (
@@ -57,6 +60,7 @@ def test_commit_calls_git_commit_on_confirmation():
         ai.ask.assert_called_once_with("Prompt")
         git.commit.assert_called_once_with("feat: add commit command")
 
+
 def test_commit_cancels_when_user_declines():
     with (
         patch("diffsage.commands.commit.GitClient") as mock_git,
@@ -90,6 +94,7 @@ def test_commit_cancels_when_user_declines():
         mock_prompt.assert_called_once_with("diff --git")
         ai.ask.assert_called_once_with("Prompt")
         git.commit.assert_not_called()
+
 
 def test_commit_regenerates_when_user_chooses():
     with (
@@ -140,6 +145,7 @@ def test_commit_regenerates_when_user_chooses():
 
         git.commit.assert_called_once_with("feat: regenerated message")
 
+
 def test_commit_reprompts_after_invalid_choice():
     with (
         patch("diffsage.commands.commit.GitClient") as mock_git,
@@ -173,6 +179,7 @@ def test_commit_reprompts_after_invalid_choice():
         mock_prompt.assert_called_once_with("diff --git")
         ai.ask.assert_called_once_with("Prompt")
         git.commit.assert_called_once_with("feat: add commit command")
+
 
 def test_commit_edit_returns_correct_response():
     with (
@@ -211,10 +218,6 @@ def test_commit_edit_returns_correct_response():
         mock_prompt.assert_called_once_with("diff --git")
         ai.ask.assert_called_once_with("Prompt")
 
-        editor.edit.assert_called_once_with(
-            "feat: add commit command"
-        )
-        
-        git.commit.assert_called_once_with(
-            "feat(commit): edited commit message"
-        )
+        editor.edit.assert_called_once_with("feat: add commit command")
+
+        git.commit.assert_called_once_with("feat(commit): edited commit message")

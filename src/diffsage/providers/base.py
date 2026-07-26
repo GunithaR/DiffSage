@@ -2,8 +2,7 @@ from abc import ABC, abstractmethod
 
 from diffsage.models.provider import ProviderRequest, ProviderResponse
 
-class BaseProvider(ABC):
 
+class BaseProvider(ABC):
     @abstractmethod
-    def generate(self, request: ProviderRequest) -> ProviderResponse:
-        ...
+    def generate(self, request: ProviderRequest) -> ProviderResponse: ...

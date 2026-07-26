@@ -6,6 +6,7 @@ from diffsage.models.git import CommitContext
 
 from tests.helpers import init_git_repo_with_initial_commit
 
+
 def test_build_commit_context_returns_commit_context(tmp_path: Path):
     init_git_repo_with_initial_commit(tmp_path)
 
@@ -19,7 +20,7 @@ def test_build_commit_context_returns_commit_context(tmp_path: Path):
 
     print(context)
 
-    print(context.branch)   
+    print(context.branch)
 
     assert isinstance(context, CommitContext)
 

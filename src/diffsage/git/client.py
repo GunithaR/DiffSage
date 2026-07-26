@@ -5,10 +5,11 @@ import subprocess
 from diffsage.models.git import GitStatus
 from diffsage.models.git import GitCommit
 
+
 class GitClient:
     """Low-level client for executing Git commands."""
 
-    def __init__(self, repo_path: Path | str |None = None) -> None:
+    def __init__(self, repo_path: Path | str | None = None) -> None:
         self._repo_path = Path(repo_path) if repo_path else Path.cwd()
 
     def _run_git_command(self, args: list[str]) -> subprocess.CompletedProcess[str]:
@@ -25,25 +26,21 @@ class GitClient:
     def is_git_repository(self) -> bool:
         """Return True if the repository path is inside a Git working tree."""
         try:
-            result = self._run_git_command(
-                ["rev-parse", "--is-inside-work-tree"]
-            )
+            result = self._run_git_command(["rev-parse", "--is-inside-work-tree"])
             return result.stdout.strip() == "true"
-        
+
         except subprocess.CalledProcessError:
             return False
-        
+
     def repository_root(self) -> Path:
         """Return the root directory of the Git repository."""
 
-        result = self._run_git_command(
-            ["rev-parse", "--show-toplevel"]
-        )
+        result = self._run_git_command(["rev-parse", "--show-toplevel"])
         return Path(result.stdout.strip())
-    
+
     def current_branch(self) -> str:
         """Return the name of the current Git branch."""
-        
+
         result = self._run_git_command(
             ["branch", "--show-current"],
         )
@@ -56,7 +53,7 @@ class GitClient:
             ["rev-parse", "HEAD"],
         )
         return result.stdout.strip()
-    
+
     def status(self) -> GitStatus:
         """Return the current repository status."""
 
@@ -120,10 +117,7 @@ class GitClient:
             hash_, author, message, date = line.split("\t")
 
             commit = GitCommit(
-                hash=hash_,
-                author=author,
-                message=message,
-                date=datetime.fromisoformat(date)
+                hash=hash_, author=author, message=message, date=datetime.fromisoformat(date)
             )
             commits.append(commit)
 

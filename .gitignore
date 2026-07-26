@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 *.egg-info/
+*.mypy_cache/
 
 # Virtual environment
 .venv/
@@ -19,3 +20,6 @@ __pycache__/
 # IDE
 .vscode/
 .idea/
+
+# Logs
+logs/

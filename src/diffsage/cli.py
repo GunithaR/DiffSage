@@ -8,7 +8,7 @@ from diffsage.logging.logger import configure_logging
 from diffsage.commands.ask import ask
 from diffsage.commands.commit import commit
 
-app = typer.Typer(help="DiffSage: AI-powered Git workflow assistant.")
+app = typer.Typer(help="DiffSage: AI-aware Git workflow toolkit")
 
 settings = load_settings()
 configure_logging(getattr(logging, settings.log_level.upper(), logging.INFO))
@@ -20,6 +20,7 @@ def main() -> None:
     DiffSage CLI entry point.
     """
     pass
+
 
 app.command()(doctor)
 app.command()(ask)

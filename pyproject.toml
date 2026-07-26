@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "diffsage"
-version = "0.1.0"
-description = "An AI-powered Git workflow assistant."
+version = "1.0.0"
+description = "An AI-aware Git workflow toolkit."
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 license = "MIT"

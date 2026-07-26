@@ -1,7 +1,7 @@
 import os
 import platform
 import shlex
-import subprocess 
+import subprocess
 import tempfile
 
 from pathlib import Path
@@ -20,15 +20,14 @@ class EditorService:
             subprocess.run(command, check=False)
             text = temp_file.read_text(encoding="utf-8")
             return text.rstrip()
-        
+
         except FileNotFoundError as e:
             raise RuntimeError(
                 f'Unable to launch "{editor}". Check your EDITOR or VISUAL configuration.'
             ) from e
-        
+
         finally:
             temp_file.unlink(missing_ok=True)
-
 
     def _resolve_editor(self) -> str:
         editor = os.environ.get("VISUAL")

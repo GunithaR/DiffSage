@@ -3,26 +3,23 @@ from diffsage.services.prompt_service import PromptService
 
 from datetime import datetime
 
-def test_build_commit_prompt():
 
+def test_build_commit_prompt():
     commit_context = CommitContext(
         branch="main",
-
         staged_diff="""diff --git a/file.py b/file.py
         +print("Hello")
         """,
-
         unstaged_diff="""diff --git a/app.py b/app.py
         -def old()
         +def new()
         """,
-
         recent_commits=[
             GitCommit(
                 hash="abc1234",
                 author="Test User",
                 message="Initial Commit",
-                date=datetime(2026, 7, 23, 12, 8, 41, 588716)
+                date=datetime(2026, 7, 23, 12, 8, 41, 588716),
             )
         ],
     )

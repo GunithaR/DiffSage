@@ -9,6 +9,7 @@ from diffsage.config.defaults import (
     DEFAULT_TIMEOUT,
 )
 
+
 class Settings(BaseModel):
     provider: str = DEFAULT_PROVIDER
     ai_model: str = DEFAULT_AI_MODEL

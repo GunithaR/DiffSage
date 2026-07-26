@@ -1,4 +1,3 @@
-
 class DiffSageError(Exception):
     """Base exception for all DiffSage errors."""
 

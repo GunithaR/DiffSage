@@ -2,6 +2,7 @@ from diffsage.config.settings import Settings
 from diffsage.models.provider import ProviderRequest, ProviderResponse
 from diffsage.providers.factory import create_provider
 
+
 class AIService:
     """Coordinates AI provider interactions."""
 
@@ -10,7 +11,6 @@ class AIService:
         self._provider = create_provider(settings)
 
     def ask(self, prompt: str) -> ProviderResponse:
-
         request = ProviderRequest(
             prompt=prompt,
             model=self._settings.ai_model,

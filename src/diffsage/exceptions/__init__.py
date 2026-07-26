@@ -1,11 +1,11 @@
 from .provider import (
-    DiffSageError, 
+    DiffSageError,
     ProviderError,
     AuthenticationError,
-    RateLimitError, 
+    RateLimitError,
     ModelNotFoundError,
     ProviderUnavailableError,
-) 
+)
 
 __all__ = [
     "DiffSageError",

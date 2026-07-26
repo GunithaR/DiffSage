@@ -8,6 +8,7 @@ from diffsage.services.editor import EditorService
 
 console = Console()
 
+
 def generate_commit_message(git: GitClient) -> str:
     """Generate an AI-powered Git commit message."""
 
@@ -30,10 +31,12 @@ def generate_commit_message(git: GitClient) -> str:
 
     return response.content
 
+
 def display_commit_message(message: str) -> None:
     console.print()
     console.print("[green]Suggested commit message:[/green]")
     console.print(message)
+
 
 def commit() -> None:
     git = GitClient()
@@ -54,7 +57,9 @@ def commit() -> None:
 
         if choice in ("", "y"):
             git.commit(message)
-            console.print(f"[bold green]✓ Commit created successfully![/bold green] {message.splitlines()[0]}")
+            console.print(
+                f"[bold green]✓ Commit created successfully![/bold green] {message.splitlines()[0]}"
+            )
             break
 
         if choice == "e":
@@ -72,4 +77,3 @@ def commit() -> None:
             break
 
         console.print("[red]Invalid option. Please choose Y, E, R or N.[/red]")
-

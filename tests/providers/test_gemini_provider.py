@@ -7,17 +7,17 @@ from diffsage.config.settings import Settings
 from diffsage.models.provider import ProviderRequest
 from diffsage.providers.gemini_provider import GeminiProvider
 from diffsage.exceptions import (
-    ModelNotFoundError, 
+    ModelNotFoundError,
     AuthenticationError,
     RateLimitError,
     ProviderUnavailableError,
     ProviderError,
 )
 
+
 def create_settings() -> Settings:
-    return Settings(
-        api_key="test-api-key"
-    )
+    return Settings(api_key="test-api-key")
+
 
 def create_request() -> ProviderRequest:
     return ProviderRequest(
@@ -27,8 +27,8 @@ def create_request() -> ProviderRequest:
         max_tokens=1000,
     )
 
-def test_gemini_provider_returns_provider_response():
 
+def test_gemini_provider_returns_provider_response():
     with patch("diffsage.providers.gemini_provider.genai.Client") as mock_client:
         client = mock_client.return_value
         mock_response = Mock()
@@ -43,7 +43,6 @@ def test_gemini_provider_returns_provider_response():
 
         mock_response.usage_metadata.prompt_token_count = 10
         mock_response.usage_metadata.candidates_token_count = 20
-
 
         client.models.generate_content.return_value = mock_response
 
@@ -60,8 +59,8 @@ def test_gemini_provider_returns_provider_response():
         assert isinstance(response.latency_ms, int)
         assert response.latency_ms >= 0
 
-def test_gemini_provider_raises_model_not_found_error():
 
+def test_gemini_provider_raises_model_not_found_error():
     with patch("diffsage.providers.gemini_provider.genai.Client") as mock_client:
         client = mock_client.return_value
 
@@ -75,8 +74,8 @@ def test_gemini_provider_raises_model_not_found_error():
         with pytest.raises(ModelNotFoundError):
             provider.generate(create_request())
 
-def test_gemini_provider_raises_authentication_error():
 
+def test_gemini_provider_raises_authentication_error():
     with patch("diffsage.providers.gemini_provider.genai.Client") as mock_client:
         client = mock_client.return_value
 
@@ -90,8 +89,8 @@ def test_gemini_provider_raises_authentication_error():
         with pytest.raises(AuthenticationError):
             provider.generate(create_request())
 
-def test_gemini_provider_raises_rate_limit_error():
 
+def test_gemini_provider_raises_rate_limit_error():
     with patch("diffsage.providers.gemini_provider.genai.Client") as mock_client:
         client = mock_client.return_value
 
@@ -105,8 +104,8 @@ def test_gemini_provider_raises_rate_limit_error():
         with pytest.raises(RateLimitError):
             provider.generate(create_request())
 
-def test_gemini_provider_raises_provider_unavailable_error():
 
+def test_gemini_provider_raises_provider_unavailable_error():
     with patch("diffsage.providers.gemini_provider.genai.Client") as mock_client:
         client = mock_client.return_value
 
@@ -120,8 +119,8 @@ def test_gemini_provider_raises_provider_unavailable_error():
         with pytest.raises(ProviderUnavailableError):
             provider.generate(create_request())
 
-def test_gemini_provider_raises_deadline_exceeded_error():
 
+def test_gemini_provider_raises_deadline_exceeded_error():
     with patch("diffsage.providers.gemini_provider.genai.Client") as mock_client:
         client = mock_client.return_value
 
@@ -135,8 +134,8 @@ def test_gemini_provider_raises_deadline_exceeded_error():
         with pytest.raises(ProviderUnavailableError):
             provider.generate(create_request())
 
-def test_gemini_provider_raises_provider_error():
 
+def test_gemini_provider_raises_provider_error():
     with patch("diffsage.providers.gemini_provider.genai.Client") as mock_client:
         client = mock_client.return_value
 

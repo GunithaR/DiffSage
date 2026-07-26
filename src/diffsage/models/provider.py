@@ -1,12 +1,14 @@
 from dataclasses import dataclass
 from datetime import time
 
+
 @dataclass(slots=True)
 class ProviderRequest:
     prompt: str
     model: str
     temperature: float
     max_tokens: int
+
 
 @dataclass(slots=True)
 class ProviderResponse:

@@ -14,17 +14,14 @@ from diffsage.exceptions import (
     RateLimitError,
 )
 
+
 class GeminiProvider(BaseProvider):
-
     def __init__(self, settings: Settings) -> None:
-        self._settings=settings
+        self._settings = settings
 
-        self._client = genai.Client(
-            api_key=self._settings.api_key
-        )
+        self._client = genai.Client(api_key=self._settings.api_key)
 
     def generate(self, request: ProviderRequest) -> ProviderResponse:
-
         start_time = time.perf_counter()
 
         try:
@@ -36,28 +33,18 @@ class GeminiProvider(BaseProvider):
             status = e.status
 
             if status == "NOT_FOUND":
-                raise ModelNotFoundError(
-                    f"Model '{request.model}' was not found."
-                ) from e
+                raise ModelNotFoundError(f"Model '{request.model}' was not found.") from e
 
             elif status == "UNAUTHENTICATED":
-                raise AuthenticationError(
-                    "Authentication with Gemini failed."
-                ) from e
+                raise AuthenticationError("Authentication with Gemini failed.") from e
 
             elif status == "RESOURCE_EXHAUSTED":
-                raise RateLimitError(
-                    "Gemini API rate limit exceeded."
-                ) from e
+                raise RateLimitError("Gemini API rate limit exceeded.") from e
 
             elif status in ("UNAVAILABLE", "DEADLINE_EXCEEDED"):
-                raise ProviderUnavailableError(
-                    "Gemini service is currently unavailable."
-                ) from e
+                raise ProviderUnavailableError("Gemini service is currently unavailable.") from e
 
-            raise ProviderError(
-                f"Gemini API request failed: {e}"
-            ) from e
+            raise ProviderError(f"Gemini API request failed: {e}") from e
 
         latency_ms = round((time.perf_counter() - start_time) * 1000)
 
@@ -68,5 +55,5 @@ class GeminiProvider(BaseProvider):
             input_tokens=response.usage_metadata.prompt_token_count,
             output_tokens=response.usage_metadata.candidates_token_count,
             finish_reason=response.candidates[0].finish_reason.value,
-            latency_ms=latency_ms
+            latency_ms=latency_ms,
         )
