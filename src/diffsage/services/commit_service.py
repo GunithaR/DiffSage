@@ -29,6 +29,6 @@ class CommitService:
         context = self._git_service.build_commit_context()
         prompt = self._prompt_service.build_commit_prompt(context)
         response = self._ai_service.ask(prompt)
-
+        
         return response.content 
 

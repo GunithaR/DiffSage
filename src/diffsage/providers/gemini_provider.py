@@ -1,7 +1,7 @@
 import time
 
 from google import genai
-from google.genai import errors as genai_errors
+from google.genai import errors as genai_errors, types
 
 from diffsage.providers.base import BaseProvider
 from diffsage.models.provider import ProviderRequest, ProviderResponse
@@ -24,11 +24,20 @@ class GeminiProvider(BaseProvider):
     def generate(self, request: ProviderRequest) -> ProviderResponse:
         start_time = time.perf_counter()
 
+        timeout_ms=self._settings.timeout * 1000
+
+        config = types.GenerateContentConfig(
+            http_options=types.HttpOptions(
+            timeout=timeout_ms
+            ),
+        )
+
         try:
             response = self._client.models.generate_content(
                 model=request.model,
                 contents=request.prompt,
-            )
+                config=config
+            )        
         except genai_errors.APIError as e:
             status = e.status
 
