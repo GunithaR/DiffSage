@@ -1,35 +1,18 @@
 from rich.console import Console
 
 from diffsage.config.loader import load_settings
+from diffsage.exceptions.git import (
+    NotGitRepositoryError, 
+    NoStagedChangesError,
+)
 from diffsage.git.client import GitClient
-from diffsage.prompts.commit import build_commit_prompt
 from diffsage.services.ai_service import AIService
+from diffsage.services.commit_service import CommitService
 from diffsage.services.editor import EditorService
+from diffsage.services.git_service import GitService
+from diffsage.services.prompt_service import PromptService
 
 console = Console()
-
-
-def generate_commit_message(git: GitClient) -> str:
-    """Generate an AI-powered Git commit message."""
-
-    if not git.is_git_repository():
-        console.print("[red]Not inside a Git repository[/red]")
-        raise SystemExit(1)
-
-    diff = git.staged_diff()
-
-    if not diff:
-        console.print("[yellow]No staged changes found[/yellow]")
-        raise SystemExit(1)
-
-    prompt = build_commit_prompt(diff)
-
-    settings = load_settings()
-    ai = AIService(settings)
-
-    response = ai.ask(prompt)
-
-    return response.content
 
 
 def display_commit_message(message: str) -> None:
@@ -37,12 +20,38 @@ def display_commit_message(message: str) -> None:
     console.print("[green]Suggested commit message:[/green]")
     console.print(message)
 
+def generate_message(commit_service: CommitService) -> str:
+    try:
+        return commit_service.generate_commit_message()
+
+    except NotGitRepositoryError:
+        console.print("[red]Not inside a Git repository[/red]")
+        raise SystemExit(1)
+
+    except NoStagedChangesError:
+        console.print("[yellow]No staged changes found[/yellow]")
+        raise SystemExit(1)
 
 def commit() -> None:
-    git = GitClient()
+    git_client = GitClient()
+
+    settings = load_settings()
+
+    git_service = GitService(git_client)
+    ai_service = AIService(settings)
+    prompt_service = PromptService()
+
+    commit_service = CommitService(
+        git_client,
+        git_service,
+        prompt_service,
+        ai_service,
+    )
+
     editor = EditorService()
 
-    message = generate_commit_message(git)
+    message = generate_message(commit_service)
+
     display_commit_message(message)
 
     while True:
@@ -56,7 +65,7 @@ def commit() -> None:
         choice = choice.strip().lower()
 
         if choice in ("", "y"):
-            git.commit(message)
+            git_client.commit(message)
             console.print(
                 f"[bold green]✓ Commit created successfully![/bold green] {message.splitlines()[0]}"
             )
@@ -68,7 +77,7 @@ def commit() -> None:
             continue
 
         if choice == "r":
-            message = generate_commit_message(git)
+            message = generate_message(commit_service)
             display_commit_message(message)
             continue
 
