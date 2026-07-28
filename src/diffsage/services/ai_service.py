@@ -1,16 +1,24 @@
+import time
+
 from diffsage.config.settings import Settings
 from diffsage.models.provider import ProviderRequest, ProviderResponse
+from diffsage.providers.base import BaseProvider
+from diffsage.exceptions import ProviderUnavailableError
 from diffsage.providers.factory import create_provider
 
 
 class AIService:
     """Coordinates AI provider interactions."""
 
-    def __init__(self, settings: Settings) -> None:
+    def __init__(
+            self, 
+            settings: Settings, 
+            provider: BaseProvider | None = None
+    ) -> None:
         self._settings = settings
-        self._provider = create_provider(settings)
+        self._provider = provider or create_provider(settings)
 
-    def ask(self, prompt: str) -> ProviderResponse:
+    def _ask_once(self, prompt: str) -> ProviderResponse:
         request = ProviderRequest(
             prompt=prompt,
             model=self._settings.ai_model,
@@ -19,3 +27,20 @@ class AIService:
         )
 
         return self._provider.generate(request)
+
+    def _backoff_delay(self, attempt: int) -> int:
+        return 2 ** attempt
+
+    def ask(self, prompt: str) -> ProviderResponse:
+        total_attempts = self._settings.max_retries + 1
+
+        for attempt in range(total_attempts):
+            try:
+                return self._ask_once(prompt)
+            
+            except ProviderUnavailableError:
+                if attempt == total_attempts -1:
+                    raise
+
+                delay = self._backoff_delay(attempt)
+                time.sleep(delay)
