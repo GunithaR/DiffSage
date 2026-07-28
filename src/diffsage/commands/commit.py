@@ -11,14 +11,11 @@ from diffsage.services.commit_service import CommitService
 from diffsage.services.editor import EditorService
 from diffsage.services.git_service import GitService
 from diffsage.services.prompt_service import PromptService
+from diffsage.ui.commit_view import CommitView
+
 
 console = Console()
 
-
-def display_commit_message(message: str) -> None:
-    console.print()
-    console.print("[green]Suggested commit message:[/green]")
-    console.print(message)
 
 def generate_message(commit_service: CommitService) -> str:
     try:
@@ -49,10 +46,12 @@ def commit() -> None:
     )
 
     editor = EditorService()
+    view = CommitView()
 
-    message = generate_message(commit_service)
+    with view.generating():
+        message = generate_message(commit_service)
 
-    display_commit_message(message)
+    view.show_commit(message)
 
     while True:
         console.print()
@@ -73,12 +72,13 @@ def commit() -> None:
 
         if choice == "e":
             message = editor.edit(message)
-            display_commit_message(message)
+            view.show_commit(message)
             continue
 
         if choice == "r":
-            message = generate_message(commit_service)
-            display_commit_message(message)
+            with view.generating():
+                message = generate_message(commit_service)
+            view.show_commit(message)
             continue
 
         if choice == "n":
