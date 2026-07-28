@@ -17,16 +17,16 @@ from diffsage.ui.commit_view import CommitView
 console = Console()
 
 
-def generate_message(commit_service: CommitService) -> str:
+def generate_message(commit_service: CommitService, view: CommitView) -> str:
     try:
         return commit_service.generate_commit_message()
 
     except NotGitRepositoryError:
-        console.print("[red]Not inside a Git repository[/red]")
+        view.show_not_git_repository()
         raise SystemExit(1)
 
     except NoStagedChangesError:
-        console.print("[yellow]No staged changes found[/yellow]")
+        view.show_no_staged_changes()
         raise SystemExit(1)
 
 def commit() -> None:
@@ -49,25 +49,16 @@ def commit() -> None:
     view = CommitView()
 
     with view.generating():
-        message = generate_message(commit_service)
+        message = generate_message(commit_service, view)
 
     view.show_commit(message)
 
     while True:
-        console.print()
-        choice = console.input(
-            "[bold cyan][Y][/bold cyan] Commit  "
-            "[bold cyan][E][/bold cyan] Edit  "
-            "[bold cyan][R][/bold cyan] Regenerate  "
-            "[bold cyan][N][/bold cyan] Cancel: "
-        )
-        choice = choice.strip().lower()
+        choice = view.prompt_action()
 
         if choice in ("", "y"):
             git_client.commit(message)
-            console.print(
-                f"[bold green]✓ Commit created successfully![/bold green] {message.splitlines()[0]}"
-            )
+            view.show_success(message)
             break
 
         if choice == "e":
@@ -77,12 +68,13 @@ def commit() -> None:
 
         if choice == "r":
             with view.generating():
-                message = generate_message(commit_service)
+                message = generate_message(commit_service, view)
+
             view.show_commit(message)
             continue
 
         if choice == "n":
-            console.print("[yellow]Cancelled.[/yellow]")
+            view.show_cancelled()
             break
 
-        console.print("[red]Invalid option. Please choose Y, E, R or N.[/red]")
+        view.show_invalid_option()

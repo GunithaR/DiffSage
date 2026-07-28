@@ -1,8 +1,6 @@
 from rich.console import Console
 from contextlib import contextmanager
 
-console = Console()
-
 
 class CommitView:
     """Handles terminal rendering for the commit command."""
@@ -16,9 +14,39 @@ class CommitView:
             yield 
 
     def show_commit(self, message: str) -> None:
-        console.print()
-        console.print("[green]Suggested commit message:[/green]")
-        console.print(message)
+        self._console.print()
+        self._console.print("[green]Suggested commit message:[/green]")
+        self._console.print(message)
+
+    def prompt_action(self) -> str: 
+        self._console.print()
+
+        return self._console.input(
+                    "[bold cyan][Y][/bold cyan] Commit  "
+                    "[bold cyan][E][/bold cyan] Edit  "
+                    "[bold cyan][R][/bold cyan] Regenerate  "
+                    "[bold cyan][N][/bold cyan] Cancel: "
+        )
+
+    def show_success(self, message: str) -> None:
+        self._console.print(
+            f"[bold green]✓ Commit created successfully![/bold green] {message.splitlines()[0]}"
+        )
+
+    def show_cancelled(self) -> None:
+        self._console.print("[yellow]Cancelled.[/yellow]")
+
+    def show_invalid_option(self) -> None:
+        self._console.print("[red]Invalid option. Please choose Y, E, R or N.[/red]")
+
+    def show_not_git_repository(self):
+        self._console.print("[red]Not inside a Git repository[/red]")
+
+    def show_no_staged_changes(self):
+        self._console.print("[yellow]No staged changes found[/yellow]")
+
+
+ 
 
         
 
