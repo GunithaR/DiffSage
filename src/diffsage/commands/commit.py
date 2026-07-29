@@ -51,6 +51,7 @@ def commit() -> None:
     with view.generating():
         message = generate_message(commit_service, view)
 
+    view.show_generated()
     view.show_commit(message)
 
     while True:
@@ -70,6 +71,7 @@ def commit() -> None:
             with view.generating():
                 message = generate_message(commit_service, view)
 
+            view.show_generated()
             view.show_commit(message)
             continue
 

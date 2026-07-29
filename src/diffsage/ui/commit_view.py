@@ -1,4 +1,5 @@
 from rich.console import Console
+from rich.panel import Panel
 from contextlib import contextmanager
 
 
@@ -14,9 +15,13 @@ class CommitView:
             yield 
 
     def show_commit(self, message: str) -> None:
+        panel = Panel(
+            message,
+            title="[bold cyan]Suggested Commit Message[/bold cyan]",
+            expand=False,
+        )
         self._console.print()
-        self._console.print("[green]Suggested commit message:[/green]")
-        self._console.print(message)
+        self._console.print(panel)
 
     def prompt_action(self) -> str: 
         self._console.print()
@@ -44,6 +49,10 @@ class CommitView:
 
     def show_no_staged_changes(self):
         self._console.print("[yellow]No staged changes found[/yellow]")
+
+    def show_generated(self) -> None:
+        self._console.print()
+        self._console.print("[green]✓ Commit message generated[/green]")
 
 
  
