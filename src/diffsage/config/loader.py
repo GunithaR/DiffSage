@@ -3,7 +3,7 @@ import os
 from dotenv import load_dotenv
 
 from diffsage.config.settings import Settings
-from diffsage.core.exceptions import ConfigError
+from diffsage.exceptions.base import ConfigError
 
 
 def load_settings() -> Settings:
@@ -16,6 +16,7 @@ def load_settings() -> Settings:
     try:
         return Settings(
             provider=os.getenv("DIFFSAGE_PROVIDER", defaults.provider),
+            ai_model=os.getenv("DIFFSAGE_AI_MODEL", defaults.ai_model),
             api_key=os.getenv("DIFFSAGE_API_KEY", defaults.api_key),
             timeout=int(os.getenv("DIFFSAGE_TIMEOUT", defaults.timeout)),
             max_retries=int(os.getenv("DIFFSAGE_MAX_RETRIES", defaults.max_retries)),

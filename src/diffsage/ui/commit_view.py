@@ -14,6 +14,16 @@ class CommitView:
         with self._console.status("Generating commit message..."):
             yield 
 
+    def show_generated(self) -> None:
+        self._console.print()
+        self._console.print("[green]✓ Commit message generated successfully.[/green]")
+
+    def show_not_git_repository(self):
+        self._console.print("[red]Not inside a Git repository[/red]")
+
+    def show_no_staged_changes(self):
+        self._console.print("[yellow]No staged changes found[/yellow]")
+
     def show_commit(self, message: str) -> None:
         panel = Panel(
             message,
@@ -44,18 +54,7 @@ class CommitView:
     def show_invalid_option(self) -> None:
         self._console.print("[red]Invalid option. Please choose Y, E, R or N.[/red]")
 
-    def show_not_git_repository(self):
-        self._console.print("[red]Not inside a Git repository[/red]")
-
-    def show_no_staged_changes(self):
-        self._console.print("[yellow]No staged changes found[/yellow]")
-
-    def show_generated(self) -> None:
-        self._console.print()
-        self._console.print("[green]✓ Commit message generated[/green]")
-
-    def show__error(self, message: str) -> None:
-        self._console.print()
+    def show_error(self, message: str) -> None:
         self._console.print(f"[red]✗ {message}[/red]")
 
     

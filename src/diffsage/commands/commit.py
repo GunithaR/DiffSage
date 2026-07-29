@@ -1,4 +1,5 @@
 from diffsage.config.loader import load_settings
+from diffsage.exceptions.base import ConfigError
 from diffsage.exceptions.git import (
     NotGitRepositoryError, 
     NoStagedChangesError,
@@ -20,25 +21,25 @@ def generate_message(commit_service: CommitService) -> str:
     return commit_service.generate_commit_message()
 
 def commit() -> None:
-    git_client = GitClient()
-
-    settings = load_settings()
-
-    git_service = GitService(git_client)
-    ai_service = AIService(settings)
-    prompt_service = PromptService()
-
-    commit_service = CommitService(
-        git_client,
-        git_service,
-        prompt_service,
-        ai_service,
-    )
-
-    editor = EditorService()
-    view = CommitView()
-
     try:
+        git_client = GitClient()
+
+        settings = load_settings()
+
+        git_service = GitService(git_client)
+        ai_service = AIService(settings)
+        prompt_service = PromptService()
+
+        commit_service = CommitService(
+            git_client,
+            git_service,
+            prompt_service,
+            ai_service,
+        )
+
+        editor = EditorService()
+        view = CommitView()
+
         with view.generating():
             message = generate_message(commit_service)
 
@@ -87,6 +88,11 @@ def commit() -> None:
         raise SystemExit(1)
 
     except ProviderError as e:
+        logger.warning(str(e))
+        view.show_error(str(e))    
+        raise SystemExit(1)
+
+    except ConfigError as e:
         logger.warning(str(e))
         view.show_error(str(e))    
         raise SystemExit(1)
