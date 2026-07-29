@@ -19,15 +19,15 @@ def configure_logging(level: int = logging.INFO) -> None:
     log_directory.mkdir(exist_ok=True)
     log_file = log_directory / "diffsage.log"
 
-    console_handler = logging.StreamHandler()
+    # console_handler = logging.StreamHandler()
     file_handler = logging.FileHandler(log_file)
 
     formatter = logging.Formatter("%(asctime)s | %(levelname)s | %(name)s | %(message)s")
 
-    console_handler.setFormatter(formatter)
+    # console_handler.setFormatter(formatter)
     file_handler.setFormatter(formatter)
 
-    root_logger.addHandler(console_handler)
+    # root_logger.addHandler(console_handler)
     root_logger.addHandler(file_handler)
 
     logging.getLogger("httpx").setLevel(logging.WARNING)

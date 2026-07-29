@@ -54,6 +54,12 @@ class CommitView:
         self._console.print()
         self._console.print("[green]✓ Commit message generated[/green]")
 
+    def show__error(self, message: str) -> None:
+        self._console.print()
+        self._console.print(f"[red]✗ {message}[/red]")
+
+    
+
 
  
 
