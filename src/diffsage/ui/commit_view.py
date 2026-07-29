@@ -1,7 +1,10 @@
-from rich.console import Console
+from rich.console import Console, Group
 from rich.panel import Panel
+from rich.rule import Rule
+from rich.table import Table
+from rich.text import Text
 from contextlib import contextmanager
-
+from diffsage.models.commit_message import CommitMessage
 
 class CommitView:
     """Handles terminal rendering for the commit command."""
@@ -15,7 +18,6 @@ class CommitView:
             yield 
 
     def show_generated(self) -> None:
-        self._console.print()
         self._console.print("[green]✓ Commit message generated successfully.[/green]")
 
     def show_not_git_repository(self):
@@ -24,12 +26,51 @@ class CommitView:
     def show_no_staged_changes(self):
         self._console.print("[yellow]No staged changes found[/yellow]")
 
-    def show_commit(self, message: str) -> None:
-        panel = Panel(
-            message,
-            title="[bold cyan]Suggested Commit Message[/bold cyan]",
-            expand=False,
-        )
+    def show_commit(self, message: CommitMessage) -> None:
+        grid = Table.grid(expand=True)
+        grid.add_column(style="cyan", width=10)
+        grid.add_column()
+
+        if message.type:
+            grid.add_row("Type", message.type)
+
+        if message.scope:
+            grid.add_row("Scope", message.scope)
+
+        grid.add_row("Subject", message.subject)
+
+        body = Text()
+
+        if message.body:
+            for i, line in enumerate(message.body):
+                line = line.strip()
+                if not line:
+                    continue
+
+                if line.startswith("- "):
+                    line = line.removeprefix("- ")
+                
+                body.append(f"• {line}")
+                if i < len(message.body) -1 :
+                    body.append("\n")
+                    
+            content = Group(
+                grid,
+                Rule(),
+                body,
+            )
+            panel = Panel(
+                content,
+                title="[bold cyan]Commit Message[/bold cyan]",
+                expand=False,
+            )
+        else:
+            panel = Panel(
+                grid,
+                title="[bold cyan]Suggested Commit Message[/bold cyan]",
+                expand=False,
+            )
+        
         self._console.print()
         self._console.print(panel)
 
@@ -37,16 +78,17 @@ class CommitView:
         self._console.print()
 
         return self._console.input(
-                    "[bold cyan][Y][/bold cyan] Commit  "
-                    "[bold cyan][E][/bold cyan] Edit  "
-                    "[bold cyan][R][/bold cyan] Regenerate  "
-                    "[bold cyan][N][/bold cyan] Cancel: "
+                    "[bold cyan][Y][/bold cyan] Commit (default)   "
+                    "[bold cyan][E][/bold cyan] Edit   "
+                    "[bold cyan][R][/bold cyan] Regenerate   "
+                    "[bold cyan][N][/bold cyan] Cancel:  "
         )
 
     def show_success(self, message: str) -> None:
-        self._console.print(
-            f"[bold green]✓ Commit created successfully![/bold green] {message.splitlines()[0]}"
-        )
+        self._console.print("[bold green]✓ Commit created successfully.[bold green]")
+        self._console.print()
+        self._console.print("[dim]Commit:[/dim]")
+        self._console.print(message)
 
     def show_cancelled(self) -> None:
         self._console.print("[yellow]Cancelled.[/yellow]")
@@ -56,13 +98,3 @@ class CommitView:
 
     def show_error(self, message: str) -> None:
         self._console.print(f"[red]✗ {message}[/red]")
-
-    
-
-
- 
-
-        
-
-
-    

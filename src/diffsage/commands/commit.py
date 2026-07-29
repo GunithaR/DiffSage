@@ -12,6 +12,7 @@ from diffsage.services.editor import EditorService
 from diffsage.services.git_service import GitService
 from diffsage.services.prompt_service import PromptService
 from diffsage.ui.commit_view import CommitView
+from diffsage.parsers.commit_message_parse import CommitMessageParser
 from diffsage.logging.logger import get_logger
 
 logger = get_logger(__name__)
@@ -23,6 +24,8 @@ def generate_message(commit_service: CommitService) -> str:
 def commit() -> None:
     try:
         git_client = GitClient()
+        view = CommitView()
+        editor = EditorService()
 
         settings = load_settings()
 
@@ -37,37 +40,37 @@ def commit() -> None:
             ai_service,
         )
 
-        editor = EditorService()
-        view = CommitView()
-
         with view.generating():
-            message = generate_message(commit_service)
+            raw_message = generate_message(commit_service)
+            commit_message = CommitMessageParser.parse(raw_message)
 
         view.show_generated()
-        view.show_commit(message)
+        view.show_commit(commit_message)
 
         while True:
             choice = view.prompt_action()
 
             if choice in ("", "y"):
                 logger.info("User selected commit.")
-                git_client.commit(message)
-                view.show_success(message)
+                git_client.commit(raw_message)
+                view.show_success(raw_message)
                 break
 
             if choice == "e":
                 logger.info("User selected edit.")
-                message = editor.edit(message)
-                view.show_commit(message)
+                raw_message = editor.edit(raw_message)
+                commit_message = CommitMessageParser.parse(raw_message)
+                view.show_commit(commit_message)
                 continue
 
             if choice == "r":
                 logger.info("User selected regenerate.")
                 with view.generating():
-                    message = generate_message(commit_service)
+                    raw_message = generate_message(commit_service)
+                    commit_message = CommitMessageParser.parse(raw_message)
 
                 view.show_generated()
-                view.show_commit(message)
+                view.show_commit(commit_message)
                 continue
 
             if choice == "n":
