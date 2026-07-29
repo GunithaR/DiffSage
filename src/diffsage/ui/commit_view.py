@@ -53,10 +53,10 @@ class CommitView:
                 body.append(f"• {line}")
                 if i < len(message.body) -1 :
                     body.append("\n")
-                    
+
             content = Group(
                 grid,
-                Rule(),
+                Rule(style="cyan"),
                 body,
             )
             panel = Panel(
@@ -89,6 +89,7 @@ class CommitView:
         self._console.print()
         self._console.print("[dim]Commit:[/dim]")
         self._console.print(message)
+        self._console.print()
 
     def show_cancelled(self) -> None:
         self._console.print("[yellow]Cancelled.[/yellow]")
