@@ -12,7 +12,7 @@ from diffsage.services.editor import EditorService
 from diffsage.services.git_service import GitService
 from diffsage.services.prompt_service import PromptService
 from diffsage.ui.commit_view import CommitView
-from diffsage.parsers.commit_message_parse import CommitMessageParser
+from diffsage.parsers.commit_message_parser import CommitMessageParser
 from diffsage.logging.logger import get_logger
 
 logger = get_logger(__name__)
@@ -22,6 +22,8 @@ def generate_message(commit_service: CommitService) -> str:
     return commit_service.generate_commit_message()
 
 def commit() -> None:
+    """Generate a conventional commit message"""
+
     try:
         git_client = GitClient()
         view = CommitView()
