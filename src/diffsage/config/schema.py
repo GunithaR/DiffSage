@@ -31,3 +31,23 @@ class DiffSageConfig(BaseModel):
     ai: AIConfig
     network: NetworkConfig
     logging: LoggingConfig
+
+
+class PartialAIConfig(BaseModel):
+    provider: str | None = None
+    model: str | None = None
+
+
+class PartialNetworkConfig(BaseModel):
+    timeout: int | None = None
+    max_retries: int | None = None
+
+
+class PartialLoggingConfig(BaseModel):
+    level: str | None = None
+
+
+class PartialDiffSageConfig(BaseModel):
+    ai: PartialAIConfig | None = None
+    network: PartialNetworkConfig | None = None
+    logging: PartialLoggingConfig | None = None

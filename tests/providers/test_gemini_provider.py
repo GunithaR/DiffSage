@@ -13,10 +13,7 @@ from diffsage.exceptions import (
     ProviderUnavailableError,
     ProviderError,
 )
-
-
-def create_settings() -> Settings:
-    return Settings(api_key="test-api-key")
+from tests.helpers import create_settings
 
 
 def create_request() -> ProviderRequest:

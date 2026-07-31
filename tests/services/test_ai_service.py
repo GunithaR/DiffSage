@@ -6,6 +6,7 @@ from diffsage.config.settings import Settings
 from diffsage.exceptions.provider import AuthenticationError ,ProviderUnavailableError
 from diffsage.models.provider import ProviderResponse
 from diffsage.services.ai_service import AIService
+from tests.helpers import create_settings
 
 
 def test_ask_returns_response_on_first_attempt():
@@ -21,7 +22,7 @@ def test_ask_returns_response_on_first_attempt():
         latency_ms=300
     )
 
-    settings = Settings()
+    settings = create_settings()
     provider.generate.return_value = response
     service = AIService(settings, provider=provider)
     result = service.ask("prompt")
@@ -48,7 +49,7 @@ def test_ask_retries_once_then_returns_response():
             response,
     ]
 
-    settings = Settings()
+    settings = create_settings()
     service = AIService(settings, provider=provider)
 
     with patch("diffsage.services.ai_service.time.sleep") as mock_sleep:
@@ -78,7 +79,7 @@ def test_ask_retries_multiple_times_then_returns_response():
             response,
     ]
 
-    settings = Settings()
+    settings = create_settings()
     service = AIService(settings, provider=provider)
 
     with patch("diffsage.services.ai_service.time.sleep") as mock_sleep:
@@ -101,7 +102,7 @@ def test_ask_raises_after_exhausting_retries():
             ProviderUnavailableError("4"),
     ]
 
-    settings = Settings()
+    settings = create_settings()
     service = AIService(settings, provider=provider)
 
     with patch("diffsage.services.ai_service.time.sleep") as mock_sleep:
@@ -122,7 +123,7 @@ def test_ask_does_not_retry_non_retryable_exception():
 
     provider.generate.side_effect = AuthenticationError("Invalid API key")
 
-    settings = Settings()
+    settings = create_settings()
     service = AIService(settings, provider=provider)
 
     with patch("diffsage.services.ai_service.time.sleep") as mock_sleep:

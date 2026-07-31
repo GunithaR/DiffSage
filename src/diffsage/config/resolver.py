@@ -1,22 +1,51 @@
 import os
 
 from dotenv import load_dotenv
+from collections.abc import Mapping
 
 from diffsage.config.defaults import DEFAULT_CONFIG
 from diffsage.config.settings import Settings
-from diffsage.config.schema import DiffSageConfig
+from diffsage.config.schema import DiffSageConfig, PartialDiffSageConfig
 from diffsage.exceptions.base import ConfigError
 
 from diffsage.config.paths import get_global_config_path
 from diffsage.config.file_loader import load_config
 
 
-def _merge_config(
-        base: DiffSageConfig,
-        override: DiffSageConfig,
-) -> DiffSageConfig:
-    ...
+def _merge_dict(
+    base: dict,
+    override: dict,
+) -> dict:
+    """Recursively merge two dictionaries."""
 
+    merged = base.copy()
+
+    for key, value in override.items():
+        if (
+            key in merged
+            and isinstance(merged[key], Mapping)
+            and isinstance(value, Mapping)
+        ):
+            merged[key] = _merge_dict(merged[key], value)
+        else:
+            merged[key] = value
+
+    return merged
+
+
+def _merge_config(
+    base: DiffSageConfig,
+    override: PartialDiffSageConfig,
+) -> DiffSageConfig:
+    """Merge two configuration models."""
+
+    merged = _merge_dict(
+        base.model_dump(),
+        override.model_dump(exclude_unset=True),
+    )
+
+    return DiffSageConfig.model_validate(merged)
+    
 
 def _to_settings(config: DiffSageConfig) -> Settings:
     """Convert a configuration model into runtime settings."""
@@ -40,8 +69,10 @@ def resolve_settings() -> Settings:
     global_config_path = get_global_config_path()
 
     if global_config_path.exists():
-        global_config = load_config(global_config_path)
-        config = global_config
+        config = _merge_config(
+            config,
+            load_config(global_config_path),
+        )
 
     settings = _to_settings(config)
 
