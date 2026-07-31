@@ -32,13 +32,16 @@ The project therefore requires a hierarchical configuration system capable of su
 
 DiffSage will adopt a hierarchical configuration system with multiple configuration sources.
 
-Configuration values will be resolved according to the following precedence order (highest priority first):
+Configuration values will ultimately be resolved according to the following precedence order (highest priority first):
 
 ```
 Command Line Arguments
         │
         ▼
 Environment Variables
+        │
+        ▼
+Credential Store
         │
         ▼
 Local Repository Configuration
@@ -50,6 +53,10 @@ Global User Configuration
         ▼
 Application Defaults
 ```
+
+The initial implementation introduces the hierarchy up to environment variables.
+
+Credential storage and command-line overrides will be introduced in future iterations while preserving this resolution order.
 
 Each successive layer overrides the layers beneath it.
 
@@ -63,14 +70,15 @@ DiffSage will maintain a user-level configuration file containing the developer'
 
 Typical settings include:
 
-- AI provider
+- Default AI provider
+- Default provider profile
 - Default model
 - Request timeout
 - Retry policy
 - Logging preferences
 - Output preferences
 
-The global configuration represents the default behavior of DiffSage across all repositories.
+Global configuration intentionally excludes API credentials.
 
 ---
 
@@ -93,7 +101,17 @@ Examples include:
 
 Local configuration overrides the global configuration but may itself be overridden by environment variables.
 
-Sensitive information such as API keys should generally **not** be committed to repository configuration.
+Repository configuration should contain only repository-specific behavior.
+
+Examples include:
+
+- Preferred provider
+- Preferred provider profile
+- Preferred model
+- Prompt behaviour
+- Repository defaults
+
+Repository configuration must not store authentication credentials.
 
 ---
 
@@ -200,7 +218,7 @@ Alternative formats such as JSON and YAML were considered but not selected.
 
 # Interactive Configuration
 
-DiffSage will provide dedicated commands for managing configuration.
+Future configuration commands will support both direct and interactive editing.
 
 Examples:
 
@@ -211,42 +229,89 @@ diffsage config get provider
 
 diffsage config set provider gemini
 
+diffsage config set profile work
+
 diffsage config set model gemini-2.5-flash
 
 diffsage config unset provider
 ```
 
-A future interactive setup command may also be provided.
+Interactive configuration may also be provided for improved usability.
 
 Example:
+
+```bash
+diffsage config
+```
+
+or
 
 ```bash
 diffsage init
 ```
 
-The setup wizard should guide first-time users through selecting providers, models, and credentials.
+The interactive experience should guide users through selecting providers, models, and preferred defaults without requiring manual editing of configuration files.
 
 ---
 
-# Security Considerations
+## Security Considerations
 
-Global configuration may contain sensitive credentials.
+Authentication credentials are intentionally separated from configuration.
+
+Configuration files should never contain API keys.
 
 The initial implementation will:
 
-- Restrict file permissions where supported by the operating system.
-- Avoid printing secrets in terminal output.
+- Restrict file permissions where supported.
+- Avoid printing credentials in terminal output.
 - Avoid exposing secrets through diagnostic commands.
 
-Repository configuration should generally avoid storing API credentials.
+Future versions will introduce a dedicated credential store managed through `diffsage auth`.
 
-Environment variables remain the preferred mechanism for automation and shared infrastructure.
-
-Future versions may integrate with operating system credential stores such as:
+Where supported, credentials may eventually be stored using operating-system facilities such as:
 
 - macOS Keychain
 - Windows Credential Manager
 - Linux Secret Service
+
+Environment variables remain fully supported for CI/CD pipelines and automated environments.
+
+---
+
+## Authentication Architecture
+
+Configuration and authentication are intentionally treated as separate concerns.
+
+Configuration defines how DiffSage should behave, while authentication manages access to external AI providers.
+
+Future versions of DiffSage will introduce dedicated authentication commands.
+
+Examples:
+
+```bash
+diffsage auth login
+
+diffsage auth list
+
+diffsage auth remove
+```
+
+Authentication commands will guide users through selecting an AI provider, creating a profile, and securely storing credentials.
+
+Configuration files will reference providers and profiles rather than storing API keys directly.
+
+Example conceptual model:
+
+Gemini
+├── personal
+├── work
+└── university
+
+Anthropic
+├── work
+└── enterprise
+
+This separation allows multiple accounts for the same provider while keeping credentials independent from user configuration.
 
 ---
 
@@ -257,6 +322,23 @@ Existing environment-variable-based workflows will continue to function without 
 The hierarchical configuration system extends the existing behavior rather than replacing it.
 
 Users who prefer environment variables may continue using them exclusively.
+
+---
+
+# Future Configuration Model
+
+The intended separation of responsibilities is:
+
+| Component | Responsibility |
+|-----------|----------------|
+| Application Defaults | Internal DiffSage defaults |
+| Global Configuration | User preferences |
+| Local Configuration | Repository-specific behaviour |
+| Credential Store | Provider credentials and authentication |
+| Environment Variables | Temporary or CI/CD overrides |
+| Command Line Arguments | One-time command overrides |
+
+This separation allows DiffSage to evolve without coupling user preferences, repository configuration, and authentication.
 
 ---
 
