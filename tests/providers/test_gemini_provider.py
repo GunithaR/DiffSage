@@ -1,18 +1,17 @@
-import pytest
-
 from unittest.mock import Mock, patch
+
+import pytest
 from google.genai import errors as genai_errors
 
-from diffsage.config.settings import Settings
+from diffsage.exceptions import (
+    AuthenticationError,
+    ModelNotFoundError,
+    ProviderError,
+    ProviderUnavailableError,
+    RateLimitError,
+)
 from diffsage.models.provider import ProviderRequest
 from diffsage.providers.gemini_provider import GeminiProvider
-from diffsage.exceptions import (
-    ModelNotFoundError,
-    AuthenticationError,
-    RateLimitError,
-    ProviderUnavailableError,
-    ProviderError,
-)
 from tests.helpers import create_settings
 
 

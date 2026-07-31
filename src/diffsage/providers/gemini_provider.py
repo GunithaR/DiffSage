@@ -1,10 +1,9 @@
 import time
 
 from google import genai
-from google.genai import errors as genai_errors, types
+from google.genai import errors as genai_errors
+from google.genai import types
 
-from diffsage.providers.base import BaseProvider
-from diffsage.models.provider import ProviderRequest, ProviderResponse
 from diffsage.config.settings import Settings
 from diffsage.exceptions import (
     AuthenticationError,
@@ -13,6 +12,8 @@ from diffsage.exceptions import (
     ProviderUnavailableError,
     RateLimitError,
 )
+from diffsage.models.provider import ProviderRequest, ProviderResponse
+from diffsage.providers.base import BaseProvider
 
 
 class GeminiProvider(BaseProvider):

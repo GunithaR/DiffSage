@@ -1,9 +1,8 @@
-from pathlib import Path
-from datetime import datetime
 import subprocess
+from datetime import datetime
+from pathlib import Path
 
-from diffsage.models.git import GitStatus
-from diffsage.models.git import GitCommit
+from diffsage.models.git import GitCommit, GitStatus
 
 
 class GitClient:

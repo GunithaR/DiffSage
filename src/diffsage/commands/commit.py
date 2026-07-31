@@ -1,19 +1,19 @@
 from diffsage.config.loader import load_settings
 from diffsage.exceptions.base import ConfigError
 from diffsage.exceptions.git import (
-    NotGitRepositoryError, 
     NoStagedChangesError,
+    NotGitRepositoryError,
 )
 from diffsage.exceptions.provider import ProviderError
 from diffsage.git.client import GitClient
+from diffsage.logging.logger import get_logger
+from diffsage.parsers.commit_message_parser import CommitMessageParser
 from diffsage.services.ai_service import AIService
 from diffsage.services.commit_service import CommitService
 from diffsage.services.editor import EditorService
 from diffsage.services.git_service import GitService
 from diffsage.services.prompt_service import PromptService
 from diffsage.ui.commit_view import CommitView
-from diffsage.parsers.commit_message_parser import CommitMessageParser
-from diffsage.logging.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -85,28 +85,28 @@ def commit() -> None:
     except NotGitRepositoryError:
         logger.info("Command aborted: not a Git repository.")
         view.show_not_git_repository()
-        raise SystemExit(1)
+        raise SystemExit(1) from None
 
     except NoStagedChangesError:
         logger.info("Command aborted: no staged changes.")
         view.show_no_staged_changes()
-        raise SystemExit(1)
+        raise SystemExit(1) from None
 
     except ProviderError as e:
         logger.warning(str(e))
         view.show_error(str(e))    
-        raise SystemExit(1)
+        raise SystemExit(1) from None
 
     except ConfigError as e:
         logger.warning(str(e))
         view.show_error(str(e))    
-        raise SystemExit(1)
+        raise SystemExit(1) from None
 
     except Exception:
         logger.exception("Unexpected error while executing commit command.")
         view.show_error(
             "An unexpected error occurred. Please check the log file for more details."
         )
-        raise SystemExit(1)
+        raise SystemExit(1) from None
 
     

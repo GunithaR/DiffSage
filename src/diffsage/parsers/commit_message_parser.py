@@ -1,5 +1,6 @@
 from diffsage.models.commit_message import CommitMessage
 
+
 class CommitMessageParser:
     @staticmethod
     def parse(message: str) -> CommitMessage:

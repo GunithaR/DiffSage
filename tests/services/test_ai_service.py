@@ -1,9 +1,8 @@
+from unittest.mock import Mock, call, patch
+
 import pytest
 
-from unittest.mock import Mock, patch, call
-
-from diffsage.config.settings import Settings
-from diffsage.exceptions.provider import AuthenticationError ,ProviderUnavailableError
+from diffsage.exceptions.provider import AuthenticationError, ProviderUnavailableError
 from diffsage.models.provider import ProviderResponse
 from diffsage.services.ai_service import AIService
 from tests.helpers import create_settings

@@ -1,9 +1,8 @@
 import subprocess
-
 from pathlib import Path
 
-from diffsage.config.settings import Settings
 from diffsage.config.defaults import DEFAULT_CONFIG
+from diffsage.config.settings import Settings
 
 
 def run_git(

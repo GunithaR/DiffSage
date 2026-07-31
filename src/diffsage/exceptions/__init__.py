@@ -1,10 +1,10 @@
 from .provider import (
-    DiffSageError,
-    ProviderError,
     AuthenticationError,
-    RateLimitError,
+    DiffSageError,
     ModelNotFoundError,
+    ProviderError,
     ProviderUnavailableError,
+    RateLimitError,
 )
 
 __all__ = [

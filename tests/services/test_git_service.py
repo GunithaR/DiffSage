@@ -1,9 +1,8 @@
 from pathlib import Path
 
-from diffsage.services.git_service import GitService
 from diffsage.git.client import GitClient
 from diffsage.models.git import CommitContext
-
+from diffsage.services.git_service import GitService
 from tests.helpers import init_git_repo_with_initial_commit
 
 

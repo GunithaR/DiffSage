@@ -1,15 +1,14 @@
 import os
-
-from dotenv import load_dotenv
 from collections.abc import Mapping
 
-from diffsage.config.defaults import DEFAULT_CONFIG
-from diffsage.config.settings import Settings
-from diffsage.config.schema import DiffSageConfig, PartialDiffSageConfig
-from diffsage.exceptions.base import ConfigError
+from dotenv import load_dotenv
 
-from diffsage.config.paths import get_global_config_path
+from diffsage.config.defaults import DEFAULT_CONFIG
 from diffsage.config.file_loader import load_config
+from diffsage.config.paths import get_global_config_path, get_local_config_path
+from diffsage.config.schema import DiffSageConfig, PartialDiffSageConfig
+from diffsage.config.settings import Settings
+from diffsage.exceptions.base import ConfigError
 
 
 def _merge_dict(
@@ -72,6 +71,17 @@ def resolve_settings() -> Settings:
         config = _merge_config(
             config,
             load_config(global_config_path),
+        )
+
+    local_config_path = get_local_config_path()
+
+    if (
+        local_config_path is not None
+        and local_config_path.exists()
+    ):
+        config = _merge_config(
+            config,
+            load_config(local_config_path)
         )
 
     settings = _to_settings(config)

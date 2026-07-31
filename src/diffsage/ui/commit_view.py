@@ -1,10 +1,13 @@
+from contextlib import contextmanager
+
 from rich.console import Console, Group
 from rich.panel import Panel
 from rich.rule import Rule
 from rich.table import Table
 from rich.text import Text
-from contextlib import contextmanager
+
 from diffsage.models.commit_message import CommitMessage
+
 
 class CommitView:
     """Handles terminal rendering for the commit command."""

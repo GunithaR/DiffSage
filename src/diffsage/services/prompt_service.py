@@ -31,7 +31,7 @@ class PromptService:
     def _build_commit_instructions(self) -> str:
         """Build a prompt for generating a Git commit message."""
 
-        return f"""
+        return """
     Generate a concise Conventional Commit message for the following Git diff.
 
     Requirements:
@@ -41,7 +41,8 @@ class PromptService:
     - Write the subject in the imperative mood.
     - Leave exactly one blank line after the subject.
     - For simple changes, return only the subject line.
-    - For changes affecting multiple files, features, refactoring, architecture, or significant fixes, always include a body.
+    - For changes affecting multiple files, features, 
+      refactoring, architecture, or significant fixes, always include a body.
     - If a body is included, it MUST contain 3–6 bullet points.
     - Use dashes (-) for bullets.
     - Do not write body paragraphs.

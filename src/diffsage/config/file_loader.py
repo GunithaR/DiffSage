@@ -1,5 +1,5 @@
-from pathlib import Path
 import tomllib
+from pathlib import Path
 
 from diffsage.config.schema import PartialDiffSageConfig
 from diffsage.exceptions.base import ConfigError

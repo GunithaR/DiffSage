@@ -1,14 +1,10 @@
-import subprocess
 
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
 from diffsage.git.client import GitClient
 from diffsage.models.git import GitCommit
-
-from tests.helpers import run_git
-from tests.helpers import init_git_repo
-from tests.helpers import init_git_repo_with_initial_commit
+from tests.helpers import init_git_repo, init_git_repo_with_initial_commit, run_git
 
 
 def test_is_git_repository_returns_false_for_non_git_directory(tmp_path: Path):

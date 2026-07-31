@@ -9,10 +9,29 @@ def get_global_config_path() -> Path:
     return user_config_path("DiffSage") / "config.toml"
 
 
-def get_local_config_path() -> Path:
+def find_repository_root() -> Path | None:
+    """Return the Git repository root or None if not inside a repository."""
+    current = Path.cwd()
+
+    while True:
+        if (current / ".git").is_dir():
+            return current
+
+        if current.parent == current:
+            return None
+
+        current = current.parent
+
+
+def get_local_config_path() -> Path | None:
     """Return the local repository configuration file path."""
 
-    return Path.cwd() / ".diffsage.toml"
+    root = find_repository_root()
+
+    if root is None:
+        return None
+    
+    return root / ".diffsage.toml"
 
 
 def ensure_global_config_dir() -> None:
