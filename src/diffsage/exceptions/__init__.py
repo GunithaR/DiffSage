@@ -1,3 +1,9 @@
+from .base import (
+    ConfigError,
+    GitError,
+    UnknownConfigurationKeyError,
+)
+from .git import NoStagedChangesError, NotGitRepositoryError
 from .provider import (
     AuthenticationError,
     DiffSageError,
@@ -14,4 +20,9 @@ __all__ = [
     "RateLimitError",
     "ModelNotFoundError",
     "ProviderUnavailableError",
+    "ConfigError",
+    "GitError",
+    "UnknownConfigurationKeyError",
+    "NoStagedChangesError",
+    "NotGitRepositoryError",
 ]

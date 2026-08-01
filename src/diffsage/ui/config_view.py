@@ -2,10 +2,11 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
-from diffsage.models.config_report import ConfigReport
+from diffsage.models.config import ConfigReport, ConfigValueReport
+from diffsage.ui.base import BaseView
 
 
-class ConfigView:
+class ConfigView(BaseView):
     """Handles terminal rendering for the config command."""
 
     def __init__(self) -> None:
@@ -25,5 +26,14 @@ class ConfigView:
                 table,
                 title="[bold cyan]DiffSage Configuration[/bold cyan]",
                 expand=False,
+            )
+        )
+
+    def show_value(self, report: ConfigValueReport) -> None:
+        self._console.print(
+            Panel(
+                report.value,
+                title=f"[bold cyan]{report.key.replace("_", " ").title()}[/bold cyan]",
+                expand=False
             )
         )

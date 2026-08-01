@@ -7,9 +7,10 @@ from rich.table import Table
 from rich.text import Text
 
 from diffsage.models.commit_message import CommitMessage
+from diffsage.ui.base import BaseView
 
 
-class CommitView:
+class CommitView(BaseView):
     """Handles terminal rendering for the commit command."""
 
     def __init__(self) -> None:
@@ -100,6 +101,3 @@ class CommitView:
 
     def show_invalid_option(self) -> None:
         self._console.print("[red]Invalid option. Please choose Y, E, R or N.[/red]")
-
-    def show_error(self, message: str) -> None:
-        self._console.print(f"[red]✗ {message}[/red]")

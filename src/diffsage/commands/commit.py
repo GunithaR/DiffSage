@@ -1,10 +1,10 @@
 from diffsage.config.loader import load_settings
-from diffsage.exceptions.base import ConfigError
-from diffsage.exceptions.git import (
+from diffsage.exceptions import (
+    ConfigError,
     NoStagedChangesError,
     NotGitRepositoryError,
+    ProviderError,
 )
-from diffsage.exceptions.provider import ProviderError
 from diffsage.git.client import GitClient
 from diffsage.logging.logger import get_logger
 from diffsage.parsers.commit_message_parser import CommitMessageParser

@@ -2,7 +2,7 @@ import tomllib
 from pathlib import Path
 
 from diffsage.config.schema import PartialDiffSageConfig
-from diffsage.exceptions.base import ConfigError
+from diffsage.exceptions import ConfigError
 
 
 def load_config(path: Path) -> PartialDiffSageConfig:

@@ -1,11 +1,11 @@
 from unittest.mock import patch
 
-from diffsage.commands.config import list_config
-from diffsage.models.config_report import ConfigReport
+from diffsage.commands.config import get_config, list_config
+from diffsage.models.config import ConfigReport, ConfigValueReport
 from tests.helpers import create_settings
 
 
-def test_config_command_orchestrate() -> None:
+def test_list_config_command_orchestrate() -> None:
     settings = create_settings(
         provider="gemini",
         ai_model="gemini-3.5-flash-lite",
@@ -40,4 +40,37 @@ def test_config_command_orchestrate() -> None:
     mock_config_service.assert_called_once_with(settings)
     service.get_configuration.assert_called_once()
     view.show_configuration.assert_called_once_with(report)
-    
+
+
+def test_get_config_command_orchestrate() -> None:
+    settings = create_settings(
+        provider="gemini",
+        ai_model="gemini-3.5-flash-lite",
+        timeout=60,
+        max_retries=3,
+        log_level="INFO",
+    )
+
+    report = ConfigValueReport(
+        key="provider",
+        value=settings.provider
+    )
+
+    with (
+        patch(
+            "diffsage.commands.config.load_settings",
+            return_value=settings,
+        ) as mock_load_settings,
+        patch("diffsage.commands.config.ConfigService") as mock_config_service,
+        patch("diffsage.commands.config.ConfigView") as mock_config_view,
+    ):
+        service = mock_config_service.return_value
+        view = mock_config_view.return_value
+        service.get_value.return_value = report
+
+        get_config(report.key)
+
+    mock_load_settings.assert_called_once()
+    mock_config_service.assert_called_once_with(settings)
+    service.get_value.assert_called_once_with("provider")
+    view.show_value.assert_called_once_with(report)

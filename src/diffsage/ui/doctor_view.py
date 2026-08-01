@@ -1,6 +1,6 @@
 import typer
 
-from diffsage.models.doctor_report import DoctorReport
+from diffsage.models.doctor import DoctorReport
 
 
 class DoctorView:

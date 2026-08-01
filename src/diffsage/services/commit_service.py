@@ -1,4 +1,4 @@
-from diffsage.exceptions.git import NoStagedChangesError, NotGitRepositoryError
+from diffsage.exceptions import NoStagedChangesError, NotGitRepositoryError
 from diffsage.git.client import GitClient
 from diffsage.logging.logger import get_logger
 from diffsage.services.ai_service import AIService

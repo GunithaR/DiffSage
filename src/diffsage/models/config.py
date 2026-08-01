@@ -8,3 +8,9 @@ class ConfigReport:
     timeout: int
     max_retries: int
     log_level: str
+
+
+@dataclass(slots=True)
+class ConfigValueReport:
+    key: str
+    value: str
