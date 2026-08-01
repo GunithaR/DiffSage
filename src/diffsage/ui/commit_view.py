@@ -88,6 +88,7 @@ class CommitView:
         )
 
     def show_success(self, message: str) -> None:
+        self._console.print()
         self._console.print("[bold green]✓ Commit created successfully.[bold green]")
         self._console.print()
         self._console.print("[dim]Commit:[/dim]")

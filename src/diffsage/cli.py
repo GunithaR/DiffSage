@@ -4,6 +4,7 @@ import typer
 
 from diffsage.commands.ask import ask
 from diffsage.commands.commit import commit
+from diffsage.commands.config import app as config_app
 from diffsage.commands.doctor import doctor
 from diffsage.config.loader import load_settings
 from diffsage.logging.logger import configure_logging
@@ -25,3 +26,7 @@ def main() -> None:
 app.command()(doctor)
 app.command()(ask)
 app.command()(commit)
+app.add_typer(
+    config_app, 
+    name="config",
+)
