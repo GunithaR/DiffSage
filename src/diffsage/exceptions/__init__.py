@@ -2,6 +2,7 @@ from .base import (
     ConfigError,
     GitError,
     UnknownConfigurationKeyError,
+    InvalidConfigurationValueError,
 )
 from .git import NoStagedChangesError, NotGitRepositoryError
 from .provider import (
@@ -23,6 +24,7 @@ __all__ = [
     "ConfigError",
     "GitError",
     "UnknownConfigurationKeyError",
+    "InvalidConfigurationValueError",
     "NoStagedChangesError",
     "NotGitRepositoryError",
 ]

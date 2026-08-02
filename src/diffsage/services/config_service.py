@@ -1,10 +1,12 @@
 from diffsage.config.settings import Settings
-from diffsage.exceptions import UnknownConfigurationKeyError
+from diffsage.exceptions import UnknownConfigurationKeyError, InvalidConfigurationValueError
 from diffsage.models.config import ConfigReport, ConfigValueReport
+from diffsage.storage.config_repository import ConfigRepository
+from diffsage.config.loader import load_settings
 
 
 class ConfigService:
-    _KEY_MAP = {
+    _ATTRIBUTE_MAP = {
         "provider": "provider",
         "model": "ai_model",
         "timeout": "timeout",
@@ -12,28 +14,69 @@ class ConfigService:
         "log_level": "log_level",
     }
 
-    def __init__(self, settings: Settings) -> None:
+    _NORMALIZERS = {
+        "provider": str.lower,
+        "model": str.lower,
+        "log_level": str.upper,
+    }
+
+    def __init__(
+        self, 
+        settings: Settings,
+        repository: ConfigRepository
+    ) -> None:
         self._settings = settings
+        self._repository = repository
 
-    def get_configuration(self) -> ConfigReport:
-
+    def _create_report(self, settings: Settings) -> ConfigReport:
         return ConfigReport(
-            provider=self._settings.provider,
-            model=self._settings.ai_model,
-            timeout=self._settings.timeout,
-            max_retries=self._settings.max_retries,
-            log_level=self._settings.log_level,
+            provider=settings.provider,
+            model=settings.ai_model,
+            timeout=settings.timeout,
+            max_retries=settings.max_retries,
+            log_level=settings.log_level,
         )
 
-    def get_value(self, key: str) -> ConfigValueReport:
-        attribute = self._KEY_MAP.get(key)
+    def get_configuration(self) -> ConfigReport:
+        return self._create_report(self._settings)
 
-        if attribute is None:
+    def get_value(self, key: str) -> ConfigValueReport:
+        current_value = self._ATTRIBUTE_MAP.get(key)
+
+        if current_value is None:
             raise UnknownConfigurationKeyError(key)
 
-        value = getattr(self._settings, attribute)
+        value = getattr(self._settings, current_value)
 
         return ConfigValueReport(
             key=key,
             value=str(value)
         )
+
+    def set_value(self, key: str, value: str) -> ConfigReport:
+        attribute_name = self._ATTRIBUTE_MAP.get(key)
+
+        if attribute_name is None:
+            raise UnknownConfigurationKeyError(key)
+
+        value = value.strip()
+        normalizer = self._NORMALIZERS.get(key)
+
+        if normalizer is not None:
+            value = normalizer(value)
+
+        expected_value = getattr(self._settings, attribute_name)
+
+        try:
+            if isinstance(expected_value, int):
+                converted_value = int(value)
+            else: 
+                converted_value = value
+        except ValueError:
+            raise InvalidConfigurationValueError(value) from None
+
+        self._repository.set(key, converted_value)
+
+        updated_settings = load_settings()
+
+        return self._create_report(updated_settings)

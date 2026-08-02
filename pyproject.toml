@@ -29,11 +29,14 @@ keywords = [
     "commit",
 ]
 
+# Click 8.4.x currently exhibits unexpected required-argument behavior
+# with Typer 0.16.x. See GitHub Issue #1.
 dependencies = [
     "typer>=0.16,<0.17",
     "click>=8.1.8,<8.2",
     "rich>=14,<15",
     "pydantic>=2.11,<3",
+    "tomlkit>=0.13,<1",
     "httpx>=0.28,<0.29",
     "PyYAML>=6.0,<7",
     "python-dotenv>=1.1,<2",

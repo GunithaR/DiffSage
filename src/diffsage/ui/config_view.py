@@ -37,3 +37,8 @@ class ConfigView(BaseView):
                 expand=False
             )
         )
+
+    def show_success(self, message: str) -> None:
+        self._console.print()
+        self._console.print(f"[bold green]✓ {message}[bold green]")
+        self._console.print()
