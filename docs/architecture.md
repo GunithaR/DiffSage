@@ -2,7 +2,7 @@
 
 ## Overview
 
-DiffSage is a terminal-first AI-powered Git workflow assistant that helps developers with commit messages, pull requests, merge conflict explanations, code explanations, and other Git-related tasks.
+DiffSage is a terminal-first AI-powered Git workflow toolkit that helps developers with commit messages, pull requests, merge conflict explanations, code explanations, and other Git-related tasks.
 
 The architecture follows a layered design to separate user interaction, business logic, and infrastructure.
 
@@ -17,10 +17,7 @@ User
 CLI (Typer)
     │
     ▼
-Load Configuration
-    │
-    ▼
-Configure Logging
+Application Initialization
     │
     ▼
 Commands
@@ -72,6 +69,11 @@ Responsible for:
 
 Services should not directly print to the terminal.
 
+Services communicate using structured report models rather than terminal output.
+
+Services perform validation, normalization, and orchestration while remaining
+independent of the presentation layer.
+
 ---
 
 ## Infrastructure
@@ -83,6 +85,11 @@ Includes:
 - Providers
 - Git
 - Storage
+- Repositories
+    - Persist configuration
+    - Read configuration
+    - No business logic
+    - No validation
 - Logging
     - Centralized initialization
     - Console handler
@@ -112,6 +119,80 @@ Infrastructure
 Lower layers never depend on upper layers.
 
 Services exchange structured data using models (DTOs), allowing commands to focus on presentation while services focus on business logic.
+
+---
+
+# Runtime Request Flow
+
+Most DiffSage features follow a common execution pipeline.
+
+```text
+Command
+    │
+    ▼
+Service
+    │
+    ▼
+Repository / Provider
+    │
+    ▼
+Runtime Models
+    │
+    ▼
+Report Models
+    │
+    ▼
+View
+```
+
+## Responsibilities
+
+### Commands
+
+- Receive user input.
+- Compose application dependencies.
+- Invoke services.
+- Handle domain exceptions.
+- Delegate presentation to views.
+
+### Services
+
+- Implement business logic.
+- Validate and normalize user input.
+- Coordinate repositories and providers.
+- Return structured report models.
+- Never perform terminal output.
+
+### Repositories
+
+- Persist and retrieve application data.
+- Encapsulate storage implementation details.
+- Contain no business logic or validation.
+
+### Providers
+
+- Communicate with external AI services.
+- Translate provider-specific responses into common domain models.
+- Hide provider implementation details from higher layers.
+
+### Runtime Models
+
+- Represent internal application data.
+- Transfer information between infrastructure and services.
+- Remain independent of presentation concerns.
+
+### Report Models
+
+- Represent data prepared for presentation.
+- Separate business logic from the user interface.
+- Provide a stable interface between services and views.
+
+### Views
+
+- Render Rich terminal output.
+- Display reports returned by services.
+- Never contain business logic.
+```
 
 ---
 
@@ -177,6 +258,11 @@ src/diffsage/
 - Replaceable infrastructure
 - Terminal-first user experience
 - Domain model driven communication between layers
+- Constructor-based dependency injection
+- Repository pattern
+- Report models separating business and presentation
+- Hierarchical configuration resolution
+- Authentication separated from configuration
 
 ---
 

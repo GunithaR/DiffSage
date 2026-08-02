@@ -11,16 +11,20 @@ from diffsage.logging.logger import configure_logging
 
 app = typer.Typer(help="DiffSage: AI-aware Git workflow toolkit")
 
-settings = load_settings()
-configure_logging(getattr(logging, settings.log_level.upper(), logging.INFO))
-
 
 @app.callback()
 def main() -> None:
     """
-    DiffSage CLI entry point.
+    Initialize DiffSage.
     """
-    pass
+    settings = load_settings()
+    configure_logging(
+        getattr(
+            logging, 
+            settings.log_level.upper(), 
+            logging.INFO,
+        )
+    )
 
 
 app.command()(doctor)

@@ -23,3 +23,6 @@ __pycache__/
 
 # Logs
 logs/
+
+# DiffSage local configuration
+.diffsage.toml

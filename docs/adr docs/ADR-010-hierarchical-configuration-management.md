@@ -54,7 +54,13 @@ Global User Configuration
 Application Defaults
 ```
 
-The initial implementation introduces the hierarchy up to environment variables.
+The initial implementation introduces application defaults, global configuration,
+repository-local configuration, and environment variable overrides.
+
+Configuration values are resolved by merging each layer in precedence order,
+allowing later sources to override earlier ones while preserving unspecified defaults.
+
+Authentication credentials remain intentionally outside the configuration system.
 
 Credential storage and command-line overrides will be introduced in future iterations while preserving this resolution order.
 
@@ -189,15 +195,58 @@ Configuration files will use the TOML format.
 Example:
 
 ```toml
+[ai]
 provider = "gemini"
-model = "gemini-2.5-flash"
+model = "gemini-3.5-flash-lite"
 
+[network]
 timeout = 60
 max_retries = 3
 
 [logging]
 level = "INFO"
 ```
+
+---
+
+# Configuration Storage Strategy
+
+Configuration files store only values explicitly overridden by the user.
+
+All unspecified values are inherited from the application defaults during
+configuration resolution.
+
+For example, a repository configuration may contain only:
+
+```toml
+[network]
+timeout = 120
+
+---
+
+# Configuration Philosophy
+
+DiffSage intentionally separates user configuration from authentication.
+
+User preferences are stored in configuration files, while secrets are stored separately.
+
+Configuration includes:
+
+- AI provider
+- AI model
+- Request timeout
+- Retry policy
+- Logging level
+
+Authentication currently uses:
+
+- Environment variables (`DIFFSAGE_API_KEY`)
+
+Future versions will introduce a dedicated credential store through
+`diffsage auth`.
+
+This separation prevents configuration files from containing secrets while
+allowing configuration to be shared safely.
 
 ---
 
@@ -411,9 +460,13 @@ Implementation should proceed in the following order:
 3. Support global configuration loading.
 4. Support repository-level `.diffsage.toml`.
 5. Merge configuration according to the defined precedence order.
-6. Add `diffsage config` commands.
-7. Add an interactive `diffsage init` wizard.
-8. Update documentation and installation guides.
+6. Introduce configuration repository abstractions.
+7. Introduce configuration service validation and normalization.
+8. Introduce configuration report models.
+9. Add `diffsage config` commands.
+10. Add automated configuration tests.
+11. Add an interactive `diffsage init` wizard.
+12. Update documentation and installation guides.
 
 ---
 
