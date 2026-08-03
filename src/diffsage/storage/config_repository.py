@@ -1,5 +1,7 @@
 from pathlib import Path
+
 from tomlkit import TOMLDocument, document, parse, table
+
 
 class ConfigRepository:
     """Persists DiffSage configuration."""
@@ -30,13 +32,6 @@ class ConfigRepository:
 
         content = doc.as_string()
         self._path.write_text(content)
-
-
-    def get(self, key: str) -> int | str | None:
-        doc = self._load()
-        value = doc.get(key)
-
-        return value
 
 
     def set(self, key: str, value: str | int) -> None:

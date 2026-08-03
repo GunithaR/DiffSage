@@ -1,8 +1,8 @@
 from .base import (
     ConfigError,
     GitError,
-    UnknownConfigurationKeyError,
     InvalidConfigurationValueError,
+    UnknownConfigurationKeyError,
 )
 from .git import NoStagedChangesError, NotGitRepositoryError
 from .provider import (

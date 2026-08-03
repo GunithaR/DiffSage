@@ -1,13 +1,12 @@
 import typer
 
-from diffsage.exceptions import UnknownConfigurationKeyError, InvalidConfigurationValueError
-from diffsage.services.config_service import ConfigService
-from diffsage.ui.config_view import ConfigView
-from diffsage.storage.config_repository import ConfigRepository
-
 from diffsage.config.loader import load_settings
-from diffsage.logging.logger import get_logger
 from diffsage.config.resolver import get_local_config_path
+from diffsage.exceptions import InvalidConfigurationValueError, UnknownConfigurationKeyError
+from diffsage.logging.logger import get_logger
+from diffsage.services.config_service import ConfigService
+from diffsage.storage.config_repository import ConfigRepository
+from diffsage.ui.config_view import ConfigView
 
 logger = get_logger(__name__)
 

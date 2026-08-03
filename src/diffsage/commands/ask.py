@@ -1,9 +1,8 @@
-import typer
 
 from diffsage.config.loader import load_settings
+from diffsage.exceptions import AuthenticationError, ConfigError, ProviderUnavailableError
 from diffsage.logging.logger import get_logger
 from diffsage.services.ai_service import AIService
-from diffsage.exceptions import AuthenticationError, ProviderUnavailableError, ConfigError
 from diffsage.ui.ask_view import AskView
 
 logger = get_logger(__name__)

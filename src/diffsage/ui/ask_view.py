@@ -1,7 +1,8 @@
 from rich.console import Console
 
-from diffsage.ui.base import BaseView
 from diffsage.models.provider import ProviderResponse
+from diffsage.ui.base import BaseView
+
 
 class AskView(BaseView):
     """Handles terminal rendering for the ask command."""

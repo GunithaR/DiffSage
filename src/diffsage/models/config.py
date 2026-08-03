@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from diffsage.config.settings import Settings
+
 
 @dataclass(slots=True)
 class ConfigReport:

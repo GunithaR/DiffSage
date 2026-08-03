@@ -1,8 +1,8 @@
+from diffsage.config.loader import load_settings
 from diffsage.config.settings import Settings
-from diffsage.exceptions import UnknownConfigurationKeyError, InvalidConfigurationValueError
+from diffsage.exceptions import InvalidConfigurationValueError, UnknownConfigurationKeyError
 from diffsage.models.config import ConfigReport, ConfigValueReport
 from diffsage.storage.config_repository import ConfigRepository
-from diffsage.config.loader import load_settings
 
 
 class ConfigService:
