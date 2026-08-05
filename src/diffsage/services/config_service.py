@@ -80,3 +80,15 @@ class ConfigService:
         updated_settings = load_settings()
 
         return self._create_report(updated_settings)
+
+    def unset_value(self, key: str) -> ConfigReport:
+        attribute_name = self._ATTRIBUTE_MAP.get(key)
+
+        if attribute_name is None:
+            raise UnknownConfigurationKeyError(key)
+
+        self._repository.unset(key)
+
+        updated_settings = load_settings()
+
+        return self._create_report(updated_settings)

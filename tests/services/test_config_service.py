@@ -174,3 +174,48 @@ def test_set_value_unknown_key_raises_error() -> None:
         )
 
     repository.set.assert_not_called()
+
+
+def test_unset_value_returns_updated_configuration() -> None:
+    settings = create_settings(
+        provider="gemini",
+        ai_model="gemini-3.5-flash-lite",
+    )
+
+    updated_settings = create_settings(
+        provider="gemini",
+    )
+
+    repository = Mock(spec=ConfigRepository)
+    service = ConfigService(settings, repository)
+
+    with patch(
+        "diffsage.services.config_service.load_settings", 
+        return_value=updated_settings,
+    ) as mock_load_settings:
+
+        report = service.unset_value("model")
+
+    mock_load_settings.assert_called_once
+    repository.unset.assert_called_once_with("model")
+    assert report.provider == updated_settings.provider
+    assert report.model == updated_settings.ai_model
+    assert report.timeout == updated_settings.timeout
+    assert report.max_retries == updated_settings.max_retries
+    assert report.log_level == updated_settings.log_level
+
+
+def test_unset_value_unknown_key_raises_error() -> None:
+    settings = create_settings(
+        provider="gemini",
+        ai_model="gemini-3.5-flash-lite",
+    )
+
+    repository = Mock(spec=ConfigRepository)
+    service = ConfigService(settings, repository)
+
+    with pytest.raises(UnknownConfigurationKeyError) as exception_info:
+        service.unset_value("invalid_key")
+
+    repository.unset.assert_not_called()
+    assert "invalid_key" in str(exception_info.value)

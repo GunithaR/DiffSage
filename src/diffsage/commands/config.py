@@ -97,3 +97,32 @@ def set_config(key: str, value: str) -> None:
         logger.exception("Unexpected error while executing config command.")
         view.show_error("An unexpected error occurred. Please check the log file for more details.")
         raise SystemExit(1) from None
+
+@app.command("unset")
+def unset_config(key: str) -> None:
+    """Remove a DiffSage configuration value."""
+
+    view = ConfigView()
+
+    try:
+        settings = load_settings()
+
+        path = get_local_config_path()
+        repository = ConfigRepository(path)
+
+        service = ConfigService(settings, repository)
+
+        report = service.unset_value(key)
+
+        view.show_success("Configuration deleted.")
+        view.show_configuration(report)
+
+    except UnknownConfigurationKeyError as e:
+        logger.warning(str(e))
+        view.show_error(str(e))
+        raise SystemExit(1) from None
+
+    except Exception:
+        logger.exception("Unexpected error while executing config command.")
+        view.show_error("An unexpected error occurred. Please check the log file for more details.")
+        raise SystemExit(1) from None

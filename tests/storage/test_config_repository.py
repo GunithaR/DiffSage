@@ -69,3 +69,85 @@ def test_set_creates_parent_directory(tmp_path: Path) -> None:
     assert path.parent.exists()
     assert path.exists()
     assert updated["ai"]["provider"] == "gemini"
+
+
+def test_unset_removes_existing_key(tmp_path: Path) -> None:
+    path = tmp_path / ".diffsage.toml"
+
+    doc = document()
+    doc["ai"] = table()
+    doc["ai"]["provider"] = "gemini"
+    doc["ai"]["model"] = "gemini-3.5-flash-lite"
+
+    path.write_text(doc.as_string())
+
+    repository = ConfigRepository(path)
+    repository.unset("provider")
+
+    updated = parse(path.read_text())
+
+    assert "provider" not in updated["ai"]
+    assert updated["ai"]["model"] == "gemini-3.5-flash-lite"
+
+
+def test_unset_removes_empty_section(tmp_path: Path) -> None:
+    path = tmp_path / ".diffsage.toml"
+
+    doc = document()
+    doc["ai"] = table()
+    doc["ai"]["provider"] = "gemini"
+
+    path.write_text(doc.as_string())
+
+    repository = ConfigRepository(path)
+    repository.unset("provider")
+
+    updated = parse(path.read_text())
+
+    assert "ai" not in updated
+
+
+def test_unset_preserves_existing_configuration(tmp_path: Path) -> None:
+    path = tmp_path / ".diffsage.toml"
+    
+    doc = document()
+    doc["ai"] = table()
+    doc["ai"]["provider"] = "gemini"
+    doc["ai"]["model"] = "gemini-3.5-flash-lite"
+
+    doc["logging"] = table()
+    doc["logging"]["level"] = "INFO"
+
+    path.write_text(doc.as_string())
+
+    repository = ConfigRepository(path)
+    repository.unset("provider")
+
+    updated = parse(path.read_text())
+
+    assert "provider" not in updated["ai"]
+    assert updated["ai"]["model"] == "gemini-3.5-flash-lite"
+    assert updated["logging"]["level"] == "INFO"
+
+
+def test_unset_missing_key_is_noop(tmp_path: Path) -> None:
+    path = tmp_path / ".diffsage.toml"
+
+    doc = document()
+    doc["ai"] = table()
+    doc["ai"]["provider"] = "gemini"
+    path.write_text(doc.as_string())
+
+    repository = ConfigRepository(path)
+
+    before = path.read_text()
+
+    repository.unset("model")
+
+    after = path.read_text()
+
+    updated = parse(path.read_text())
+
+    assert updated["ai"]["provider"] == "gemini"
+    assert "model" not in updated["ai"]
+    assert before == after

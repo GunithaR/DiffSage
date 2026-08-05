@@ -17,6 +17,7 @@ class ConfigRepository:
     def __init__(self, path: Path) -> None:
         self._path = path
 
+
     def _load(self) -> TOMLDocument:
         if not self._path.exists():
             return document()
@@ -48,6 +49,17 @@ class ConfigRepository:
 
     def unset(self, key: str) -> None:
         doc = self._load()
-        doc.pop(key, None)
+        section, option = self._PATH_MAP[key]
+
+        if section not in doc:
+            return 
+
+        if option not in doc[section]:
+            return
+
+        del doc[section][option]
+
+        if not doc[section]:
+            del doc[section]
 
         self._save(doc)
