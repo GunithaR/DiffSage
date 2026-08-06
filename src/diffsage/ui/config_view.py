@@ -1,6 +1,7 @@
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
+from pathlib import Path
 
 from diffsage.models.config import ConfigReport, ConfigValueReport
 from diffsage.ui.base import BaseView
@@ -41,4 +42,15 @@ class ConfigView(BaseView):
     def show_success(self, message: str) -> None:
         self._console.print()
         self._console.print(f"[bold green]✓ {message}[bold green]")
+        self._console.print()
+
+
+    def show_path(self, path: Path) -> None:
+        display = str(path).replace(str(Path.home()), "~")
+
+        self._console.print("[dim]Location:[/]")
+        self._console.print(
+            f"[cyan]{display}[/]",
+            no_wrap=True,
+        )
         self._console.print()

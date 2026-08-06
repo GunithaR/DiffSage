@@ -1,5 +1,6 @@
 import os
 from collections.abc import Mapping
+from pathlib import Path
 
 from dotenv import load_dotenv
 
@@ -9,6 +10,7 @@ from diffsage.config.paths import get_global_config_path, get_local_config_path
 from diffsage.config.schema import DiffSageConfig, PartialDiffSageConfig
 from diffsage.config.settings import Settings
 from diffsage.exceptions import ConfigError
+from diffsage.config.scope import ConfigScope
 
 
 def _merge_dict(
@@ -120,3 +122,12 @@ def resolve_settings() -> Settings:
 
     except ValueError as error:
         raise ConfigError("Invalid configuration value.") from error
+
+
+def resolve_config_path(scope: ConfigScope) -> Path:
+    """Return the configuration path for the given scope"""
+
+    if scope is ConfigScope.GLOBAL:
+        return get_global_config_path()
+
+    return get_local_config_path()
