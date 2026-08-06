@@ -1,14 +1,13 @@
 import typer
 
 from diffsage.config.loader import load_settings
-from diffsage.config.resolver import get_local_config_path
-from diffsage.logging.logger import get_logger
-from diffsage.config.resolver import resolve_config_path
+from diffsage.config.resolver import get_local_config_path, resolve_config_path
+from diffsage.config.scope import ConfigScope
 from diffsage.exceptions import InvalidConfigurationValueError, UnknownConfigurationKeyError
+from diffsage.logging.logger import get_logger
 from diffsage.services.config_service import ConfigService
 from diffsage.storage.config_repository import ConfigRepository
 from diffsage.ui.config_view import ConfigView
-from diffsage.config.scope import ConfigScope
 
 logger = get_logger(__name__)
 
@@ -107,7 +106,7 @@ def set_config(
 
         report = service.set_value(key, value)
 
-        view.show_success(f"{scope.value.capitalize()} Configuration updated.")
+        view.show_success(f"{scope.value.capitalize()} configuration updated.")
         view.show_path(path)
         view.show_configuration(report)
 
@@ -158,7 +157,7 @@ def unset_config(
 
         report = service.unset_value(key)
 
-        view.show_success(f"{scope.value.capitalize()} Configuration removed.")
+        view.show_success(f"{scope.value.capitalize()} configuration removed.")
         view.show_path(path)
         view.show_configuration(report)
 

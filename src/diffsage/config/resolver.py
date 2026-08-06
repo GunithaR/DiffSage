@@ -8,9 +8,9 @@ from diffsage.config.defaults import DEFAULT_CONFIG
 from diffsage.config.file_loader import load_config
 from diffsage.config.paths import get_global_config_path, get_local_config_path
 from diffsage.config.schema import DiffSageConfig, PartialDiffSageConfig
+from diffsage.config.scope import ConfigScope
 from diffsage.config.settings import Settings
 from diffsage.exceptions import ConfigError
-from diffsage.config.scope import ConfigScope
 
 
 def _merge_dict(

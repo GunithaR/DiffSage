@@ -196,7 +196,7 @@ def test_unset_value_returns_updated_configuration() -> None:
 
         report = service.unset_value("model")
 
-    mock_load_settings.assert_called_once
+    mock_load_settings.assert_called_once()
     repository.unset.assert_called_once_with("model")
     assert report.provider == updated_settings.provider
     assert report.model == updated_settings.ai_model
