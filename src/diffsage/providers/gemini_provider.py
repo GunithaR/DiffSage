@@ -28,8 +28,10 @@ class GeminiProvider(BaseProvider):
         timeout_ms=self._settings.timeout * 1000
 
         config = types.GenerateContentConfig(
+            temperature=request.temperature,
+            max_output_tokens=request.max_tokens,
             http_options=types.HttpOptions(
-            timeout=timeout_ms
+                timeout=timeout_ms
             ),
         )
 

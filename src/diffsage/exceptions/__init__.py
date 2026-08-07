@@ -1,15 +1,16 @@
 from .base import (
     ConfigError,
+    DiffSageError,
     GitError,
+    InvalidCommitMessageError,
     InvalidConfigurationValueError,
+    ProviderError,
     UnknownConfigurationKeyError,
 )
 from .git import NoStagedChangesError, NotGitRepositoryError
 from .provider import (
     AuthenticationError,
-    DiffSageError,
     ModelNotFoundError,
-    ProviderError,
     ProviderUnavailableError,
     RateLimitError,
 )
@@ -25,6 +26,7 @@ __all__ = [
     "GitError",
     "UnknownConfigurationKeyError",
     "InvalidConfigurationValueError",
+    "InvalidCommitMessageError",
     "NoStagedChangesError",
     "NotGitRepositoryError",
 ]

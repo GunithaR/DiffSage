@@ -56,8 +56,8 @@ Separate each group with a blank line.
 
 ## Logging
 
-- Never use print()
-- Use typer.echo() for user-facing terminal output.
+- Never use print().
+- User-facing terminal output should be rendered through the project's View classes using Rich.
 - Use get_logger() for application logging.
 - configure_logging() must only be called once during application startup.
 

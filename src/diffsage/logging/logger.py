@@ -1,6 +1,8 @@
 import logging
 from pathlib import Path
 
+from diffsage.config.paths import get_log_directory
+
 _CONFIGURED = False
 
 
@@ -15,9 +17,7 @@ def configure_logging(level: int = logging.INFO) -> None:
     root_logger = logging.getLogger()
     root_logger.setLevel(level)
 
-    log_directory = Path("logs")
-    log_directory.mkdir(exist_ok=True)
-    log_file = log_directory / "diffsage.log"
+    log_file = get_log_directory() / "diffsage.log"
 
     # console_handler = logging.StreamHandler()
     file_handler = logging.FileHandler(log_file)

@@ -1,6 +1,6 @@
 from contextlib import contextmanager
 
-from rich.console import Console, Group
+from rich.console import Group
 from rich.panel import Panel
 from rich.rule import Rule
 from rich.table import Table
@@ -12,9 +12,6 @@ from diffsage.ui.base import BaseView
 
 class CommitView(BaseView):
     """Handles terminal rendering for the commit command."""
-
-    def __init__(self) -> None:
-        self._console = Console()
 
     @contextmanager
     def generating(self):

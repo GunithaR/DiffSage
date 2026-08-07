@@ -4,7 +4,7 @@ from rich.console import Console
 class BaseView:
 
     def __init__(self) -> None:
-            self._console = Console()
+        self._console = Console()
 
     def show_error(self, message: str) -> None:
         self._console.print(f"[red]✗ {message}[/red]")

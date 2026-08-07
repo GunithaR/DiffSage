@@ -1,9 +1,4 @@
-class DiffSageError(Exception):
-    """Base exception for all DiffSage errors."""
-
-
-class ProviderError(DiffSageError):
-    """Raised when AI provider fails."""
+from diffsage.exceptions.base import ProviderError
 
 
 class AuthenticationError(ProviderError):

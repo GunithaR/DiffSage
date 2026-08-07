@@ -221,6 +221,7 @@ For example, a repository configuration may contain only:
 ```toml
 [network]
 timeout = 120
+```
 
 ---
 

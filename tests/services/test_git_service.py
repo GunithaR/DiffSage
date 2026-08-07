@@ -17,10 +17,6 @@ def test_build_commit_context_returns_commit_context(tmp_path: Path):
 
     context = service.build_commit_context()
 
-    print(context)
-
-    print(context.branch)
-
     assert isinstance(context, CommitContext)
 
     assert context.branch == "main"

@@ -2,6 +2,18 @@ class DiffSageError(Exception):
     """Base exception for all DiffSage errors."""
 
 
+class ProviderError(DiffSageError):
+    """Raised when an AI provider fails."""
+
+
+class GitError(DiffSageError):
+    """Raised when git operations fail."""
+
+
+class InvalidCommitMessageError(DiffSageError):
+    """Raised when an AI-generated commit message cannot be parsed."""
+    
+
 class ConfigError(DiffSageError):
     """Raised when configuration is invalid."""
 
@@ -18,11 +30,3 @@ class InvalidConfigurationValueError(ConfigError):
 
     def __init__(self, value: str) -> None:
             super().__init__(f"Invalid configuration value: '{value}'")
-
-
-class ProviderError(DiffSageError):
-    """Raised when an AI provider fails."""
-
-
-class GitError(DiffSageError):
-    """Raised when git operations fail."""

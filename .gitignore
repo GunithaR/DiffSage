@@ -26,3 +26,6 @@ logs/
 
 # DiffSage local configuration
 .diffsage.toml
+
+# Diffsage temporary commit file
+COMMIT_EDITMSG

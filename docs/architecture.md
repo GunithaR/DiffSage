@@ -236,14 +236,17 @@ This separation keeps Git logic, prompt generation, and provider implementations
 ```
 src/diffsage/
 ├── commands/
-├── services/
-├── providers/
-├── git/
-├── storage/
-├── logging/
 ├── config/
-├── core/
-└── models/
+├── exceptions/
+├── git/
+├── logging/
+├── models/
+├── parsers/
+├── prompts/
+├── providers/
+├── services/
+├── storage/
+└── ui/
 ```
 
 ---

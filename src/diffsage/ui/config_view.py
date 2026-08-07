@@ -1,6 +1,5 @@
 from pathlib import Path
 
-from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
@@ -10,9 +9,6 @@ from diffsage.ui.base import BaseView
 
 class ConfigView(BaseView):
     """Handles terminal rendering for the config command."""
-
-    def __init__(self) -> None:
-        self._console = Console()
 
     def _display_value(self, value: str | int | None) -> str:
         if value is None:

@@ -69,6 +69,7 @@ Current capabilities include:
 - Interactive commit workflow
 - Commit message editing using the user's preferred editor
 - Commit message regeneration
+- Global, local, and resolved configuration management
 - Git repository validation
 - Environment diagnostics via `diffsage doctor`
 - Provider abstraction for AI integrations
@@ -157,7 +158,9 @@ pip install -e ".[dev]"
 
 # Configuration
 
-DiffSage uses environment variables for configuration.
+DiffSage supports layered configuration through global and repository-local TOML files.
+
+Sensitive values such as API keys can still be provided using environment variables.
 
 Example:
 
@@ -169,6 +172,15 @@ TIMEOUT=60
 MAX_RETRIES=3
 ```
 
+Configuration can also be managed directly from the CLI:
+
+```bash
+diffsage config list
+diffsage config get provider
+diffsage config set provider gemini
+diffsage config unset provider
+```
+
 ---
 
 # Quick Start
@@ -177,6 +189,12 @@ Verify your environment:
 
 ```bash
 diffsage doctor
+```
+
+View the current configuration:
+
+```bash
+diffsage config list
 ```
 
 Generate a commit message:
@@ -208,6 +226,10 @@ Display AI suggestion
 |----------|-------------|
 | `diffsage doctor` | Validate the local DiffSage environment |
 | `diffsage commit` | Generate and manage AI-assisted commit messages |
+| `diffsage config list` | Display the current DiffSage configuration |
+| `diffsage config get` | Display the value of a configuration setting |
+| `diffsage config set` | Update a configuration setting |
+| `diffsage config unset` | Remove a configuration setting |
 
 More commands will be introduced as the project evolves.
 
@@ -254,15 +276,16 @@ src/
 └── diffsage/
     ├── commands/
     ├── config/
-    ├── core/
     ├── exceptions/
     ├── git/
     ├── logging/
     ├── models/
+    ├── parsers/
     ├── prompts/
     ├── providers/
     ├── services/
-    └── storage/
+    ├── storage/
+    └── ui/
 
 tests/
 
@@ -279,7 +302,7 @@ Additional project documentation is available within the repository.
 |----------|---------|
 | `docs/architecture.md` | High-level architecture |
 | `docs/conventions.md` | Coding conventions and project standards |
-| `docs/architecture/ADR-*` | Architecture Decision Records (ADRs) |
+| `docs/adrs/ADR-*` | Architecture Decision Records (ADRs) |
 
 Future documentation will include:
 

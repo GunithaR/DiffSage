@@ -1,7 +1,8 @@
 from pathlib import Path
 
-from platformdirs import user_config_path
+from platformdirs import user_config_path, user_log_path
 
+APP_NAME = "DiffSage"
 
 def get_global_config_path() -> Path:
     """Return the global DiffSage configuration file path."""
@@ -32,6 +33,12 @@ def get_local_config_path() -> Path | None:
         return None
     
     return root / ".diffsage.toml"
+
+
+def get_log_directory() -> Path:
+    path = user_log_path(APP_NAME)
+    path.mkdir(parents=True, exist_ok=True)
+    return path
 
 
 def ensure_global_config_dir() -> None:
