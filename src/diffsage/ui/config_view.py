@@ -14,14 +14,20 @@ class ConfigView(BaseView):
     def __init__(self) -> None:
         self._console = Console()
 
+    def _display_value(self, value: str | int | None) -> str:
+        if value is None:
+            return "None"
+
+        return str(value)
+
     def show_configuration(self, report: ConfigReport) -> None:
         table = Table(show_header=False, box=False, expand=False)
 
-        table.add_row("Provider", report.provider)
-        table.add_row("Model", report.model)
-        table.add_row("Timeout", str(report.timeout))
-        table.add_row("Max Retries", str(report.max_retries))
-        table.add_row("Log Level", report.log_level)
+        table.add_row("Provider", self._display_value(report.provider))
+        table.add_row("Model", self._display_value(report.model))
+        table.add_row("Timeout", self._display_value(report.timeout))
+        table.add_row("Max Retries", self._display_value(report.max_retries))
+        table.add_row("Log Level", self._display_value(report.log_level))
 
         self._console.print(
             Panel(
@@ -34,7 +40,7 @@ class ConfigView(BaseView):
     def show_value(self, report: ConfigValueReport) -> None:
         self._console.print(
             Panel(
-                report.value,
+                self._display_value(report.value),
                 title=f"[bold cyan]{report.key.replace("_", " ").title()}[/bold cyan]",
                 expand=False
             )

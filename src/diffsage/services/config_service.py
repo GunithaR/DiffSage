@@ -37,6 +37,29 @@ class ConfigService:
             log_level=settings.log_level,
         )
 
+    def get_configuration_raw(self) -> ConfigReport:
+        config = self._repository.list()
+
+        return ConfigReport(
+            provider=config.get("provider"),
+            model=config.get("model"),
+            timeout=config.get("timeout"),
+            max_retries=config.get("max_retries"),
+            log_level=config.get("log_level")
+        )
+
+    def get_configuration_value_raw(self, key: str) -> ConfigValueReport:
+        if key not in self._ATTRIBUTE_MAP:
+            raise UnknownConfigurationKeyError(key)
+
+        value = self._repository.get(key)
+
+        return ConfigValueReport(
+            key=key,
+            value=value,
+        )
+
+
     def get_configuration(self) -> ConfigReport:
         return self._create_report(self._settings)
 

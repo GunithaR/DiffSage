@@ -53,7 +53,7 @@ def test_resolve_scope_rejects_conflicting_flags() -> None:
     assert str(exception_info.value) == "Cannot specify both --local and --global."
 
 
-def test_list_config_command_orchestrates() -> None:
+def test_list_config_command_defaults_to_resolved_configuration() -> None:
     settings = create_settings(
         provider="gemini",
         ai_model="gemini-3.5-flash-lite",
@@ -86,17 +86,115 @@ def test_list_config_command_orchestrates() -> None:
 
         service.get_configuration.return_value = report
 
-        list_config()
+        list_config(
+            local=False,
+            global_=False,
+        )
 
     mock_load_settings.assert_called_once()
     mock_get_path.assert_called_once()
     mock_repository.assert_called_once_with(mock_get_path.return_value)
     mock_config_service.assert_called_once_with(settings, repository)
     service.get_configuration.assert_called_once()
+    view.show_path.assert_called_once_with(mock_get_path.return_value)
     view.show_configuration.assert_called_once_with(report)
 
 
-def test_get_config_command_orchestrates() -> None:
+def test_list_config_command_uses_local_scope() -> None:
+    settings = create_settings(
+        provider="gemini",
+        ai_model="gemini-3.5-flash-lite",
+        timeout=60,
+        max_retries=3,
+        log_level="INFO",
+    )
+
+    report = ConfigReport(
+        provider="gemini",
+        model="gemini-3.5-flash-lite",
+        timeout=60,
+        max_retries=3,
+        log_level="INFO",
+    )
+
+    with (
+        patch(
+            "diffsage.commands.config.load_settings", 
+            return_value=settings
+        ) as mock_load_settings,
+        patch("diffsage.commands.config.resolve_config_path") as mock_resolve_path,
+        patch("diffsage.commands.config.ConfigRepository") as mock_repository,
+        patch("diffsage.commands.config.ConfigService") as mock_config_service,
+        patch("diffsage.commands.config.ConfigView") as mock_config_view,
+    ):
+        repository = mock_repository.return_value
+        service = mock_config_service.return_value
+        view = mock_config_view.return_value
+
+        service.get_configuration_raw.return_value = report
+
+        list_config(
+            local=True,
+            global_=False,
+        )
+
+    mock_load_settings.assert_called_once()
+    mock_resolve_path.assert_called_once_with(ConfigScope.LOCAL)
+    mock_repository.assert_called_once_with(mock_resolve_path.return_value)
+    mock_config_service.assert_called_once_with(settings, repository)
+    service.get_configuration_raw.assert_called_once()
+    view.show_path.assert_called_once_with(mock_resolve_path.return_value)
+    view.show_configuration.assert_called_once_with(report)
+
+
+def test_list_config_command_uses_global_scope() -> None:
+    settings = create_settings(
+        provider="gemini",
+        ai_model="gemini-3.5-flash-lite",
+        timeout=60,
+        max_retries=3,
+        log_level="INFO",
+    )
+
+    report = ConfigReport(
+        provider="gemini",
+        model="gemini-3.5-flash-lite",
+        timeout=60,
+        max_retries=3,
+        log_level="INFO",
+    )
+
+    with (
+        patch(
+            "diffsage.commands.config.load_settings", 
+            return_value=settings
+        ) as mock_load_settings,
+        patch("diffsage.commands.config.resolve_config_path") as mock_resolve_path,
+        patch("diffsage.commands.config.ConfigRepository") as mock_repository,
+        patch("diffsage.commands.config.ConfigService") as mock_config_service,
+        patch("diffsage.commands.config.ConfigView") as mock_config_view,
+    ):
+        repository = mock_repository.return_value
+        service = mock_config_service.return_value
+        view = mock_config_view.return_value
+
+        service.get_configuration_raw.return_value = report
+
+        list_config(
+            local=False,
+            global_=True,
+        )
+
+    mock_load_settings.assert_called_once()
+    mock_resolve_path.assert_called_once_with(ConfigScope.GLOBAL)
+    mock_repository.assert_called_once_with(mock_resolve_path.return_value)
+    mock_config_service.assert_called_once_with(settings, repository)
+    service.get_configuration_raw.assert_called_once()
+    view.show_path.assert_called_once_with(mock_resolve_path.return_value)
+    view.show_configuration.assert_called_once_with(report)
+
+
+def test_get_config_command_defaults_to_resolved_configuration() -> None:
     settings = create_settings(
         provider="gemini",
         ai_model="gemini-3.5-flash-lite",
@@ -126,13 +224,107 @@ def test_get_config_command_orchestrates() -> None:
 
         service.get_value.return_value = report
 
-        get_config(report.key)
+        get_config(
+            report.key,
+            local=False,
+            global_=False,
+        )
 
     mock_load_settings.assert_called_once()
     mock_get_path.assert_called_once()
     mock_repository.assert_called_once_with(mock_get_path.return_value)
     mock_config_service.assert_called_once_with(settings, repository)
     service.get_value.assert_called_once_with("provider")
+    view.show_path.assert_called_once_with(mock_get_path.return_value)
+    view.show_value.assert_called_once_with(report)
+
+
+def test_get_config_command_uses_local_scope() -> None:
+    settings = create_settings(
+        provider="gemini",
+        ai_model="gemini-3.5-flash-lite",
+        timeout=60,
+        max_retries=3,
+        log_level="INFO",
+    )
+
+    report = ConfigValueReport(
+        key="provider",
+        value=settings.provider,
+    )
+
+    with (
+        patch(
+            "diffsage.commands.config.load_settings",
+            return_value=settings,
+        ) as mock_load_settings,
+        patch("diffsage.commands.config.resolve_config_path") as mock_resolve_path,
+        patch("diffsage.commands.config.ConfigRepository") as mock_repository,
+        patch("diffsage.commands.config.ConfigService") as mock_config_service,
+        patch("diffsage.commands.config.ConfigView") as mock_config_view,
+    ):
+        repository = mock_repository.return_value
+        service = mock_config_service.return_value
+        view = mock_config_view.return_value
+
+        service.get_configuration_value_raw.return_value = report
+
+        get_config(
+            report.key,
+            local=True,
+            global_=False,
+        )
+
+    mock_load_settings.assert_called_once()
+    mock_resolve_path.assert_called_once_with(ConfigScope.LOCAL)
+    mock_repository.assert_called_once_with(mock_resolve_path.return_value)
+    mock_config_service.assert_called_once_with(settings, repository)
+    service.get_configuration_value_raw.assert_called_once_with("provider")
+    view.show_path.assert_called_once_with(mock_resolve_path.return_value)
+    view.show_value.assert_called_once_with(report)
+
+def test_get_config_command_uses_global_scope() -> None:
+    settings = create_settings(
+        provider="gemini",
+        ai_model="gemini-3.5-flash-lite",
+        timeout=60,
+        max_retries=3,
+        log_level="INFO",
+    )
+
+    report = ConfigValueReport(
+        key="provider",
+        value=settings.provider,
+    )
+
+    with (
+        patch(
+            "diffsage.commands.config.load_settings",
+            return_value=settings,
+        ) as mock_load_settings,
+        patch("diffsage.commands.config.resolve_config_path") as mock_resolve_path,
+        patch("diffsage.commands.config.ConfigRepository") as mock_repository,
+        patch("diffsage.commands.config.ConfigService") as mock_config_service,
+        patch("diffsage.commands.config.ConfigView") as mock_config_view,
+    ):
+        repository = mock_repository.return_value
+        service = mock_config_service.return_value
+        view = mock_config_view.return_value
+
+        service.get_configuration_value_raw.return_value = report
+
+        get_config(
+            report.key,
+            local=False,
+            global_=True,
+        )
+
+    mock_load_settings.assert_called_once()
+    mock_resolve_path.assert_called_once_with(ConfigScope.GLOBAL)
+    mock_repository.assert_called_once_with(mock_resolve_path.return_value)
+    mock_config_service.assert_called_once_with(settings, repository)
+    service.get_configuration_value_raw.assert_called_once_with("provider")
+    view.show_path.assert_called_once_with(mock_resolve_path.return_value)
     view.show_value.assert_called_once_with(report)
 
 

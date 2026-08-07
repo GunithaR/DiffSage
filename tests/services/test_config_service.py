@@ -27,6 +27,100 @@ def test_get_configuration_returns_config_report() -> None:
     assert report.max_retries == settings.max_retries
     assert report.log_level == settings.log_level
 
+
+def test_get_raw_configuration_returns_config_report() -> None:
+    settings = create_settings(
+        provider="gemini",
+        ai_model="gemini-3.5-flash-lite",
+        timeout=60,
+        max_retries=3,
+        log_level="INFO",
+    )
+
+    repository = Mock(spec=ConfigRepository)
+    repository.list.return_value = {
+        "provider": "gemini",
+        "model": "gemini-3.5-flash-lite",
+        "timeout": 30,
+        "max_retries": 3,
+        "log_level": "INFO",
+    }
+
+    service = ConfigService(settings, repository)
+    report = service.get_configuration_raw()
+
+    repository.list.assert_called_once()
+
+    assert report.provider == "gemini"
+    assert report.model == "gemini-3.5-flash-lite"
+    assert report.timeout == 30
+    assert report.max_retries == 3
+    assert report.log_level == "INFO"
+
+
+def test_get_raw_configuration_returns_missing_values() -> None:
+    settings = create_settings(
+        provider="gemini",
+        ai_model="gemini-3.5-flash-lite",
+        timeout=60,
+        max_retries=3,
+        log_level="INFO",
+    )
+
+    repository = Mock(spec=ConfigRepository)
+    repository.list.return_value = {
+        "provider": "gemini",
+    }
+
+    service = ConfigService(settings, repository)
+    report = service.get_configuration_raw()
+
+    assert report.provider == "gemini"
+    assert report.model is None
+    assert report.timeout is None
+    assert report.max_retries is None
+    assert report.log_level is None
+
+
+def test_get_raw_value_returns_requested_configuration() -> None:
+    settings = create_settings(
+        provider="gemini",
+        ai_model="gemini-3.5-flash-lite",
+        timeout=60,
+        max_retries=3,
+        log_level="INFO",
+    )
+
+    repository = Mock(spec=ConfigRepository)
+    repository.get.return_value = "gemini"
+
+    service = ConfigService(settings, repository)
+    report = service.get_configuration_value_raw("provider")
+
+    repository.get.assert_called_once_with("provider")
+
+    assert report.key == "provider"
+    assert report.value == "gemini"
+
+
+def test_get_raw_value_unknown_key_raises_error() -> None:
+    settings = create_settings(
+        provider="gemini",
+        ai_model="gemini-3.5-flash-lite",
+        timeout=60,
+        max_retries=3,
+        log_level="INFO",
+    )
+
+    repository = Mock(spec=ConfigRepository)
+    service = ConfigService(settings, repository)
+
+    with pytest.raises(UnknownConfigurationKeyError):
+        service.get_configuration_value_raw("invalid")
+
+    repository.get.assert_not_called()
+
+    
 def test_get_value_returns_requested_configuration() -> None:
     settings = create_settings(
         provider="gemini",

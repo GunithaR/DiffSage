@@ -30,21 +30,44 @@ def _resolve_scope(*, local: bool, global_: bool) -> ConfigScope:
 
 
 @app.command("list")
-def list_config() -> None:
+def list_config(
+    local: bool = typer.Option(False, "--local"),
+    global_: bool = typer.Option(False, "--global")
+) -> None:
     """List the current DiffSage configuration."""
 
     view = ConfigView()
 
     try:
         settings = load_settings()
+        scope = _resolve_scope(
+            local=local,
+            global_=global_,
+        )
 
-        path = get_local_config_path()
-        repository = ConfigRepository(path)
+        if local or global_:
+            path = resolve_config_path(scope)
 
-        service = ConfigService(settings, repository)
+            repository = ConfigRepository(path)
+            service = ConfigService(settings, repository)
 
-        report = service.get_configuration()
+            report = service.get_configuration_raw()
+
+        else:
+            path = get_local_config_path()
+
+            repository = ConfigRepository(path)
+            service = ConfigService(settings, repository)
+
+            report = service.get_configuration()
+
+        view.show_path(path)
         view.show_configuration(report)
+
+    except typer.BadParameter as e:
+        logger.warning(str(e))
+        view.show_error(str(e))
+        raise SystemExit(1) from None
 
     except Exception:
         logger.exception("Unexpected error while executing config command.")
@@ -52,7 +75,11 @@ def list_config() -> None:
         raise SystemExit(1) from None
 
 @app.command("get")
-def get_config(key: str) -> None:
+def get_config(
+    key: str,
+    local: bool = typer.Option(False, "--local"),
+    global_: bool = typer.Option(False, "--global"),
+) -> None:
     """Get the value of a DiffSage configuration."""
 
     view = ConfigView()
@@ -60,15 +87,34 @@ def get_config(key: str) -> None:
     try:
         settings = load_settings()
 
-        path = get_local_config_path()
-        repository = ConfigRepository(path)
+        if local or global_:
+            scope = _resolve_scope(
+                local=local,
+                global_=global_,
+            )
 
-        service = ConfigService(settings, repository)
+            path = resolve_config_path(scope)
+            repository = ConfigRepository(path)
+            service = ConfigService(settings, repository)
 
-        report = service.get_value(key.strip().lower())
+            report = service.get_configuration_value_raw(key.strip().lower())
+
+        else:
+            path = get_local_config_path()
+            repository = ConfigRepository(path)
+            service = ConfigService(settings, repository)
+
+            report = service.get_value(key.strip().lower())
+
+        view.show_path(path)
         view.show_value(report)
 
     except UnknownConfigurationKeyError as e:
+        logger.warning(str(e))
+        view.show_error(str(e))
+        raise SystemExit(1) from None
+
+    except typer.BadParameter as e:
         logger.warning(str(e))
         view.show_error(str(e))
         raise SystemExit(1) from None
@@ -104,7 +150,7 @@ def set_config(
 
         service = ConfigService(settings, repository)
 
-        report = service.set_value(key, value)
+        report = service.set_value(key.strip().lower(), value)
 
         view.show_success(f"{scope.value.capitalize()} configuration updated.")
         view.show_path(path)
@@ -139,7 +185,7 @@ def unset_config(
     ),
     global_: bool = typer.Option(
         False, "--global", 
-        help="Write to the repository's local configuration."
+        help="Write to the repository's global configuration."
     ),
 ) -> None:
     """Remove a DiffSage configuration value."""
@@ -155,7 +201,7 @@ def unset_config(
 
         service = ConfigService(settings, repository)
 
-        report = service.unset_value(key)
+        report = service.unset_value(key.strip().lower())
 
         view.show_success(f"{scope.value.capitalize()} configuration removed.")
         view.show_path(path)
