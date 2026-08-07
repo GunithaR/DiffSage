@@ -35,6 +35,32 @@ class ConfigRepository:
         self._path.write_text(content)
 
 
+    def list(self) -> dict[str, str | int ]:
+        doc = self._load()
+
+        config = {}
+
+        for key, (section, option) in self._PATH_MAP.items():
+            if section in doc and option in doc[section]:
+                config[key] = doc[section][option]
+
+        return config
+
+
+    def get(self, key: str) -> str | int | None:
+        doc = self._load()
+
+        section, option = self._PATH_MAP[key]
+
+        if section not in doc:
+            return None
+
+        if option not in doc[section]:
+            return None
+
+        return doc[section][option]
+        
+
     def set(self, key: str, value: str | int) -> None:
         doc = self._load()
         section, option = self._PATH_MAP[key]
