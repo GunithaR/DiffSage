@@ -48,3 +48,8 @@ def ensure_global_config_dir() -> None:
         parents=True,
         exist_ok=True,
     )
+
+def get_credentials_path() -> Path:
+    """Return the global DiffSage credentials file path."""
+
+    return user_config_path(APP_NAME) / "credentials.toml"

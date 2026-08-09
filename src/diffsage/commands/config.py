@@ -16,7 +16,6 @@ app = typer.Typer(
     invoke_without_command=False
 )
 
-
 def _resolve_scope(*, local: bool, global_: bool) -> ConfigScope:
     if local and global_:
         raise typer.BadParameter(

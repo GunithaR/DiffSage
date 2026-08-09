@@ -3,6 +3,7 @@ import logging
 import typer
 
 from diffsage.commands.ask import ask
+from diffsage.commands.auth import app as auth_app
 from diffsage.commands.commit import commit
 from diffsage.commands.config import app as config_app
 from diffsage.commands.doctor import doctor
@@ -33,4 +34,8 @@ app.command()(commit)
 app.add_typer(
     config_app, 
     name="config",
+)
+app.add_typer(
+    auth_app,
+    name="auth"
 )
