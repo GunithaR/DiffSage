@@ -1,10 +1,11 @@
 import time
 
 from diffsage.config.settings import Settings
-from diffsage.exceptions import ProviderUnavailableError
+from diffsage.exceptions import CredentialNotFoundError, ProviderUnavailableError
 from diffsage.models.provider import ProviderRequest, ProviderResponse
 from diffsage.providers.base import BaseProvider
 from diffsage.providers.factory import create_provider
+from diffsage.services.credentials_service import CredentialService
 
 
 class AIService:
@@ -12,11 +13,27 @@ class AIService:
 
     def __init__(
             self, 
-            settings: Settings, 
+            settings: Settings,
+            credential_service: CredentialService, 
             provider: BaseProvider | None = None
     ) -> None:
         self._settings = settings
-        self._provider = provider or create_provider(settings)
+
+        if provider is not None:
+            self._provider = provider
+        else:
+            credential = credential_service.get_credential(
+                settings.provider,
+                "default",
+            )
+
+            if credential is None:
+                raise CredentialNotFoundError(
+                    settings.provider,
+                    "default",
+                )
+            
+            self._provider = create_provider(settings, credential)
 
     def _ask_once(self, prompt: str) -> ProviderResponse:
         request = ProviderRequest(

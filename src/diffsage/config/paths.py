@@ -40,6 +40,8 @@ def get_log_directory() -> Path:
     path.mkdir(parents=True, exist_ok=True)
     return path
 
+def get_log_file_path() -> Path:
+    return get_log_directory() / "diffsage.log"
 
 def ensure_global_config_dir() -> None:
     """Create the global configuration directory if it does not exist."""

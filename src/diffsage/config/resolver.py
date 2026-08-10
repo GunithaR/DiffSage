@@ -54,7 +54,6 @@ def _to_settings(config: DiffSageConfig) -> Settings:
     return Settings(
         provider=config.ai.provider,
         ai_model=config.ai.model,
-        api_key=os.getenv("DIFFSAGE_API_KEY", ""),
         timeout=config.network.timeout,
         max_retries=config.network.max_retries,
         log_level=config.logging.level,
@@ -97,10 +96,6 @@ def resolve_settings() -> Settings:
             ai_model=os.getenv(
                 "DIFFSAGE_AI_MODEL",
                 settings.ai_model,
-            ),
-            api_key=os.getenv(
-                "DIFFSAGE_API_KEY",
-                settings.api_key,
             ),
             timeout=int(
                 os.getenv(

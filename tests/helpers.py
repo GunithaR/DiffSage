@@ -53,7 +53,6 @@ def create_settings(**overrides) -> Settings:
     defaults = {
         "provider": DEFAULT_CONFIG.ai.provider,
         "ai_model": DEFAULT_CONFIG.ai.model,
-        "api_key": "",
         "timeout": DEFAULT_CONFIG.network.timeout,
         "max_retries": DEFAULT_CONFIG.network.max_retries,
         "log_level": DEFAULT_CONFIG.logging.level,

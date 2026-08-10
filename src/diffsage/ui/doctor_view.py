@@ -1,5 +1,7 @@
+
 import typer
 
+from diffsage.config.paths import get_log_file_path
 from diffsage.models.doctor import DoctorReport
 
 
@@ -39,3 +41,4 @@ class DoctorView:
         typer.echo(f"Timeout        : {report.timeout}")
         typer.echo(f"Max Retries    : {report.max_retries}")
         typer.echo(f"Log Level      : {report.log_level}")
+        typer.echo(f"Diffsage Log   : {get_log_file_path()}")

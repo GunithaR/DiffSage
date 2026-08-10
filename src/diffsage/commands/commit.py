@@ -1,6 +1,8 @@
 from diffsage.config.loader import load_settings
+from diffsage.config.paths import get_credentials_path
 from diffsage.exceptions import (
     ConfigError,
+    CredentialNotFoundError,
     NoStagedChangesError,
     NotGitRepositoryError,
     ProviderError,
@@ -10,9 +12,11 @@ from diffsage.logging.logger import get_logger
 from diffsage.parsers.commit_message_parser import CommitMessageParser
 from diffsage.services.ai_service import AIService
 from diffsage.services.commit_service import CommitService
-from diffsage.services.editor import EditorService
+from diffsage.services.credentials_service import CredentialService
+from diffsage.services.editor_service import EditorService
 from diffsage.services.git_service import GitService
 from diffsage.services.prompt_service import PromptService
+from diffsage.storage.credentials_repository import CredentialsRepository
 from diffsage.ui.commit_view import CommitView
 
 logger = get_logger(__name__)
@@ -31,8 +35,15 @@ def commit() -> None:
 
         settings = load_settings()
 
+        credential_path = get_credentials_path()
+        credential_repository = CredentialsRepository(credential_path)
+        credential_service = CredentialService(credential_repository)
+
         git_service = GitService(git_client)
-        ai_service = AIService(settings)
+        ai_service = AIService(
+            settings,
+            credential_service,
+        )
         prompt_service = PromptService()
 
         commit_service = CommitService(
@@ -90,6 +101,11 @@ def commit() -> None:
     except NoStagedChangesError:
         logger.info("Command aborted: no staged changes.")
         view.show_no_staged_changes()
+        raise SystemExit(1) from None
+
+    except CredentialNotFoundError as e:
+        logger.warning(str(e))
+        view.show_error(str(e))
         raise SystemExit(1) from None
 
     except ProviderError as e:

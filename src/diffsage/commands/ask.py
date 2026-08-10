@@ -1,8 +1,16 @@
 
 from diffsage.config.loader import load_settings
-from diffsage.exceptions import AuthenticationError, ConfigError, ProviderUnavailableError
+from diffsage.exceptions import (
+    AuthenticationError, 
+    ConfigError,
+    CredentialNotFoundError, 
+    ProviderUnavailableError,
+)
 from diffsage.logging.logger import get_logger
+from diffsage.config.paths import get_credentials_path
+from diffsage.services.credentials_service import CredentialService
 from diffsage.services.ai_service import AIService
+from diffsage.storage.credentials_repository import CredentialsRepository
 from diffsage.ui.ask_view import AskView
 
 logger = get_logger(__name__)
@@ -16,12 +24,25 @@ def ask(prompt: str) -> None:
 
     try:
         settings = load_settings()
-        service = AIService(settings)
+
+        credential_path = get_credentials_path()
+        repository = CredentialsRepository(credential_path)
+        credential_service = CredentialService(repository)
+
+        service = AIService(
+            settings,
+            credential_service,
+        )
         
         response = service.ask(prompt)
         view.show_response(response)
 
     except AuthenticationError as e:
+        logger.warning(str(e))
+        view.show_error(str(e))
+        raise SystemExit(1) from None
+
+    except CredentialNotFoundError as e:
         logger.warning(str(e))
         view.show_error(str(e))
         raise SystemExit(1) from None

@@ -12,15 +12,23 @@ from diffsage.exceptions import (
     ProviderUnavailableError,
     RateLimitError,
 )
+from diffsage.models.credentials import Credential
 from diffsage.models.provider import ProviderRequest, ProviderResponse
 from diffsage.providers.base import BaseProvider
 
 
 class GeminiProvider(BaseProvider):
-    def __init__(self, settings: Settings) -> None:
-        self._settings = settings
+    """Google Gemini provider implementation."""
 
-        self._client = genai.Client(api_key=self._settings.api_key)
+    def __init__(
+        self, 
+        settings: Settings,
+        credential: Credential
+    ) -> None:
+        self._settings = settings
+        self._credential = credential
+
+        self._client = genai.Client(api_key=self._credential.api_key)
 
     def generate(self, request: ProviderRequest) -> ProviderResponse:
         start_time = time.perf_counter()
@@ -49,6 +57,13 @@ class GeminiProvider(BaseProvider):
 
             elif status == "UNAUTHENTICATED":
                 raise AuthenticationError("Authentication with Gemini failed.") from e
+
+            elif status == "INVALID_ARGUMENT":
+                if e.code == 400:
+                    raise AuthenticationError("" \
+                    "Authentication with Gemini failed. " \
+                    "Please check your API Key."
+                    ) from e
 
             elif status == "RESOURCE_EXHAUSTED":
                 raise RateLimitError("Gemini API rate limit exceeded.") from e
