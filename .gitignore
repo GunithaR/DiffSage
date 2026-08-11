@@ -19,6 +19,7 @@ env/
 # Testing
 .pytest_cache/
 .ruff_cache/
+.coverage*
 
 # macOS
 .DS_Store
