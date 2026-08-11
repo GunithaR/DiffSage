@@ -3,7 +3,6 @@ import platform
 import shlex
 import subprocess
 import tempfile
-
 from pathlib import Path
 
 

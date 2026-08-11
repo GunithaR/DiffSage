@@ -1,21 +1,22 @@
-from rich.console import Console, Group
+from contextlib import contextmanager
+
+from rich.console import Group
 from rich.panel import Panel
 from rich.rule import Rule
 from rich.table import Table
 from rich.text import Text
-from contextlib import contextmanager
+
 from diffsage.models.commit_message import CommitMessage
+from diffsage.ui.base import BaseView
 
-class CommitView:
+
+class CommitView(BaseView):
     """Handles terminal rendering for the commit command."""
-
-    def __init__(self) -> None:
-        self._console = Console()
 
     @contextmanager
     def generating(self):
         with self._console.status("Generating commit message..."):
-            yield 
+            yield
 
     def show_generated(self) -> None:
         self._console.print("[green]✓ Commit message generated successfully.[/green]")
@@ -49,9 +50,9 @@ class CommitView:
 
                 if line.startswith("- "):
                     line = line.removeprefix("- ")
-                
+
                 body.append(f"• {line}")
-                if i < len(message.body) -1 :
+                if i < len(message.body) - 1:
                     body.append("\n")
 
             content = Group(
@@ -70,22 +71,23 @@ class CommitView:
                 title="[bold cyan]Suggested Commit Message[/bold cyan]",
                 expand=False,
             )
-        
+
         self._console.print()
         self._console.print(panel)
 
-    def prompt_action(self) -> str: 
+    def prompt_action(self) -> str:
         self._console.print()
 
         return self._console.input(
-                    "[bold cyan][Y][/bold cyan] Commit (default)   "
-                    "[bold cyan][E][/bold cyan] Edit   "
-                    "[bold cyan][R][/bold cyan] Regenerate   "
-                    "[bold cyan][N][/bold cyan] Cancel:  "
+            "[bold cyan][Y][/bold cyan] Commit (default)   "
+            "[bold cyan][E][/bold cyan] Edit   "
+            "[bold cyan][R][/bold cyan] Regenerate   "
+            "[bold cyan][N][/bold cyan] Cancel:  "
         )
 
     def show_success(self, message: str) -> None:
-        self._console.print("[bold green]✓ Commit created successfully.[bold green]")
+        self._console.print()
+        self._console.print("[bold green]✓ Commit created successfully.[/bold green]")
         self._console.print()
         self._console.print("[dim]Commit:[/dim]")
         self._console.print(message)
@@ -96,6 +98,3 @@ class CommitView:
 
     def show_invalid_option(self) -> None:
         self._console.print("[red]Invalid option. Please choose Y, E, R or N.[/red]")
-
-    def show_error(self, message: str) -> None:
-        self._console.print(f"[red]✗ {message}[/red]")

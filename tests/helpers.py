@@ -1,6 +1,8 @@
 import subprocess
-
 from pathlib import Path
+
+from diffsage.config.defaults import DEFAULT_CONFIG
+from diffsage.config.settings import Settings
 
 
 def run_git(
@@ -45,3 +47,16 @@ def init_git_repo_with_initial_commit(path: Path) -> None:
 
     run_git(["add", "README.md"], path)
     run_git(["commit", "-m", "Initial Commit"], path)
+
+
+def create_settings(**overrides) -> Settings:
+    defaults = {
+        "provider": DEFAULT_CONFIG.ai.provider,
+        "ai_model": DEFAULT_CONFIG.ai.model,
+        "timeout": DEFAULT_CONFIG.network.timeout,
+        "max_retries": DEFAULT_CONFIG.network.max_retries,
+        "log_level": DEFAULT_CONFIG.logging.level,
+    }
+
+    defaults.update(overrides)
+    return Settings(**defaults)

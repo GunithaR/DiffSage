@@ -69,9 +69,12 @@ Current capabilities include:
 - Interactive commit workflow
 - Commit message editing using the user's preferred editor
 - Commit message regeneration
+- Global, local, and resolved configuration management
 - Git repository validation
 - Environment diagnostics via `diffsage doctor`
 - Provider abstraction for AI integrations
+- Provider credential management with named profiles
+- AI provider authentication and error handling
 - Layered architecture
 - Comprehensive automated test suite
 
@@ -157,26 +160,56 @@ pip install -e ".[dev]"
 
 # Configuration
 
-DiffSage uses environment variables for configuration.
+DiffSage supports layered configuration through global and repository-local TOML files.
 
-Example:
+Application configuration controls how DiffSage behaves and can be managed through global, repository-local, and environment-based configuration.
+
+Provider credentials are managed separately from application configuration. 
+Provider credentials are managed separately from application configuration and are not part of the Settings configuration model.
 
 ```env
-PROVIDER=gemini
-GOOGLE_API_KEY=your_api_key
-LOG_LEVEL=INFO
-TIMEOUT=60
-MAX_RETRIES=3
+DIFFSAGE_PROVIDER=gemini
+DIFFSAGE_AI_MODEL=gemini-3.5-flash-lite
+DIFFSAGE_LOG_LEVEL=INFO
+DIFFSAGE_TIMEOUT=60
+DIFFSAGE_MAX_RETRIES=3
+```
+
+Configuration can also be managed directly from the CLI:
+
+```bash
+diffsage config list
+diffsage config get provider
+diffsage config set provider gemini
+diffsage config unset provider
 ```
 
 ---
 
 # Quick Start
 
+Set up your provider credential:
+
+```bash
+diffsage auth set gemini YOUR_API_KEY
+```
+
 Verify your environment:
 
 ```bash
 diffsage doctor
+```
+
+View the current configuration:
+
+```bash
+diffsage config list
+```
+
+Ask the configured AI provider a question:
+
+```bash
+diffsage ask "Explain the current staged changes"
 ```
 
 Generate a commit message:
@@ -200,6 +233,26 @@ Display AI suggestion
 [N] Cancel
 ```
 
+Named credential profiles are also supported:
+
+```bash
+
+diffsage auth set gemini YOUR_API_KEY --name paid
+```
+
+View configured credentials:
+
+```bash
+diffsage auth list
+diffsage auth get gemini
+```
+
+Remove a credential:
+
+```bash
+diffsage auth unset gemini
+```
+
 ---
 
 # Commands
@@ -208,6 +261,15 @@ Display AI suggestion
 |----------|-------------|
 | `diffsage doctor` | Validate the local DiffSage environment |
 | `diffsage commit` | Generate and manage AI-assisted commit messages |
+| `diffsage config list` | Display the current DiffSage configuration |
+| `diffsage config get` | Display the value of a configuration setting |
+| `diffsage config set` | Update a configuration setting |
+| `diffsage config unset` | Remove a configuration setting |
+| `diffsage auth set` | Store a provider credential |
+| `diffsage auth get` | Display a credential with the API key masked |
+| `diffsage auth list` | List configured credentials |
+| `diffsage auth unset` | Remove a provider credential |
+| `diffsage ask` | Ask the configured AI provider a question |
 
 More commands will be introduced as the project evolves.
 
@@ -223,15 +285,20 @@ CLI
 ▼
 Commands
 │
-▼
-Services
-├── Git
-├── AI Providers
-├── Prompt Generation
-└── Configuration
+├── Configuration
+│
+├── Authentication
 │
 ▼
-Infrastructure
+Services
+│
+├── Git
+├── AI
+├── Prompt Generation
+└── Credentials
+│
+▼
+Providers / Storage
 ```
 
 Key architectural principles include:
@@ -254,15 +321,16 @@ src/
 └── diffsage/
     ├── commands/
     ├── config/
-    ├── core/
     ├── exceptions/
     ├── git/
     ├── logging/
     ├── models/
+    ├── parsers/
     ├── prompts/
     ├── providers/
     ├── services/
-    └── storage/
+    ├── storage/
+    └── ui/
 
 tests/
 
@@ -279,13 +347,13 @@ Additional project documentation is available within the repository.
 |----------|---------|
 | `docs/architecture.md` | High-level architecture |
 | `docs/conventions.md` | Coding conventions and project standards |
-| `docs/architecture/ADR-*` | Architecture Decision Records (ADRs) |
+| `docs/vision.md` | Project vision and scope |
+| `docs/changelog.md` | Project changes and milestones |
+| `docs/adrs/ADR-*` | Architecture Decision Records (ADRs) |
 
 Future documentation will include:
 
-- Project Vision
 - Contributing Guide
-- Changelog
 
 ---
 

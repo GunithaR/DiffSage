@@ -5,7 +5,7 @@ import subprocess
 
 from diffsage.config.loader import load_settings
 from diffsage.logging.logger import get_logger
-from diffsage.models.doctor_report import DoctorReport
+from diffsage.models.doctor import DoctorReport
 
 logger = get_logger(__name__)
 

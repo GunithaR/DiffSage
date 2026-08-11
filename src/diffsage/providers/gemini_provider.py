@@ -1,10 +1,9 @@
 import time
 
 from google import genai
-from google.genai import errors as genai_errors, types
+from google.genai import errors as genai_errors
+from google.genai import types
 
-from diffsage.providers.base import BaseProvider
-from diffsage.models.provider import ProviderRequest, ProviderResponse
 from diffsage.config.settings import Settings
 from diffsage.exceptions import (
     AuthenticationError,
@@ -13,31 +12,35 @@ from diffsage.exceptions import (
     ProviderUnavailableError,
     RateLimitError,
 )
+from diffsage.models.credentials import Credential
+from diffsage.models.provider import ProviderRequest, ProviderResponse
+from diffsage.providers.base import BaseProvider
 
 
 class GeminiProvider(BaseProvider):
-    def __init__(self, settings: Settings) -> None:
-        self._settings = settings
+    """Google Gemini provider implementation."""
 
-        self._client = genai.Client(api_key=self._settings.api_key)
+    def __init__(self, settings: Settings, credential: Credential) -> None:
+        self._settings = settings
+        self._credential = credential
+
+        self._client = genai.Client(api_key=self._credential.api_key)
 
     def generate(self, request: ProviderRequest) -> ProviderResponse:
         start_time = time.perf_counter()
 
-        timeout_ms=self._settings.timeout * 1000
+        timeout_ms = self._settings.timeout * 1000
 
         config = types.GenerateContentConfig(
-            http_options=types.HttpOptions(
-            timeout=timeout_ms
-            ),
+            temperature=request.temperature,
+            max_output_tokens=request.max_tokens,
+            http_options=types.HttpOptions(timeout=timeout_ms),
         )
 
         try:
             response = self._client.models.generate_content(
-                model=request.model,
-                contents=request.prompt,
-                config=config
-            )        
+                model=request.model, contents=request.prompt, config=config
+            )
         except genai_errors.APIError as e:
             status = e.status
 
@@ -46,6 +49,12 @@ class GeminiProvider(BaseProvider):
 
             elif status == "UNAUTHENTICATED":
                 raise AuthenticationError("Authentication with Gemini failed.") from e
+
+            elif status == "INVALID_ARGUMENT":
+                if e.code == 400:
+                    raise AuthenticationError(
+                        "Authentication with Gemini failed. Please check your API Key."
+                    ) from e
 
             elif status == "RESOURCE_EXHAUSTED":
                 raise RateLimitError("Gemini API rate limit exceeded.") from e

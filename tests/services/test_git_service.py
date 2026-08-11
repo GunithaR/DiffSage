@@ -1,9 +1,8 @@
 from pathlib import Path
 
-from diffsage.services.git_service import GitService
 from diffsage.git.client import GitClient
 from diffsage.models.git import CommitContext
-
+from diffsage.services.git_service import GitService
 from tests.helpers import init_git_repo_with_initial_commit
 
 
@@ -17,10 +16,6 @@ def test_build_commit_context_returns_commit_context(tmp_path: Path):
     service = GitService(client)
 
     context = service.build_commit_context()
-
-    print(context)
-
-    print(context.branch)
 
     assert isinstance(context, CommitContext)
 

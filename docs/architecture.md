@@ -2,9 +2,12 @@
 
 ## Overview
 
-DiffSage is a terminal-first AI-powered Git workflow assistant that helps developers with commit messages, pull requests, merge conflict explanations, code explanations, and other Git-related tasks.
+DiffSage is a terminal-first AI-powered Git workflow toolkit that helps
+developers with AI-assisted commit messages and other Git-related workflows.
 
-The architecture follows a layered design to separate user interaction, business logic, and infrastructure.
+The architecture follows a layered design to separate user interaction,
+business logic, and infrastructure while keeping Git workflow operations
+independent from provider-specific AI implementations.
 
 ---
 
@@ -17,10 +20,7 @@ User
 CLI (Typer)
     │
     ▼
-Load Configuration
-    │
-    ▼
-Configure Logging
+Application Initialization
     │
     ▼
 Commands
@@ -72,23 +72,39 @@ Responsible for:
 
 Services should not directly print to the terminal.
 
+Services communicate using structured report models rather than terminal output.
+
+Services perform validation, normalization, and orchestration while remaining
+independent of the presentation layer.
+
 ---
 
 ## Infrastructure
 
-Infrastructure contains components that communicate with external systems.
+Infrastructure contains components that communicate with external systems or
+provide persistence and application infrastructure.
 
 Includes:
 
 - Providers
 - Git
 - Storage
+- Repositories
+  - Persist configuration and credentials
+  - Read persisted data
+  - No business logic
+  - No validation
 - Logging
-    - Centralized initialization
-    - Console handler
-    - File handler
-    - Configurable log level
+  - Centralized initialization
+  - Console handler
+  - File handler
+  - Configurable log level
 - Configuration
+  - Loads and resolves application configuration
+  - Supports global, local, and environment-based configuration
+- Authentication
+  - Resolves provider credentials
+  - Persists credential profiles separately from application configuration
 
 ---
 
@@ -115,38 +131,144 @@ Services exchange structured data using models (DTOs), allowing commands to focu
 
 ---
 
-# AI Request Flow
+# Runtime Request Flow
 
-LLM-enabled features follow the same layered architecture.
+Most DiffSage features follow a common execution pipeline.
 
-```
+```text
 Command
     │
     ▼
-GitService
+Service
+    │
+    ├──────────────► Configuration
+    │
+    ├──────────────► Authentication
+    │                       │
+    │                       ▼
+    │                 Credential Store
     │
     ▼
-CommitContext
+Provider / Repository
     │
     ▼
-PromptService
+Runtime Models
     │
     ▼
-BaseProvider
+Report Models
     │
     ▼
-ProviderResponse
+View
+```
+
+## Responsibilities
+
+### Commands
+
+- Receiving user input
+- Composing application dependencies
+- Calling services
+- Handling domain exceptions
+- Delegating terminal output to views
+
+### Services
+
+- Implement business logic.
+- Validate and normalize user input.
+- Coordinate repositories and providers.
+- Return structured report models.
+- Never perform terminal output.
+
+### Repositories
+
+- Persist and retrieve application data.
+- Encapsulate storage implementation details.
+- Contain no business logic or validation.
+
+### Authentication
+
+- Resolve credentials for the configured provider and profile.
+- Keep provider credentials separate from application configuration.
+- Provide credential data to provider implementations.
+- Raise domain-specific errors when required credentials are unavailable.
+
+### Providers
+
+- Communicate with external AI services.
+- Translate provider-specific responses into common domain models.
+- Hide provider implementation details from higher layers.
+
+### Runtime Models
+
+- Represent internal application data.
+- Transfer information between infrastructure and services.
+- Remain independent of presentation concerns.
+
+### Report Models
+
+- Represent data prepared for presentation.
+- Separate business logic from the user interface.
+- Provide a stable interface between services and views.
+
+### Views
+
+- Render Rich terminal output.
+- Display reports returned by services.
+- Never contain business logic.
+
+
+---
+
+# AI Request Flow
+
+# AI Request Flow
+
+LLM-enabled Git workflows use the service layer to coordinate Git context,
+prompt generation, credential resolution, and provider communication.
+
+```text
+Command
+    │
+    ▼
+CommitService
+    │
+    ├── GitService
+    │      │
+    │      ▼
+    │   CommitContext
+    │
+    ├── PromptService
+    │
+    └── AIService
+           │
+           ├── CredentialService
+           │      │
+           │      ▼
+           │   CredentialsRepository
+           │
+           └── Provider Factory
+                  │
+                  ▼
+              BaseProvider
+                  │
+                  ▼
+          Provider Implementation
+                  │
+                  ▼
+          ProviderResponse
 ```
 
 Responsibilities:
 
 - **GitService** collects repository information and returns structured domain models.
 - **PromptService** transforms domain models into prompts for language models.
+- **AIService** coordinates AI requests, credential resolution, provider selection, and retry handling.
+- **CredentialService** resolves provider credentials through the credential repository.
 - **BaseProvider** defines the common provider contract.
 - **Provider implementations** communicate with external LLM APIs and normalize provider-specific responses into `ProviderResponse`.
-- **Commands** orchestrate the workflow and present results to the user.
+- **Commands** orchestrate the application workflow, handle domain errors, and present results to the user.
 
-This separation keeps Git logic, prompt generation, and provider implementations independent.
+This separation keeps Git logic, prompt generation, authentication, AI orchestration, and provider-specific implementations independent.
 
 ---
 
@@ -155,14 +277,17 @@ This separation keeps Git logic, prompt generation, and provider implementations
 ```
 src/diffsage/
 ├── commands/
-├── services/
-├── providers/
-├── git/
-├── storage/
-├── logging/
 ├── config/
-├── core/
-└── models/
+├── exceptions/
+├── git/
+├── logging/
+├── models/
+├── parsers/
+├── prompts/
+├── providers/
+├── services/
+├── storage/
+└── ui/
 ```
 
 ---
@@ -177,6 +302,11 @@ src/diffsage/
 - Replaceable infrastructure
 - Terminal-first user experience
 - Domain model driven communication between layers
+- Constructor-based dependency injection
+- Repository pattern
+- Report models separating business and presentation
+- Hierarchical configuration resolution
+- Authentication separated from configuration
 
 ---
 

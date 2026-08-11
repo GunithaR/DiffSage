@@ -1,7 +1,7 @@
+from datetime import datetime
+
 from diffsage.models.git import CommitContext, GitCommit
 from diffsage.services.prompt_service import PromptService
-
-from datetime import datetime
 
 
 def test_build_commit_prompt():

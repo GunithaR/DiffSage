@@ -1,10 +1,19 @@
-from .provider import (
+from .base import (
+    ConfigError,
     DiffSageError,
+    GitError,
+    InvalidCommitMessageError,
+    InvalidConfigurationValueError,
     ProviderError,
+    UnknownConfigurationKeyError,
+)
+from .credentials import CredentialNotFoundError
+from .git import NoStagedChangesError, NotGitRepositoryError
+from .provider import (
     AuthenticationError,
-    RateLimitError,
     ModelNotFoundError,
     ProviderUnavailableError,
+    RateLimitError,
 )
 
 __all__ = [
@@ -14,4 +23,12 @@ __all__ = [
     "RateLimitError",
     "ModelNotFoundError",
     "ProviderUnavailableError",
+    "ConfigError",
+    "GitError",
+    "UnknownConfigurationKeyError",
+    "InvalidConfigurationValueError",
+    "InvalidCommitMessageError",
+    "NoStagedChangesError",
+    "NotGitRepositoryError",
+    "CredentialNotFoundError",
 ]
