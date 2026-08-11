@@ -2,7 +2,9 @@ from unittest.mock import patch
 
 import pytest
 import typer
+from typer.testing import CliRunner
 
+from diffsage.cli import app
 from diffsage.commands.config import (
     _resolve_scope,
     get_config,
@@ -14,6 +16,8 @@ from diffsage.config.scope import ConfigScope
 from diffsage.exceptions import InvalidConfigurationValueError, UnknownConfigurationKeyError
 from diffsage.models.config import ConfigReport, ConfigValueReport
 from tests.helpers import create_settings
+
+runner = CliRunner()
 
 
 def test_resolve_scope_defaults_to_global() -> None:
@@ -326,6 +330,14 @@ def test_get_config_command_uses_global_scope() -> None:
     view.show_value.assert_called_once_with(report)
 
 
+def test_get_config_rejects_missing_key() -> None:
+    result = runner.invoke(app, ["config", "get"])
+
+    assert result.exit_code != 0
+    assert "Missing argument" in result.output
+    assert "key" in result.output
+
+
 def test_set_config_command_defaults_to_global() -> None:
     settings = create_settings(
         provider="gemini",
@@ -621,6 +633,14 @@ def test_set_config_command_handles_unexpected_error() -> None:
     view.show_configuration.assert_not_called()
 
 
+def test_set_config_rejects_missing_key() -> None:
+    result = runner.invoke(app, ["config", "set"])
+
+    assert result.exit_code != 0
+    assert "Missing argument" in result.output
+    assert "key" in result.output
+
+
 def test_unset_config_command_defaults_to_global() -> None:
     settings = create_settings(
         provider="gemini",
@@ -867,3 +887,11 @@ def test_unset_config_command_handles_unexpected_error() -> None:
     )
     view.show_success.assert_not_called()
     view.show_configuration.assert_not_called()
+
+
+def test_unset_config_rejects_missing_key() -> None:
+    result = runner.invoke(app, ["config", "unset"])
+
+    assert result.exit_code != 0
+    assert "Missing argument" in result.output
+    assert "key" in result.output

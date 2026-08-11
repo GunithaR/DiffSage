@@ -29,11 +29,12 @@ keywords = [
     "commit",
 ]
 
-# Click 8.4.x currently exhibits unexpected required-argument behavior
-# with Typer 0.16.x. See GitHub Issue #1.
+# Typer 0.27.x is required for compatibility with modern Click releases.
+# Earlier Typer versions exhibited incorrect handling of missing arguments
+# with Click 8.4.x.
 dependencies = [
-    "typer>=0.16,<0.17",
-    "click>=8.1.8,<8.2",
+    "typer>=0.27,<0.28",
+    "click>=8.3.3,<9",
     "rich>=14,<15",
     "pydantic>=2.11,<3",
     "platformdirs>=4.0.0",
@@ -46,11 +47,12 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=8,<9",
+    "pytest>=9,<10",
     "pytest-cov>=6,<7",
     "ruff>=0.12,<0.13",
     "pre-commit>=4,<5",
     "build>=1,<2",
+    "pip-audit>=2,<3",
 ]
 
 [project.scripts]
