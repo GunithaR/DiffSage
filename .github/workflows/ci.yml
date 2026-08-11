@@ -31,8 +31,11 @@ jobs:
       - name: Run linter
         run: ruff check .
 
-      - name: Run tests
-        run: pytest
+      - name: Audit dependencies
+        run: pip-audit
+
+      - name: Run tests with coverage
+        run: pytest --cov=diffsage --cov-report=term-missing
 
       - name: Build package
         run: python -m build
