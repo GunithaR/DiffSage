@@ -18,4 +18,3 @@ DEFAULT_CONFIG = DiffSageConfig(
         level="INFO",
     ),
 )
-

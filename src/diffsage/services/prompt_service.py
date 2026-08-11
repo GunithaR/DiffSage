@@ -57,8 +57,4 @@ class PromptService:
     """.strip()
 
     def build_commit_prompt(self, context: CommitContext) -> str:
-        return(
-            f"{self._build_commit_instructions()}\n\n"
-            f"{self._build_commit_context(context)}"
-        )
-
+        return f"{self._build_commit_instructions()}\n\n{self._build_commit_context(context)}"

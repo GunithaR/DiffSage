@@ -120,7 +120,7 @@ def test_get_raw_value_unknown_key_raises_error() -> None:
 
     repository.get.assert_not_called()
 
-    
+
 def test_get_value_returns_requested_configuration() -> None:
     settings = create_settings(
         provider="gemini",
@@ -173,7 +173,6 @@ def test_set_value_returns_updated_configuration() -> None:
     with patch(
         "diffsage.services.config_service.load_settings", return_value=updated_settings
     ) as mock_load_settings:
-
         report = service.set_value(
             "provider",
             "openai",
@@ -220,22 +219,15 @@ def test_set_value_invalid_integer_raises_error() -> None:
     service = ConfigService(settings, repository)
 
     with pytest.raises(InvalidConfigurationValueError):
-        service.set_value(
-            "timeout",
-            "abc"
-        )
+        service.set_value("timeout", "abc")
 
     repository.set.assert_not_called()
 
 
 def test_set_value_normalizes_input() -> None:
-    settings = create_settings(
-        provider="gemini"
-    )
+    settings = create_settings(provider="gemini")
 
-    updated_settings = create_settings(
-        provider="openai"
-    )
+    updated_settings = create_settings(provider="openai")
 
     repository = Mock(spec=ConfigRepository)
     service = ConfigService(settings, repository)
@@ -284,10 +276,9 @@ def test_unset_value_returns_updated_configuration() -> None:
     service = ConfigService(settings, repository)
 
     with patch(
-        "diffsage.services.config_service.load_settings", 
+        "diffsage.services.config_service.load_settings",
         return_value=updated_settings,
     ) as mock_load_settings:
-
         report = service.unset_value("model")
 
     mock_load_settings.assert_called_once()

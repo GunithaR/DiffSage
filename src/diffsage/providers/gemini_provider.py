@@ -20,11 +20,7 @@ from diffsage.providers.base import BaseProvider
 class GeminiProvider(BaseProvider):
     """Google Gemini provider implementation."""
 
-    def __init__(
-        self, 
-        settings: Settings,
-        credential: Credential
-    ) -> None:
+    def __init__(self, settings: Settings, credential: Credential) -> None:
         self._settings = settings
         self._credential = credential
 
@@ -33,22 +29,18 @@ class GeminiProvider(BaseProvider):
     def generate(self, request: ProviderRequest) -> ProviderResponse:
         start_time = time.perf_counter()
 
-        timeout_ms=self._settings.timeout * 1000
+        timeout_ms = self._settings.timeout * 1000
 
         config = types.GenerateContentConfig(
             temperature=request.temperature,
             max_output_tokens=request.max_tokens,
-            http_options=types.HttpOptions(
-                timeout=timeout_ms
-            ),
+            http_options=types.HttpOptions(timeout=timeout_ms),
         )
 
         try:
             response = self._client.models.generate_content(
-                model=request.model,
-                contents=request.prompt,
-                config=config
-            )        
+                model=request.model, contents=request.prompt, config=config
+            )
         except genai_errors.APIError as e:
             status = e.status
 
@@ -60,9 +52,8 @@ class GeminiProvider(BaseProvider):
 
             elif status == "INVALID_ARGUMENT":
                 if e.code == 400:
-                    raise AuthenticationError("" \
-                    "Authentication with Gemini failed. " \
-                    "Please check your API Key."
+                    raise AuthenticationError(
+                        "Authentication with Gemini failed. Please check your API Key."
                     ) from e
 
             elif status == "RESOURCE_EXHAUSTED":

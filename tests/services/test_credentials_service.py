@@ -24,6 +24,7 @@ def test_set_credential_saves_default_profile() -> None:
         )
     )
 
+
 def test_set_credential_saves_named_profile() -> None:
     repository = Mock(spec=CredentialsRepository)
     service = CredentialService(repository)
@@ -41,6 +42,7 @@ def test_set_credential_saves_named_profile() -> None:
             api_key="paid-api-key",
         )
     )
+
 
 def test_set_credential_normalizes_provider_and_name() -> None:
     repository = Mock(spec=CredentialsRepository)
@@ -60,6 +62,7 @@ def test_set_credential_normalizes_provider_and_name() -> None:
         )
     )
 
+
 def test_set_credential_strips_api_key_whitespace() -> None:
     repository = Mock(spec=CredentialsRepository)
     service = CredentialService(repository)
@@ -77,6 +80,7 @@ def test_set_credential_strips_api_key_whitespace() -> None:
         )
     )
 
+
 def test_set_credential_rejects_empty_provider() -> None:
     repository = Mock(spec=CredentialsRepository)
     service = CredentialService(repository)
@@ -88,6 +92,7 @@ def test_set_credential_rejects_empty_provider() -> None:
         )
 
     repository.save.assert_not_called()
+
 
 def test_set_credential_rejects_empty_profile_name() -> None:
     repository = Mock(spec=CredentialsRepository)
@@ -102,6 +107,7 @@ def test_set_credential_rejects_empty_profile_name() -> None:
 
     repository.save.assert_not_called()
 
+
 def test_set_credential_rejects_empty_api_key() -> None:
     repository = Mock(spec=CredentialsRepository)
     service = CredentialService(repository)
@@ -113,6 +119,7 @@ def test_set_credential_rejects_empty_api_key() -> None:
         )
 
     repository.save.assert_not_called()
+
 
 def test_get_credential_returns_existing_credential() -> None:
     repository = Mock(spec=CredentialsRepository)
@@ -130,6 +137,7 @@ def test_get_credential_returns_existing_credential() -> None:
 
     repository.get.assert_called_once_with("gemini", "default")
     assert result == credential
+
 
 def test_get_credential_returns_named_profile() -> None:
     repository = Mock(spec=CredentialsRepository)
@@ -152,15 +160,17 @@ def test_get_credential_returns_named_profile() -> None:
     repository.get.assert_called_once_with("gemini", "paid")
     assert result == credential
 
+
 def test_get_credential_returns_none_when_not_found() -> None:
     repository = Mock(spec=CredentialsRepository)
     repository.get.return_value = None
 
     service = CredentialService(repository)
-    
+
     result = service.get_credential("gemini")
 
     assert result is None
+
 
 def test_get_credential_rejects_empty_provider() -> None:
     repository = Mock(spec=CredentialsRepository)
@@ -170,6 +180,7 @@ def test_get_credential_rejects_empty_provider() -> None:
         service.get_credential(provider=" ")
 
     repository.get.assert_not_called()
+
 
 def test_get_credential_rejects_empty_profile_name() -> None:
     repository = Mock(spec=CredentialsRepository)
@@ -182,6 +193,7 @@ def test_get_credential_rejects_empty_profile_name() -> None:
         )
 
     repository.get.assert_not_called()
+
 
 def test_list_credentials_return_all_credentials() -> None:
     repository = Mock(spec=CredentialsRepository)
@@ -208,6 +220,7 @@ def test_list_credentials_return_all_credentials() -> None:
     repository.list.assert_called_once()
     assert result == credentials
 
+
 def test_list_credentials_returns_empty_list_when_no_credentials() -> None:
     repository = Mock(spec=CredentialsRepository)
     repository.list.return_value = []
@@ -219,6 +232,7 @@ def test_list_credentials_returns_empty_list_when_no_credentials() -> None:
     repository.list.assert_called_once()
     assert result == []
 
+
 def test_delete_credential_deletes_default_profile() -> None:
     repository = Mock(spec=CredentialsRepository)
     service = CredentialService(repository)
@@ -226,6 +240,7 @@ def test_delete_credential_deletes_default_profile() -> None:
     service.delete_credential(" gemini ")
 
     repository.delete.assert_called_once_with("gemini", "default")
+
 
 def test_delete_credential_deletes_named_profile() -> None:
     repository = Mock(spec=CredentialsRepository)
@@ -238,6 +253,7 @@ def test_delete_credential_deletes_named_profile() -> None:
 
     repository.delete.assert_called_once_with("gemini", "paid")
 
+
 def test_delete_credential_rejects_empty_provider() -> None:
     repository = Mock(spec=CredentialsRepository)
     service = CredentialService(repository)
@@ -246,6 +262,7 @@ def test_delete_credential_rejects_empty_provider() -> None:
         service.delete_credential("   ")
 
     repository.delete.assert_not_called()
+
 
 def test_delete_credential_rejects_empty_profile_name() -> None:
     repository = Mock(spec=CredentialsRepository)
@@ -258,6 +275,7 @@ def test_delete_credential_rejects_empty_profile_name() -> None:
         )
 
     repository.delete.assert_not_called()
+
 
 def test_delete_credential_returns_repository_result() -> None:
     repository = Mock(spec=CredentialsRepository)
@@ -272,6 +290,7 @@ def test_delete_credential_returns_repository_result() -> None:
         "gemini",
         "default",
     )
+
 
 def test_delete_credential_returns_false_when_not_found() -> None:
     repository = Mock(spec=CredentialsRepository)

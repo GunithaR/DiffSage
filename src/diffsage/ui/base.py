@@ -2,7 +2,6 @@ from rich.console import Console
 
 
 class BaseView:
-
     def __init__(self) -> None:
         self._console = Console()
 

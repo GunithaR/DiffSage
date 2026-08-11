@@ -1,13 +1,13 @@
 # ADR-010: Hierarchical Configuration Management
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-07-30
 
 ---
 
 # Context
 
-DiffSage currently relies primarily on environment variables (optionally loaded from a `.env` file) to configure AI providers, models, API credentials, and application settings.
+DiffSage initially relied primarily on environment variables to configure AI providers, models, and application settings. Provider authentication was subsequently separated into a dedicated credential management system.
 
 While this approach works well during development, it presents several limitations as DiffSage evolves into a globally installable command-line application.
 
@@ -35,23 +35,26 @@ DiffSage will adopt a hierarchical configuration system with multiple configurat
 Configuration values will ultimately be resolved according to the following precedence order (highest priority first):
 
 ```
-Command Line Arguments
-        │
-        ▼
-Environment Variables
-        │
-        ▼
-Credential Store
-        │
-        ▼
-Local Repository Configuration
-(.diffsage.toml)
-        │
-        ▼
-Global User Configuration
-        │
-        ▼
-Application Defaults
+Configuration resolution (current + planned)
+    CLI overrides
+        ↓
+    Environment variables
+        ↓
+    Local .diffsage.toml
+        ↓
+    Global configuration
+        ↓
+    Application defaults
+
+
+Authentication
+    CredentialService
+        ↓
+    CredentialsRepository
+        ↓
+    credentials.toml
+        ↓
+    Provider
 ```
 
 The initial implementation introduces application defaults, global configuration,
@@ -62,7 +65,7 @@ allowing later sources to override earlier ones while preserving unspecified def
 
 Authentication credentials remain intentionally outside the configuration system.
 
-Credential storage and command-line overrides will be introduced in future iterations while preserving this resolution order.
+Command-line configuration overrides remain a future extension.
 
 Each successive layer overrides the layers beneath it.
 
@@ -77,7 +80,6 @@ DiffSage will maintain a user-level configuration file containing the developer'
 Typical settings include:
 
 - Default AI provider
-- Default provider profile
 - Default model
 - Request timeout
 - Retry policy
@@ -97,13 +99,6 @@ Repositories may optionally contain a project-specific configuration file.
 ```
 
 This configuration is intended for repository-level settings that should be shared among contributors.
-
-Examples include:
-
-- Preferred provider
-- Preferred model
-- Prompt behavior
-- Repository-specific defaults
 
 Local configuration overrides the global configuration but may itself be overridden by environment variables.
 
@@ -239,12 +234,12 @@ Configuration includes:
 - Retry policy
 - Logging level
 
-Authentication currently uses:
+Authentication uses:
 
-- Environment variables (`DIFFSAGE_API_KEY`)
-
-Future versions will introduce a dedicated credential store through
-`diffsage auth`.
+- DiffSage credential profiles
+- credentials.toml
+- CredentialService
+- CredentialsRepository
 
 This separation prevents configuration files from containing secrets while
 allowing configuration to be shared safely.
@@ -274,15 +269,9 @@ Examples:
 
 ```bash
 diffsage config list
-
 diffsage config get provider
-
 diffsage config set provider gemini
-
-diffsage config set profile work
-
 diffsage config set model gemini-2.5-flash
-
 diffsage config unset provider
 ```
 
@@ -310,13 +299,12 @@ Authentication credentials are intentionally separated from configuration.
 
 Configuration files should never contain API keys.
 
-The initial implementation will:
+The credential management system:
 
-- Restrict file permissions where supported.
-- Avoid printing credentials in terminal output.
-- Avoid exposing secrets through diagnostic commands.
-
-Future versions will introduce a dedicated credential store managed through `diffsage auth`.
+- Avoids printing full credentials in terminal output.
+- Masks API keys when credentials are displayed.
+- Keeps provider credentials outside the application configuration model.
+- Avoids exposing credentials through diagnostic output.
 
 Where supported, credentials may eventually be stored using operating-system facilities such as:
 
@@ -334,19 +322,22 @@ Configuration and authentication are intentionally treated as separate concerns.
 
 Configuration defines how DiffSage should behave, while authentication manages access to external AI providers.
 
-Future versions of DiffSage will introduce dedicated authentication commands.
+DiffSage provides dedicated authentication commands for managing provider credentials.
 
 Examples:
 
 ```bash
-diffsage auth login
+diffsage auth set gemini YOUR_API_KEY
+diffsage auth set gemini YOUR_API_KEY --name paid
 
+diffsage auth get gemini
 diffsage auth list
-
-diffsage auth remove
+diffsage auth unset gemini
 ```
 
-Authentication commands will guide users through selecting an AI provider, creating a profile, and securely storing credentials.
+Authentication commands allow users to create, retrieve, list, and remove
+provider credential profiles while keeping API keys separate from application
+configuration.
 
 Configuration files will reference providers and profiles rather than storing API keys directly.
 
@@ -367,11 +358,13 @@ This separation allows multiple accounts for the same provider while keeping cre
 
 # Backward Compatibility
 
-Existing environment-variable-based workflows will continue to function without modification.
+Existing environment-variable-based configuration workflows remain supported. Provider API keys are no longer resolved from DIFFSAGE_API_KEY; provider credentials are managed through DiffSage’s credential management system.
 
 The hierarchical configuration system extends the existing behavior rather than replacing it.
 
-Users who prefer environment variables may continue using them exclusively.
+Users may continue using environment variables for application configuration
+and CI/CD overrides. Provider credentials are managed separately through the
+credential management system.
 
 ---
 
@@ -454,20 +447,26 @@ This approach balances usability, flexibility, platform compatibility, and long-
 
 # Implementation Notes
 
-Implementation should proceed in the following order:
+The configuration architecture has been implemented in the following areas:
 
-1. Introduce a configuration abstraction capable of resolving multiple configuration sources.
-2. Integrate `platformdirs` for platform-native configuration storage.
-3. Support global configuration loading.
-4. Support repository-level `.diffsage.toml`.
-5. Merge configuration according to the defined precedence order.
-6. Introduce configuration repository abstractions.
-7. Introduce configuration service validation and normalization.
-8. Introduce configuration report models.
-9. Add `diffsage config` commands.
-10. Add automated configuration tests.
-11. Add an interactive `diffsage init` wizard.
-12. Update documentation and installation guides.
+1. Introduced a configuration abstraction capable of resolving multiple configuration sources.
+2. Integrated `platformdirs` for platform-native configuration storage.
+3. Added global configuration loading.
+4. Added repository-level `.diffsage.toml` configuration.
+5. Implemented hierarchical configuration resolution using environment variables,
+   local repository configuration, global configuration, and application defaults.
+6. Introduced configuration repository abstractions.
+7. Introduced configuration service validation and normalization.
+8. Introduced configuration report models.
+9. Added `diffsage config` commands.
+10. Added automated configuration tests.
+11. Separated provider authentication from application configuration through a dedicated credential store and `diffsage auth` commands.
+
+The following areas remain future work:
+
+12. Add command-line configuration overrides with per-invocation precedence.
+13. Add an interactive `diffsage init` configuration wizard.
+14. Continue updating documentation and installation guides as the configuration system evolves.
 
 ---
 

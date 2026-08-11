@@ -11,16 +11,12 @@ from diffsage.ui.config_view import ConfigView
 
 logger = get_logger(__name__)
 
-app = typer.Typer(
-    help="DiffSage configuration",
-    invoke_without_command=False
-)
+app = typer.Typer(help="DiffSage configuration", invoke_without_command=False)
+
 
 def _resolve_scope(*, local: bool, global_: bool) -> ConfigScope:
     if local and global_:
-        raise typer.BadParameter(
-        "Cannot specify both --local and --global."
-        )
+        raise typer.BadParameter("Cannot specify both --local and --global.")
 
     if local:
         return ConfigScope.LOCAL
@@ -30,8 +26,7 @@ def _resolve_scope(*, local: bool, global_: bool) -> ConfigScope:
 
 @app.command("list")
 def list_config(
-    local: bool = typer.Option(False, "--local"),
-    global_: bool = typer.Option(False, "--global")
+    local: bool = typer.Option(False, "--local"), global_: bool = typer.Option(False, "--global")
 ) -> None:
     """List the current DiffSage configuration."""
 
@@ -72,6 +67,7 @@ def list_config(
         logger.exception("Unexpected error while executing config command.")
         view.show_error("An unexpected error occurred. Please check the log file for more details.")
         raise SystemExit(1) from None
+
 
 @app.command("get")
 def get_config(
@@ -123,24 +119,23 @@ def get_config(
         view.show_error("An unexpected error occurred. Please check the log file for more details.")
         raise SystemExit(1) from None
 
+
 @app.command("set")
 def set_config(
-    key: str, 
+    key: str,
     value: str,
     local: bool = typer.Option(
-        False, "--local", 
-        help="Write to the repository's local configuration."
+        False, "--local", help="Write to the repository's local configuration."
     ),
     global_: bool = typer.Option(
-        False, "--global", 
-        help="Write to the repository's global configuration."
+        False, "--global", help="Write to the repository's global configuration."
     ),
 ) -> None:
     """Set the value of a DiffSage configuration."""
 
     view = ConfigView()
 
-    try: 
+    try:
         settings = load_settings()
 
         scope = _resolve_scope(local=local, global_=global_)
@@ -175,16 +170,15 @@ def set_config(
         view.show_error("An unexpected error occurred. Please check the log file for more details.")
         raise SystemExit(1) from None
 
+
 @app.command("unset")
 def unset_config(
     key: str,
     local: bool = typer.Option(
-        False, "--local", 
-        help="Write to the repository's local configuration."
+        False, "--local", help="Write to the repository's local configuration."
     ),
     global_: bool = typer.Option(
-        False, "--global", 
-        help="Write to the repository's global configuration."
+        False, "--global", help="Write to the repository's global configuration."
     ),
 ) -> None:
     """Remove a DiffSage configuration value."""

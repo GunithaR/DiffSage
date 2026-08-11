@@ -21,8 +21,8 @@ def main() -> None:
     settings = load_settings()
     configure_logging(
         getattr(
-            logging, 
-            settings.log_level.upper(), 
+            logging,
+            settings.log_level.upper(),
             logging.INFO,
         )
     )
@@ -32,10 +32,7 @@ app.command()(doctor)
 app.command()(ask)
 app.command()(commit)
 app.add_typer(
-    config_app, 
+    config_app,
     name="config",
 )
-app.add_typer(
-    auth_app,
-    name="auth"
-)
+app.add_typer(auth_app, name="auth")

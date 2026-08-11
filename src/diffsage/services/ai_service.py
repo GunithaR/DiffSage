@@ -12,10 +12,10 @@ class AIService:
     """Coordinates AI provider interactions."""
 
     def __init__(
-            self, 
-            settings: Settings,
-            credential_service: CredentialService, 
-            provider: BaseProvider | None = None
+        self,
+        settings: Settings,
+        credential_service: CredentialService,
+        provider: BaseProvider | None = None,
     ) -> None:
         self._settings = settings
 
@@ -32,7 +32,7 @@ class AIService:
                     settings.provider,
                     "default",
                 )
-            
+
             self._provider = create_provider(settings, credential)
 
     def _ask_once(self, prompt: str) -> ProviderResponse:
@@ -46,7 +46,7 @@ class AIService:
         return self._provider.generate(request)
 
     def _backoff_delay(self, attempt: int) -> int:
-        return 2 ** attempt
+        return 2**attempt
 
     def ask(self, prompt: str) -> ProviderResponse:
         total_attempts = self._settings.max_retries + 1
@@ -54,9 +54,9 @@ class AIService:
         for attempt in range(total_attempts):
             try:
                 return self._ask_once(prompt)
-            
+
             except ProviderUnavailableError:
-                if attempt == total_attempts -1:
+                if attempt == total_attempts - 1:
                     raise
 
                 delay = self._backoff_delay(attempt)

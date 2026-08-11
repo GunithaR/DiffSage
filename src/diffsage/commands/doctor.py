@@ -1,4 +1,3 @@
-
 from diffsage.logging.logger import get_logger
 from diffsage.services.doctor_service import DoctorService
 from diffsage.ui.doctor_view import DoctorView

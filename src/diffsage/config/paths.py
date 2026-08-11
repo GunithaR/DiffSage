@@ -4,6 +4,7 @@ from platformdirs import user_config_path, user_log_path
 
 APP_NAME = "DiffSage"
 
+
 def get_global_config_path() -> Path:
     """Return the global DiffSage configuration file path."""
 
@@ -31,7 +32,7 @@ def get_local_config_path() -> Path | None:
 
     if root is None:
         return None
-    
+
     return root / ".diffsage.toml"
 
 
@@ -40,8 +41,10 @@ def get_log_directory() -> Path:
     path.mkdir(parents=True, exist_ok=True)
     return path
 
+
 def get_log_file_path() -> Path:
     return get_log_directory() / "diffsage.log"
+
 
 def ensure_global_config_dir() -> None:
     """Create the global configuration directory if it does not exist."""
@@ -50,6 +53,7 @@ def ensure_global_config_dir() -> None:
         parents=True,
         exist_ok=True,
     )
+
 
 def get_credentials_path() -> Path:
     """Return the global DiffSage credentials file path."""

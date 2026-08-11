@@ -8,15 +8,29 @@
 - `diffsage config get` command to retrieve individual configuration values.
 - BaseView abstraction for shared terminal UI behavior.
 - Configuration report models and supporting services.
-- Comprehensive unit tests for configuration resolution and CLI commands.
+- Provider credential management through `diffsage auth` commands.
+- Named credential profiles for provider authentication.
+- Dedicated credential storage separate from application configuration.
+- Credential resolution through `CredentialService`.
+- Credential-specific error handling for missing provider credentials.
+- Integration between credential management and AI provider creation.
+- Gemini provider authentication using resolved credentials.
+- Comprehensive unit and integration tests for credential management and AI integration.
 
 ### Changed
 - Refactored terminal views to inherit from `BaseView`.
 - Improved configuration command error handling with user-friendly messages.
 - Normalized configuration key lookups to be case-insensitive.
+- Removed direct API-key resolution from application settings and environment variables.
+- Updated `AIService` to resolve provider credentials before creating AI providers.
+- Updated provider factory and provider implementations to receive resolved credentials.
+- Improved Gemini provider error handling with user-friendly authentication and provider errors.
+- Updated `ask` and `commit` commands to use the credential management system.
 
 ### Fixed
 - Pinned Click to the 8.1.x release line due to a compatibility issue with Typer 0.16.x that caused missing required CLI arguments to be passed as `None`.
+- Prevented raw Gemini authentication errors from being exposed directly to users.
+- Added explicit handling for missing provider credentials.
 
 
 ## [1.1.0] - 2026-07-30

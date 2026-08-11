@@ -12,7 +12,7 @@ from diffsage.models.credentials import Credential
 
 
 def test_set_credential_command_orchestrates() -> None:
-    with(
+    with (
         patch("diffsage.commands.auth.get_credentials_path") as mock_get_path,
         patch("diffsage.commands.auth.CredentialsRepository") as mock_repository,
         patch("diffsage.commands.auth.CredentialService") as mock_service,
@@ -41,6 +41,7 @@ def test_set_credential_command_orchestrates() -> None:
     view.show_credential.assert_not_called()
     service.get_credential.assert_not_called()
 
+
 def test_set_credential_command_handles_value_error() -> None:
     with (
         patch("diffsage.commands.auth.get_credentials_path") as mock_get_path,
@@ -52,9 +53,7 @@ def test_set_credential_command_handles_value_error() -> None:
         service = mock_service.return_value
         view = mock_view.return_value
 
-        service.set_credential.side_effect = ValueError(
-            "API cannot be empty."
-        )
+        service.set_credential.side_effect = ValueError("API cannot be empty.")
 
         with pytest.raises(SystemExit) as exception_info:
             set_credential(
@@ -74,10 +73,9 @@ def test_set_credential_command_handles_value_error() -> None:
         "test-api-key",
         "default",
     )
-    view.show_error.assert_called_once_with(
-        "API cannot be empty."
-    )
+    view.show_error.assert_called_once_with("API cannot be empty.")
     view.show_success.assert_not_called()
+
 
 def test_get_credential_command_uses_default_profile() -> None:
     credential = Credential(
@@ -113,6 +111,7 @@ def test_get_credential_command_uses_default_profile() -> None:
     )
     view.show_credential.assert_called_once_with(credential)
 
+
 def test_get_credential_command_uses_named_profile() -> None:
     credential = Credential(
         provider="gemini",
@@ -145,6 +144,7 @@ def test_get_credential_command_uses_named_profile() -> None:
     mock_repository.assert_called_once_with(mock_get_path.return_value)
     mock_service.assert_called_once_with(repository)
     view.show_credential.assert_called_once_with(credential)
+
 
 def test_get_credential_command_handles_missing_credential() -> None:
     with (
@@ -181,6 +181,7 @@ def test_get_credential_command_handles_missing_credential() -> None:
     )
     view.show_credential.assert_not_called()
 
+
 def test_get_credential_command_handles_value_error() -> None:
     with (
         patch("diffsage.commands.auth.get_credentials_path") as mock_get_path,
@@ -192,9 +193,7 @@ def test_get_credential_command_handles_value_error() -> None:
         service = mock_service.return_value
         view = mock_view.return_value
 
-        service.get_credential.side_effect = ValueError(
-            "Provider cannot be empty."
-        )
+        service.get_credential.side_effect = ValueError("Provider cannot be empty.")
 
         with pytest.raises(SystemExit) as exception_info:
             get_credential(
@@ -213,10 +212,9 @@ def test_get_credential_command_handles_value_error() -> None:
         "default",
     )
 
-    view.show_error.assert_called_once_with(
-        "Provider cannot be empty."
-    )
+    view.show_error.assert_called_once_with("Provider cannot be empty.")
     view.show_credential.assert_not_called()
+
 
 def test_get_credential_command_handles_unexpected_error() -> None:
     with (
@@ -253,6 +251,7 @@ def test_get_credential_command_handles_unexpected_error() -> None:
     )
     view.show_credential.assert_not_called()
 
+
 def test_list_credentials_command_orchestrates() -> None:
     credentials = [
         Credential(
@@ -288,8 +287,9 @@ def test_list_credentials_command_orchestrates() -> None:
     service.list_credentials.assert_called_once_with()
     view.show_credentials.assert_called_once_with(credentials)
 
+
 def test_list_credentials_command_handles_empty_list() -> None:
-    with(
+    with (
         patch("diffsage.commands.auth.get_credentials_path") as mock_get_path,
         patch("diffsage.commands.auth.CredentialsRepository") as mock_repository,
         patch("diffsage.commands.auth.CredentialService") as mock_service,
@@ -310,6 +310,7 @@ def test_list_credentials_command_handles_empty_list() -> None:
     service.list_credentials.assert_called_once_with()
     view.show_credentials.assert_called_once_with([])
     view.show_error.assert_not_called()
+
 
 def test_unset_credential_command_uses_default_profile() -> None:
     with (
@@ -337,6 +338,7 @@ def test_unset_credential_command_uses_default_profile() -> None:
     )
     view.show_success.assert_called_once_with("Credential removed.")
 
+
 def test_unset_credential_command_uses_named_profile() -> None:
     with (
         patch("diffsage.commands.auth.get_credentials_path") as mock_get_path,
@@ -361,6 +363,7 @@ def test_unset_credential_command_uses_named_profile() -> None:
     mock_repository.assert_called_once_with(mock_get_path.return_value)
     mock_service.assert_called_once_with(repository)
     view.show_success.assert_called_once_with("Credential removed.")
+
 
 def test_unset_credential_command_handles_missing_credential() -> None:
     with (
@@ -397,6 +400,7 @@ def test_unset_credential_command_handles_missing_credential() -> None:
     )
     view.show_success.assert_not_called()
 
+
 def test_unset_credential_command_handles_value_error() -> None:
     with (
         patch("diffsage.commands.auth.get_credentials_path") as mock_get_path,
@@ -429,10 +433,9 @@ def test_unset_credential_command_handles_value_error() -> None:
         "",
     )
 
-    view.show_error.assert_called_once_with(
-        "Credential profile name cannot be empty."
-    )
+    view.show_error.assert_called_once_with("Credential profile name cannot be empty.")
     view.show_success.assert_not_called()
+
 
 def test_unset_credential_command_handles_unexpected_error() -> None:
     with (

@@ -1,15 +1,14 @@
-
 from diffsage.config.loader import load_settings
+from diffsage.config.paths import get_credentials_path
 from diffsage.exceptions import (
-    AuthenticationError, 
+    AuthenticationError,
     ConfigError,
-    CredentialNotFoundError, 
+    CredentialNotFoundError,
     ProviderUnavailableError,
 )
 from diffsage.logging.logger import get_logger
-from diffsage.config.paths import get_credentials_path
-from diffsage.services.credentials_service import CredentialService
 from diffsage.services.ai_service import AIService
+from diffsage.services.credentials_service import CredentialService
 from diffsage.storage.credentials_repository import CredentialsRepository
 from diffsage.ui.ask_view import AskView
 
@@ -33,7 +32,7 @@ def ask(prompt: str) -> None:
             settings,
             credential_service,
         )
-        
+
         response = service.ask(prompt)
         view.show_response(response)
 
@@ -59,7 +58,5 @@ def ask(prompt: str) -> None:
 
     except Exception:
         logger.exception("Unexpected error while executing ask command.")
-        view.show_error(
-            "An unexpected error occurred. Please check the log file for more details."
-        )
+        view.show_error("An unexpected error occurred. Please check the log file for more details.")
         raise SystemExit(1) from None

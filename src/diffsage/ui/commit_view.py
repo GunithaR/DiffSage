@@ -16,7 +16,7 @@ class CommitView(BaseView):
     @contextmanager
     def generating(self):
         with self._console.status("Generating commit message..."):
-            yield 
+            yield
 
     def show_generated(self) -> None:
         self._console.print("[green]✓ Commit message generated successfully.[/green]")
@@ -50,9 +50,9 @@ class CommitView(BaseView):
 
                 if line.startswith("- "):
                     line = line.removeprefix("- ")
-                
+
                 body.append(f"• {line}")
-                if i < len(message.body) -1 :
+                if i < len(message.body) - 1:
                     body.append("\n")
 
             content = Group(
@@ -71,18 +71,18 @@ class CommitView(BaseView):
                 title="[bold cyan]Suggested Commit Message[/bold cyan]",
                 expand=False,
             )
-        
+
         self._console.print()
         self._console.print(panel)
 
-    def prompt_action(self) -> str: 
+    def prompt_action(self) -> str:
         self._console.print()
 
         return self._console.input(
-                    "[bold cyan][Y][/bold cyan] Commit (default)   "
-                    "[bold cyan][E][/bold cyan] Edit   "
-                    "[bold cyan][R][/bold cyan] Regenerate   "
-                    "[bold cyan][N][/bold cyan] Cancel:  "
+            "[bold cyan][Y][/bold cyan] Commit (default)   "
+            "[bold cyan][E][/bold cyan] Edit   "
+            "[bold cyan][R][/bold cyan] Regenerate   "
+            "[bold cyan][N][/bold cyan] Cancel:  "
         )
 
     def show_success(self, message: str) -> None:

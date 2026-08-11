@@ -2,9 +2,12 @@
 
 ## Overview
 
-DiffSage is a terminal-first AI-powered Git workflow toolkit that helps developers with commit messages, pull requests, merge conflict explanations, code explanations, and other Git-related tasks.
+DiffSage is a terminal-first AI-powered Git workflow toolkit that helps
+developers with AI-assisted commit messages and other Git-related workflows.
 
-The architecture follows a layered design to separate user interaction, business logic, and infrastructure.
+The architecture follows a layered design to separate user interaction,
+business logic, and infrastructure while keeping Git workflow operations
+independent from provider-specific AI implementations.
 
 ---
 
@@ -78,7 +81,8 @@ independent of the presentation layer.
 
 ## Infrastructure
 
-Infrastructure contains components that communicate with external systems.
+Infrastructure contains components that communicate with external systems or
+provide persistence and application infrastructure.
 
 Includes:
 
@@ -86,16 +90,21 @@ Includes:
 - Git
 - Storage
 - Repositories
-    - Persist configuration
-    - Read configuration
-    - No business logic
-    - No validation
+  - Persist configuration and credentials
+  - Read persisted data
+  - No business logic
+  - No validation
 - Logging
-    - Centralized initialization
-    - Console handler
-    - File handler
-    - Configurable log level
+  - Centralized initialization
+  - Console handler
+  - File handler
+  - Configurable log level
 - Configuration
+  - Loads and resolves application configuration
+  - Supports global, local, and environment-based configuration
+- Authentication
+  - Resolves provider credentials
+  - Persists credential profiles separately from application configuration
 
 ---
 
@@ -132,8 +141,15 @@ Command
     ▼
 Service
     │
+    ├──────────────► Configuration
+    │
+    ├──────────────► Authentication
+    │                       │
+    │                       ▼
+    │                 Credential Store
+    │
     ▼
-Repository / Provider
+Provider / Repository
     │
     ▼
 Runtime Models
@@ -149,11 +165,11 @@ View
 
 ### Commands
 
-- Receive user input.
-- Compose application dependencies.
-- Invoke services.
-- Handle domain exceptions.
-- Delegate presentation to views.
+- Receiving user input
+- Composing application dependencies
+- Calling services
+- Handling domain exceptions
+- Delegating terminal output to views
 
 ### Services
 
@@ -168,6 +184,13 @@ View
 - Persist and retrieve application data.
 - Encapsulate storage implementation details.
 - Contain no business logic or validation.
+
+### Authentication
+
+- Resolve credentials for the configured provider and profile.
+- Keep provider credentials separate from application configuration.
+- Provide credential data to provider implementations.
+- Raise domain-specific errors when required credentials are unavailable.
 
 ### Providers
 
@@ -192,42 +215,60 @@ View
 - Render Rich terminal output.
 - Display reports returned by services.
 - Never contain business logic.
-```
+
 
 ---
 
 # AI Request Flow
 
-LLM-enabled features follow the same layered architecture.
+# AI Request Flow
 
-```
+LLM-enabled Git workflows use the service layer to coordinate Git context,
+prompt generation, credential resolution, and provider communication.
+
+```text
 Command
     │
     ▼
-GitService
+CommitService
     │
-    ▼
-CommitContext
+    ├── GitService
+    │      │
+    │      ▼
+    │   CommitContext
     │
-    ▼
-PromptService
+    ├── PromptService
     │
-    ▼
-BaseProvider
-    │
-    ▼
-ProviderResponse
+    └── AIService
+           │
+           ├── CredentialService
+           │      │
+           │      ▼
+           │   CredentialsRepository
+           │
+           └── Provider Factory
+                  │
+                  ▼
+              BaseProvider
+                  │
+                  ▼
+          Provider Implementation
+                  │
+                  ▼
+          ProviderResponse
 ```
 
 Responsibilities:
 
 - **GitService** collects repository information and returns structured domain models.
 - **PromptService** transforms domain models into prompts for language models.
+- **AIService** coordinates AI requests, credential resolution, provider selection, and retry handling.
+- **CredentialService** resolves provider credentials through the credential repository.
 - **BaseProvider** defines the common provider contract.
 - **Provider implementations** communicate with external LLM APIs and normalize provider-specific responses into `ProviderResponse`.
-- **Commands** orchestrate the workflow and present results to the user.
+- **Commands** orchestrate the application workflow, handle domain errors, and present results to the user.
 
-This separation keeps Git logic, prompt generation, and provider implementations independent.
+This separation keeps Git logic, prompt generation, authentication, AI orchestration, and provider-specific implementations independent.
 
 ---
 

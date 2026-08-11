@@ -28,14 +28,14 @@ def test_ask_returns_response_on_first_attempt():
         input_tokens=10,
         output_tokens=10,
         finish_reason="stop",
-        latency_ms=300
+        latency_ms=300,
     )
 
     settings = create_settings()
     provider.generate.return_value = response
     credential_service.get_credential.return_value = credential
     service = AIService(
-        settings=settings, 
+        settings=settings,
         credential_service=credential_service,
         provider=provider,
     )
@@ -44,7 +44,7 @@ def test_ask_returns_response_on_first_attempt():
     assert result == response
     credential_service.get_credential.assert_not_called()
     provider.generate.assert_called_once()
-    
+
 
 def test_ask_retries_once_then_returns_response():
     provider = Mock()
@@ -57,25 +57,25 @@ def test_ask_retries_once_then_returns_response():
     )
 
     response = ProviderResponse(
-            content="feat: add retry logic",
-            provider="gemini",
-            model="test-model",
-            input_tokens=10,
-            output_tokens=10,
-            finish_reason="stop",
-            latency_ms=300
+        content="feat: add retry logic",
+        provider="gemini",
+        model="test-model",
+        input_tokens=10,
+        output_tokens=10,
+        finish_reason="stop",
+        latency_ms=300,
     )
 
     provider.generate.side_effect = [
-            ProviderUnavailableError("Temporary failure"),
-            response,
+        ProviderUnavailableError("Temporary failure"),
+        response,
     ]
 
     settings = create_settings()
     credential_service.get_credential.return_value = credential
     service = AIService(
-        settings, 
-        credential_service, 
+        settings,
+        credential_service,
         provider=provider,
     )
 
@@ -98,25 +98,25 @@ def test_ask_retries_multiple_times_then_returns_response():
     )
 
     response = ProviderResponse(
-            content="feat: add retry logic",
-            provider="gemini",
-            model="test-model",
-            input_tokens=10,
-            output_tokens=10,
-            finish_reason="stop",
-            latency_ms=300
+        content="feat: add retry logic",
+        provider="gemini",
+        model="test-model",
+        input_tokens=10,
+        output_tokens=10,
+        finish_reason="stop",
+        latency_ms=300,
     )
 
     provider.generate.side_effect = [
-            ProviderUnavailableError("1"),
-            ProviderUnavailableError("2"),
-            response,
+        ProviderUnavailableError("1"),
+        ProviderUnavailableError("2"),
+        response,
     ]
 
     settings = create_settings()
     credential_service.get_credential.return_value = credential
     service = AIService(
-        settings, 
+        settings,
         credential_service,
         provider=provider,
     )
@@ -126,10 +126,13 @@ def test_ask_retries_multiple_times_then_returns_response():
 
     assert result == response
     assert provider.generate.call_count == 3
-    mock_sleep.assert_has_calls([
-        call(1),
-        call(2),
-    ])
+    mock_sleep.assert_has_calls(
+        [
+            call(1),
+            call(2),
+        ]
+    )
+
 
 def test_ask_raises_after_exhausting_retries():
     provider = Mock()
@@ -142,16 +145,16 @@ def test_ask_raises_after_exhausting_retries():
     )
 
     provider.generate.side_effect = [
-            ProviderUnavailableError("1"),
-            ProviderUnavailableError("2"),
-            ProviderUnavailableError("3"),
-            ProviderUnavailableError("4"),
+        ProviderUnavailableError("1"),
+        ProviderUnavailableError("2"),
+        ProviderUnavailableError("3"),
+        ProviderUnavailableError("4"),
     ]
 
     settings = create_settings()
     credential_service.get_credential.return_value = credential
     service = AIService(
-        settings, 
+        settings,
         credential_service,
         provider=provider,
     )
@@ -162,11 +165,13 @@ def test_ask_raises_after_exhausting_retries():
 
     assert provider.generate.call_count == settings.max_retries + 1
 
-    mock_sleep.assert_has_calls([
-        call(1),
-        call(2),
-        call(4),
-    ])
+    mock_sleep.assert_has_calls(
+        [
+            call(1),
+            call(2),
+            call(4),
+        ]
+    )
 
 
 def test_ask_does_not_retry_non_retryable_exception():
@@ -182,9 +187,9 @@ def test_ask_does_not_retry_non_retryable_exception():
     provider.generate.side_effect = AuthenticationError("Invalid API key")
 
     settings = create_settings()
-    credential_service.get_credential.return_value = credential 
+    credential_service.get_credential.return_value = credential
     service = AIService(
-        settings, 
+        settings,
         credential_service,
         provider=provider,
     )
@@ -232,6 +237,7 @@ def test_ai_service_resolves_default_credential():
     )
 
     assert service._provider is provider
+
 
 def test_ai_service_raises_when_credential_is_missing():
     credential_service = Mock(spec=CredentialService)

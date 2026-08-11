@@ -3,8 +3,8 @@ from unittest.mock import patch
 import pytest
 
 from diffsage.commands.ask import ask
+from diffsage.exceptions import AuthenticationError, ConfigError, ProviderUnavailableError
 from diffsage.models.provider import ProviderResponse
-from diffsage.exceptions import AuthenticationError, ProviderUnavailableError, ConfigError
 
 
 def test_ask_command_orchestrates() -> None:
@@ -53,6 +53,7 @@ def test_ask_command_orchestrates() -> None:
     service.ask.assert_called_once_with("Hello")
     view.show_response.assert_called_once_with(response)
 
+
 def test_ask_command_handles_authentication_error() -> None:
     with (
         patch("diffsage.commands.ask.load_settings"),
@@ -76,6 +77,7 @@ def test_ask_command_handles_authentication_error() -> None:
     view.show_error.assert_called_once_with("Invalid API key")
     view.show_response.assert_not_called()
 
+
 def test_ask_command_handles_provider_unavailable_error() -> None:
     with (
         patch("diffsage.commands.ask.load_settings"),
@@ -88,9 +90,7 @@ def test_ask_command_handles_provider_unavailable_error() -> None:
         service = mock_ai_service.return_value
         view = mock_view.return_value
 
-        service.ask.side_effect = ProviderUnavailableError(
-            "Provider temporarily unavailable."
-        )
+        service.ask.side_effect = ProviderUnavailableError("Provider temporarily unavailable.")
 
         with pytest.raises(SystemExit) as exception_info:
             ask("Hello")
@@ -98,10 +98,9 @@ def test_ask_command_handles_provider_unavailable_error() -> None:
     assert exception_info.value.code == 1
 
     service.ask.assert_called_once_with("Hello")
-    view.show_error.assert_called_once_with(
-        "Provider temporarily unavailable."
-    )
+    view.show_error.assert_called_once_with("Provider temporarily unavailable.")
     view.show_response.assert_not_called()
+
 
 def test_ask_command_handles_config_error() -> None:
     with (
@@ -125,6 +124,7 @@ def test_ask_command_handles_config_error() -> None:
     service.ask.assert_called_once_with("Hello")
     view.show_error.assert_called_once_with("Invalid configuration.")
     view.show_response.assert_not_called()
+
 
 def test_ask_command_handles_unexpected_error() -> None:
     with (

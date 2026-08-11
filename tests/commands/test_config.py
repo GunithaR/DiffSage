@@ -72,8 +72,7 @@ def test_list_config_command_defaults_to_resolved_configuration() -> None:
 
     with (
         patch(
-            "diffsage.commands.config.load_settings", 
-            return_value=settings
+            "diffsage.commands.config.load_settings", return_value=settings
         ) as mock_load_settings,
         patch("diffsage.commands.config.get_local_config_path") as mock_get_path,
         patch("diffsage.commands.config.ConfigRepository") as mock_repository,
@@ -119,8 +118,7 @@ def test_list_config_command_uses_local_scope() -> None:
 
     with (
         patch(
-            "diffsage.commands.config.load_settings", 
-            return_value=settings
+            "diffsage.commands.config.load_settings", return_value=settings
         ) as mock_load_settings,
         patch("diffsage.commands.config.resolve_config_path") as mock_resolve_path,
         patch("diffsage.commands.config.ConfigRepository") as mock_repository,
@@ -166,8 +164,7 @@ def test_list_config_command_uses_global_scope() -> None:
 
     with (
         patch(
-            "diffsage.commands.config.load_settings", 
-            return_value=settings
+            "diffsage.commands.config.load_settings", return_value=settings
         ) as mock_load_settings,
         patch("diffsage.commands.config.resolve_config_path") as mock_resolve_path,
         patch("diffsage.commands.config.ConfigRepository") as mock_repository,
@@ -283,6 +280,7 @@ def test_get_config_command_uses_local_scope() -> None:
     view.show_path.assert_called_once_with(mock_resolve_path.return_value)
     view.show_value.assert_called_once_with(report)
 
+
 def test_get_config_command_uses_global_scope() -> None:
     settings = create_settings(
         provider="gemini",
@@ -352,7 +350,6 @@ def test_set_config_command_defaults_to_global() -> None:
         patch("diffsage.commands.config.ConfigService") as mock_service,
         patch("diffsage.commands.config.ConfigView") as mock_view,
     ):
-        
         repository = mock_repository.return_value
         service = mock_service.return_value
         view = mock_view.return_value
@@ -372,7 +369,7 @@ def test_set_config_command_defaults_to_global() -> None:
     mock_service.assert_called_once_with(settings, repository)
 
     service.set_value.assert_called_once_with(
-        "provider", 
+        "provider",
         "openai",
     )
 
@@ -407,7 +404,6 @@ def test_set_config_command_uses_local_scope() -> None:
         patch("diffsage.commands.config.ConfigService") as mock_service,
         patch("diffsage.commands.config.ConfigView") as mock_view,
     ):
-        
         repository = mock_repository.return_value
         service = mock_service.return_value
         view = mock_view.return_value
@@ -427,7 +423,7 @@ def test_set_config_command_uses_local_scope() -> None:
     mock_service.assert_called_once_with(settings, repository)
 
     service.set_value.assert_called_once_with(
-        "provider", 
+        "provider",
         "openai",
     )
 
@@ -462,7 +458,6 @@ def test_set_config_command_uses_global_scope() -> None:
         patch("diffsage.commands.config.ConfigService") as mock_service,
         patch("diffsage.commands.config.ConfigView") as mock_view,
     ):
-        
         repository = mock_repository.return_value
         service = mock_service.return_value
         view = mock_view.return_value
@@ -482,7 +477,7 @@ def test_set_config_command_uses_global_scope() -> None:
     mock_service.assert_called_once_with(settings, repository)
 
     service.set_value.assert_called_once_with(
-        "provider", 
+        "provider",
         "openai",
     )
 
@@ -516,12 +511,7 @@ def test_set_config_command_handles_unknown_key() -> None:
         service.set_value.side_effect = UnknownConfigurationKeyError("invalid")
 
         with pytest.raises(SystemExit) as exception_info:
-            set_config(
-                "invalid",
-                "value",
-                local=False,
-                global_=True
-            )
+            set_config("invalid", "value", local=False, global_=True)
 
     assert exception_info.value.code == 1
 
@@ -531,7 +521,7 @@ def test_set_config_command_handles_unknown_key() -> None:
     mock_service.assert_called_once_with(settings, repository)
 
     service.set_value.assert_called_once_with(
-        "invalid", 
+        "invalid",
         "value",
     )
 
@@ -578,7 +568,7 @@ def test_set_config_command_handles_invalid_integer() -> None:
     mock_service.assert_called_once_with(settings, repository)
 
     service.set_value.assert_called_once_with(
-        "timeout", 
+        "timeout",
         "abc",
     )
 
@@ -610,12 +600,7 @@ def test_set_config_command_handles_unexpected_error() -> None:
         service.set_value.side_effect = RuntimeError("boom")
 
         with pytest.raises(SystemExit) as exception_info:
-            set_config(
-                "provider",
-                "abc",
-                local=False,
-                global_=True
-            )
+            set_config("provider", "abc", local=False, global_=True)
 
     assert exception_info.value.code == 1
 
@@ -625,7 +610,7 @@ def test_set_config_command_handles_unexpected_error() -> None:
     mock_service.assert_called_once_with(settings, repository)
 
     service.set_value.assert_called_once_with(
-        "provider", 
+        "provider",
         "abc",
     )
 
@@ -791,6 +776,7 @@ def test_unset_config_command_uses_global_scope() -> None:
     )
     view.show_configuration.assert_called_once_with(report)
 
+
 def test_unset_config_command_handles_unknown_key() -> None:
     settings = create_settings(
         provider="gemini",
@@ -821,7 +807,7 @@ def test_unset_config_command_handles_unknown_key() -> None:
             )
 
     assert exception_info.value.code == 1
-    
+
     mock_load_settings.assert_called_once()
     mock_resolve_path.assert_called_once_with(ConfigScope.GLOBAL)
     mock_repository.assert_called_once_with(mock_resolve_path.return_value)

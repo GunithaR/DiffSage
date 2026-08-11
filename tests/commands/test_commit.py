@@ -54,9 +54,7 @@ def test_commit_calls_git_commit_on_confirmation():
         git.commit.assert_called_once_with("feat: add commit command")
 
         mock_get_path.assert_called_once()
-        mock_repository.assert_called_once_with(
-            mock_get_path.return_value
-        )
+        mock_repository.assert_called_once_with(mock_get_path.return_value)
         mock_credential_service.assert_called_once_with(
             repository,
         )

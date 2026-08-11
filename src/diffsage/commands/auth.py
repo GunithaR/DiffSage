@@ -22,7 +22,7 @@ def set_credential(
         "default",
         "--name",
         help="Credential profile name.",
-    )
+    ),
 ) -> None:
     """Store a DiffSage provider credential."""
 
@@ -48,10 +48,9 @@ def set_credential(
 
     except Exception:
         logger.exception("Unexpected error while executing auth command.")
-        view.show_error(
-            "An unexpected error occurred. Please check the log file for more details."
-        )
+        view.show_error("An unexpected error occurred. Please check the log file for more details.")
         raise SystemExit(1) from None
+
 
 @app.command("get")
 def get_credential(
@@ -77,10 +76,7 @@ def get_credential(
         )
 
         if credential is None:
-            view.show_error(
-                f"Credential not found for provider '{provider}' "
-                f"and profile '{name}'."
-            )
+            view.show_error(f"Credential not found for provider '{provider}' and profile '{name}'.")
             raise SystemExit(1)
 
         view.show_credential(credential)
@@ -92,10 +88,9 @@ def get_credential(
 
     except Exception:
         logger.exception("Unexpected error while executing auth command.")
-        view.show_error(
-            "An unexpected error occurred. Please check the log file for more details."
-        )
+        view.show_error("An unexpected error occurred. Please check the log file for more details.")
         raise SystemExit(1) from None
+
 
 @app.command("list")
 def list_credentials() -> None:
@@ -114,10 +109,9 @@ def list_credentials() -> None:
 
     except Exception:
         logger.exception("Unexpected error while executing auth command.")
-        view.show_error(
-            "An unexpected error occurred. Please check the log file for more details."
-        )
+        view.show_error("An unexpected error occurred. Please check the log file for more details.")
         raise SystemExit(1) from None
+
 
 @app.command("unset")
 def unset_credential(
@@ -143,10 +137,7 @@ def unset_credential(
         )
 
         if not deleted:
-            view.show_error(
-                f"Credential not found for provider '{provider}' "
-                f"and profile '{name}'."
-            )
+            view.show_error(f"Credential not found for provider '{provider}' and profile '{name}'.")
             raise SystemExit(1)
 
         view.show_success("Credential removed.")
@@ -158,7 +149,5 @@ def unset_credential(
 
     except Exception:
         logger.exception("Unexpected error while executing auth command.")
-        view.show_error(
-            "An unexpected error occurred. Please check the log file for more details."
-        )
+        view.show_error("An unexpected error occurred. Please check the log file for more details.")
         raise SystemExit(1) from None

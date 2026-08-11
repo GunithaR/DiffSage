@@ -1,4 +1,3 @@
-
 from diffsage.models.provider import ProviderResponse
 from diffsage.ui.base import BaseView
 

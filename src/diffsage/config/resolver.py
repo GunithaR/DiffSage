@@ -22,11 +22,7 @@ def _merge_dict(
     merged = base.copy()
 
     for key, value in override.items():
-        if (
-            key in merged
-            and isinstance(merged[key], Mapping)
-            and isinstance(value, Mapping)
-        ):
+        if key in merged and isinstance(merged[key], Mapping) and isinstance(value, Mapping):
             merged[key] = _merge_dict(merged[key], value)
         else:
             merged[key] = value
@@ -46,7 +42,7 @@ def _merge_config(
     )
 
     return DiffSageConfig.model_validate(merged)
-    
+
 
 def _to_settings(config: DiffSageConfig) -> Settings:
     """Convert a configuration model into runtime settings."""
@@ -58,7 +54,7 @@ def _to_settings(config: DiffSageConfig) -> Settings:
         max_retries=config.network.max_retries,
         log_level=config.logging.level,
     )
-    
+
 
 def resolve_settings() -> Settings:
     """Resolve application settings from all configuration sources."""
@@ -76,14 +72,8 @@ def resolve_settings() -> Settings:
 
     local_config_path = get_local_config_path()
 
-    if (
-        local_config_path is not None
-        and local_config_path.exists()
-    ):
-        config = _merge_config(
-            config,
-            load_config(local_config_path)
-        )
+    if local_config_path is not None and local_config_path.exists():
+        config = _merge_config(config, load_config(local_config_path))
 
     settings = _to_settings(config)
 

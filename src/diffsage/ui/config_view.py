@@ -37,8 +37,8 @@ class ConfigView(BaseView):
         self._console.print(
             Panel(
                 self._display_value(report.value),
-                title=f"[bold cyan]{report.key.replace("_", " ").title()}[/bold cyan]",
-                expand=False
+                title=f"[bold cyan]{report.key.replace('_', ' ').title()}[/bold cyan]",
+                expand=False,
             )
         )
 
@@ -46,7 +46,6 @@ class ConfigView(BaseView):
         self._console.print()
         self._console.print(f"[bold green]✓ {message}[bold green]")
         self._console.print()
-
 
     def show_path(self, path: Path) -> None:
         display = str(path).replace(str(Path.home()), "~")

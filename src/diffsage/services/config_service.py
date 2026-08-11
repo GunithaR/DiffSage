@@ -20,11 +20,7 @@ class ConfigService:
         "log_level": str.upper,
     }
 
-    def __init__(
-        self, 
-        settings: Settings,
-        repository: ConfigRepository
-    ) -> None:
+    def __init__(self, settings: Settings, repository: ConfigRepository) -> None:
         self._settings = settings
         self._repository = repository
 
@@ -45,7 +41,7 @@ class ConfigService:
             model=config.get("model"),
             timeout=config.get("timeout"),
             max_retries=config.get("max_retries"),
-            log_level=config.get("log_level")
+            log_level=config.get("log_level"),
         )
 
     def get_configuration_value_raw(self, key: str) -> ConfigValueReport:
@@ -59,7 +55,6 @@ class ConfigService:
             value=value,
         )
 
-
     def get_configuration(self) -> ConfigReport:
         return self._create_report(self._settings)
 
@@ -71,10 +66,7 @@ class ConfigService:
 
         value = getattr(self._settings, current_value)
 
-        return ConfigValueReport(
-            key=key,
-            value=str(value)
-        )
+        return ConfigValueReport(key=key, value=str(value))
 
     def set_value(self, key: str, value: str) -> ConfigReport:
         attribute_name = self._ATTRIBUTE_MAP.get(key)
@@ -93,7 +85,7 @@ class ConfigService:
         try:
             if isinstance(expected_value, int):
                 converted_value = int(value)
-            else: 
+            else:
                 converted_value = value
         except ValueError:
             raise InvalidConfigurationValueError(value) from None

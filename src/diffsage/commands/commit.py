@@ -25,6 +25,7 @@ logger = get_logger(__name__)
 def generate_message(commit_service: CommitService) -> str:
     return commit_service.generate_commit_message()
 
+
 def commit() -> None:
     """Generate a conventional commit message"""
 
@@ -110,19 +111,15 @@ def commit() -> None:
 
     except ProviderError as e:
         logger.warning(str(e))
-        view.show_error(str(e))    
+        view.show_error(str(e))
         raise SystemExit(1) from None
 
     except ConfigError as e:
         logger.warning(str(e))
-        view.show_error(str(e))    
+        view.show_error(str(e))
         raise SystemExit(1) from None
 
     except Exception:
         logger.exception("Unexpected error while executing commit command.")
-        view.show_error(
-            "An unexpected error occurred. Please check the log file for more details."
-        )
+        view.show_error("An unexpected error occurred. Please check the log file for more details.")
         raise SystemExit(1) from None
-
-    

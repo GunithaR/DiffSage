@@ -105,7 +105,7 @@ def test_get_returns_existing_value(tmp_path: Path) -> None:
 
 def test_get_returns_none_for_missing_value(tmp_path: Path) -> None:
     path = tmp_path / ".diffsage.toml"
-    
+
     doc = document()
     doc["ai"] = table()
     doc["ai"]["provider"] = "gemini"
@@ -119,7 +119,7 @@ def test_get_returns_none_for_missing_value(tmp_path: Path) -> None:
 
 def test_get_returns_none_for_empty_configuration(tmp_path: Path) -> None:
     path = tmp_path / ".diffsage.toml"
-    
+
     doc = document()
     path.write_text(doc.as_string())
 
@@ -162,7 +162,7 @@ def test_set_creates_missing_table(tmp_path: Path) -> None:
 
 def test_set_preserves_existing_configuration(tmp_path: Path) -> None:
     path = tmp_path / ".diffsage.toml"
-    
+
     doc = document()
     doc["ai"] = table()
     doc["ai"]["provider"] = "gemini"
@@ -175,7 +175,7 @@ def test_set_preserves_existing_configuration(tmp_path: Path) -> None:
     updated = parse(path.read_text())
 
     assert updated["ai"]["provider"] == "gemini"
-    assert "logging" in updated 
+    assert "logging" in updated
     assert updated["logging"]["level"] == "INFO"
 
 
@@ -232,7 +232,7 @@ def test_unset_removes_empty_section(tmp_path: Path) -> None:
 
 def test_unset_preserves_existing_configuration(tmp_path: Path) -> None:
     path = tmp_path / ".diffsage.toml"
-    
+
     doc = document()
     doc["ai"] = table()
     doc["ai"]["provider"] = "gemini"

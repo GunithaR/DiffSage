@@ -40,7 +40,7 @@ class CredentialsRepository:
         self._path.parent.mkdir(parents=True, exist_ok=True)
         self._path.write_text(doc.as_string())
 
-    def get(self, provider: str, name: str = "default") -> Credential | None: 
+    def get(self, provider: str, name: str = "default") -> Credential | None:
         if not self._path.exists():
             return None
 
@@ -69,7 +69,7 @@ class CredentialsRepository:
         )
 
     def list(self) -> list[Credential]:
-        if  not self._path.exists():
+        if not self._path.exists():
             return []
 
         doc = parse(self._path.read_text())
@@ -88,11 +88,7 @@ class CredentialsRepository:
                     continue
 
                 result.append(
-                    Credential(
-                        provider=provider_name,
-                        name=profile_name,
-                        api_key=api_key
-                    )
+                    Credential(provider=provider_name, name=profile_name, api_key=api_key)
                 )
 
         return result

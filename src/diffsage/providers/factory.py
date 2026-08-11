@@ -11,6 +11,4 @@ def create_provider(settings: Settings, credential: Credential) -> BaseProvider:
     if settings.provider == "gemini":
         return GeminiProvider(settings, credential)
 
-    raise ConfigError(
-        f"Unsupported provider: {settings.provider}"
-    )
+    raise ConfigError(f"Unsupported provider: {settings.provider}")

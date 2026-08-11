@@ -17,7 +17,6 @@ class ConfigRepository:
     def __init__(self, path: Path) -> None:
         self._path = path
 
-
     def _load(self) -> TOMLDocument:
         if not self._path.exists():
             return document()
@@ -26,7 +25,6 @@ class ConfigRepository:
         doc = parse(content)
 
         return doc
-        
 
     def _save(self, doc: TOMLDocument) -> None:
         self._path.parent.mkdir(parents=True, exist_ok=True)
@@ -34,8 +32,7 @@ class ConfigRepository:
         content = doc.as_string()
         self._path.write_text(content)
 
-
-    def list(self) -> dict[str, str | int ]:
+    def list(self) -> dict[str, str | int]:
         doc = self._load()
 
         config = {}
@@ -45,7 +42,6 @@ class ConfigRepository:
                 config[key] = doc[section][option]
 
         return config
-
 
     def get(self, key: str) -> str | int | None:
         doc = self._load()
@@ -59,7 +55,6 @@ class ConfigRepository:
             return None
 
         return doc[section][option]
-        
 
     def set(self, key: str, value: str | int) -> None:
         doc = self._load()
@@ -72,13 +67,12 @@ class ConfigRepository:
 
         self._save(doc)
 
-
     def unset(self, key: str) -> None:
         doc = self._load()
         section, option = self._PATH_MAP[key]
 
         if section not in doc:
-            return 
+            return
 
         if option not in doc[section]:
             return

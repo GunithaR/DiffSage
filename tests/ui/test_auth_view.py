@@ -9,8 +9,10 @@ from diffsage.ui.auth_view import AuthView
 def test_mask_api_key() -> None:
     assert AuthView._mask_api_key("abcdefghijklmnop") == "abcd••••••••mnop"
 
+
 def test_mask_short_api_key() -> None:
     assert AuthView._mask_api_key("abc") == "••••••••"
+
 
 def test_show_credential_masks_api_key() -> None:
     view = AuthView()
@@ -32,6 +34,7 @@ def test_show_credential_masks_api_key() -> None:
     assert "default" in rendered
     assert "abcd••••••••mnop" in rendered
     assert "abcdefghijklmnop" not in rendered
+
 
 def test_show_credentials_does_not_display_api_keys() -> None:
     view = AuthView()

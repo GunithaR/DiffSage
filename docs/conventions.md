@@ -65,15 +65,16 @@ Separate each group with a blank line.
 
 ## Exceptions
 
-Never raise generic Exception.
+Never raise generic `Exception`.
 
 Always raise a project-specific exception.
 
-Example:
+Examples include:
 
-- ConfigError
-- ProviderError
-- GitError
+- `ConfigError`
+- `ProviderError`
+- `GitError`
+- `CredentialNotFoundError`
 
 ---
 
@@ -82,6 +83,25 @@ Example:
 Commands should never load configuration directly.
 
 Services should receive configuration through the Settings model or dedicated abstractions.
+
+Authentication credentials must be handled through the credential management
+abstraction rather than the application Settings model.
+
+---
+
+## Authentication
+
+Provider credentials must remain separate from application configuration.
+
+Credential access should go through the credential management layer rather
+than reading credential storage directly from commands or providers.
+
+Commands should use `CredentialService` for credential operations.
+
+Provider implementations should receive resolved credentials through their
+construction rather than resolving credentials themselves.
+
+Credentials must never be exposed through logs or unmasked terminal output.
 
 ---
 

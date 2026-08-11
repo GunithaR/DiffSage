@@ -24,12 +24,14 @@ def create_request() -> ProviderRequest:
         max_tokens=1000,
     )
 
+
 def create_credential() -> Credential:
     return Credential(
         provider="gemini",
         name="default",
         api_key="test-api-key",
-)
+    )
+
 
 def test_gemini_provider_returns_provider_response():
     with patch("diffsage.providers.gemini_provider.genai.Client") as mock_client:
@@ -50,7 +52,7 @@ def test_gemini_provider_returns_provider_response():
         client.models.generate_content.return_value = mock_response
 
         provider = GeminiProvider(
-            create_settings(), 
+            create_settings(),
             create_credential(),
         )
 
@@ -76,7 +78,7 @@ def test_gemini_provider_raises_model_not_found_error():
         )
 
         provider = GeminiProvider(
-            create_settings(), 
+            create_settings(),
             create_credential(),
         )
 
@@ -94,7 +96,7 @@ def test_gemini_provider_raises_authentication_error():
         )
 
         provider = GeminiProvider(
-            create_settings(), 
+            create_settings(),
             create_credential(),
         )
 
@@ -112,7 +114,7 @@ def test_gemini_provider_raises_rate_limit_error():
         )
 
         provider = GeminiProvider(
-            create_settings(), 
+            create_settings(),
             create_credential(),
         )
 
@@ -130,7 +132,7 @@ def test_gemini_provider_raises_provider_unavailable_error():
         )
 
         provider = GeminiProvider(
-            create_settings(), 
+            create_settings(),
             create_credential(),
         )
 
@@ -148,7 +150,7 @@ def test_gemini_provider_raises_deadline_exceeded_error():
         )
 
         provider = GeminiProvider(
-            create_settings(), 
+            create_settings(),
             create_credential(),
         )
 
@@ -166,17 +168,16 @@ def test_gemini_provider_raises_provider_error():
         )
 
         provider = GeminiProvider(
-            create_settings(), 
+            create_settings(),
             create_credential(),
         )
-        
+
         with pytest.raises(ProviderError):
             provider.generate(create_request())
 
+
 def test_gemini_provider_passes_request_parameters_to_gemini() -> None:
-    with patch(
-        "diffsage.providers.gemini_provider.genai.Client"
-    ) as mock_client:
+    with patch("diffsage.providers.gemini_provider.genai.Client") as mock_client:
         client = mock_client.return_value
 
         mock_response = Mock()
@@ -215,10 +216,9 @@ def test_gemini_provider_passes_request_parameters_to_gemini() -> None:
         assert config.temperature == 0.7
         assert config.max_output_tokens == 1500
 
+
 def test_gemini_provider_uses_credential_api_key() -> None:
-    with patch(
-        "diffsage.providers.gemini_provider.genai.Client"
-    ) as mock_client:
+    with patch("diffsage.providers.gemini_provider.genai.Client") as mock_client:
         credential = create_credential()
 
         GeminiProvider(
@@ -230,10 +230,9 @@ def test_gemini_provider_uses_credential_api_key() -> None:
             api_key="test-api-key",
         )
 
+
 def test_gemini_provider_raises_authentication_error_for_invalid_api_key() -> None:
-    with patch(
-        "diffsage.providers.gemini_provider.genai.Client"
-    ) as mock_client:
+    with patch("diffsage.providers.gemini_provider.genai.Client") as mock_client:
         client = mock_client.return_value
 
         client.models.generate_content.side_effect = genai_errors.APIError(
@@ -257,8 +256,5 @@ def test_gemini_provider_raises_authentication_error_for_invalid_api_key() -> No
             ),
         )
 
-        with pytest.raises(
-            AuthenticationError,
-            match="Please check your API Key."
-        ):
+        with pytest.raises(AuthenticationError, match="Please check your API Key."):
             provider.generate(create_request())

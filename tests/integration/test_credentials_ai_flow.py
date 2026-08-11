@@ -1,15 +1,15 @@
-import pytest
-
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from diffsage.models.credentials import Credential
+import pytest
+
 from diffsage.exceptions import CredentialNotFoundError
-from diffsage.models.provider import ProviderRequest
+from diffsage.models.credentials import Credential
 from diffsage.services.ai_service import AIService
 from diffsage.services.credentials_service import CredentialService
 from diffsage.storage.credentials_repository import CredentialsRepository
 from tests.helpers import create_settings
+
 
 def test_credentials_flow_into_gemini_provider(tmp_path: Path) -> None:
     credential_path = tmp_path / "credentials.toml"
@@ -35,9 +35,7 @@ def test_credentials_flow_into_gemini_provider(tmp_path: Path) -> None:
     mock_response.usage_metadata.prompt_token_count = 10
     mock_response.usage_metadata.candidates_token_count = 20
 
-    with patch(
-        "diffsage.providers.gemini_provider.genai.Client"
-    ) as mock_client:
+    with patch("diffsage.providers.gemini_provider.genai.Client") as mock_client:
         client = mock_client.return_value
         client.models.generate_content.return_value = mock_response
 
@@ -49,7 +47,7 @@ def test_credentials_flow_into_gemini_provider(tmp_path: Path) -> None:
         response = service.ask("Hello")
 
     mock_client.assert_called_once_with(
-        api_key = "test-api-key",
+        api_key="test-api-key",
     )
 
     request = client.models.generate_content.call_args
@@ -66,9 +64,8 @@ def test_credentials_flow_into_gemini_provider(tmp_path: Path) -> None:
     assert response.provider == "gemini"
     assert response.model == "gemini-3.5-flash-lite"
 
-def test_ai_service_fails_when_default_credential_is_missing(
-    tmp_path: Path
-) -> None:
+
+def test_ai_service_fails_when_default_credential_is_missing(tmp_path: Path) -> None:
     credentials_path = tmp_path / "credentials.toml"
 
     repository = CredentialsRepository(credentials_path)

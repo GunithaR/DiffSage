@@ -12,7 +12,7 @@ class GitError(DiffSageError):
 
 class InvalidCommitMessageError(DiffSageError):
     """Raised when an AI-generated commit message cannot be parsed."""
-    
+
 
 class ConfigError(DiffSageError):
     """Raised when configuration is invalid."""
@@ -29,4 +29,4 @@ class InvalidConfigurationValueError(ConfigError):
     """Raised when configuration value is of invalid type."""
 
     def __init__(self, value: str) -> None:
-            super().__init__(f"Invalid configuration value: '{value}'")
+        super().__init__(f"Invalid configuration value: '{value}'")
