@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [1.2.0] - 2026-08-12
 
 ### Added
 - Hierarchical configuration resolution (environment, global, and local configuration).
