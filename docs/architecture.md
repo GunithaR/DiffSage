@@ -3,7 +3,8 @@
 ## Overview
 
 DiffSage is a terminal-first AI-powered Git workflow toolkit that helps
-developers with AI-assisted commit messages and other Git-related workflows.
+developers with AI-assisted Git workflows while providing configuration,
+authentication, diagnostics, and extensible provider integrations.
 
 The architecture follows a layered design to separate user interaction,
 business logic, and infrastructure while keeping Git workflow operations
@@ -218,8 +219,6 @@ View
 
 
 ---
-
-# AI Request Flow
 
 # AI Request Flow
 

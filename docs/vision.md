@@ -146,11 +146,13 @@ The project will continue to prioritize quality, documentation, testing, and mai
 
 # Open Source Philosophy
 
-DiffSage is currently developed privately while its architecture, documentation, and core workflows are being refined.
+DiffSage is developed as an open-source project with an emphasis on
+maintainability, clear architecture, documentation, and reliable engineering
+practices.
 
-Once the project reaches a stable and well-documented foundation, it will be released as an open-source project.
-
-The objective is not simply to publish code, but to provide a polished, maintainable, and contributor-friendly developer tool with clear documentation, architectural guidance, and consistent engineering practices.
+The objective is not simply to publish code, but to provide a polished,
+maintainable, and contributor-friendly developer tool with clear
+documentation, architectural guidance, and consistent engineering practices.
 
 ---
 

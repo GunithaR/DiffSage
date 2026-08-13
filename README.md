@@ -111,17 +111,37 @@ Its scope is intentionally focused on improving Git workflows.
 
 # Project Status
 
-> **Current Stage:** Active Development
+> **Current Stage:** Alpha
 
-DiffSage is currently under active development.
+DiffSage is an actively developed open-source project.
 
-The project is being developed privately while the core architecture, documentation, and workflow foundation are finalized.
+The project is published on PyPI and distributed as a Python package for
+developers, automation, and AI agents.
 
-The long-term goal is to open source the project once it reaches a stable and well-documented foundation.
+The current focus is on expanding Git workflow capabilities while maintaining
+a stable architecture, clear documentation, reliable automation, and strong
+engineering practices.
 
 ---
 
 # Installation
+
+## User Installation
+
+DiffSage is published on PyPI and can be installed using `pipx`.
+
+DiffSage currently requires Python 3.12.
+
+```bash
+pipx install diffsage
+```
+
+After installation verify the environment
+```bash
+diffsage doctor
+```
+
+## Developer Installation
 
 Clone the repository:
 
@@ -153,8 +173,28 @@ Windows
 Install the project:
 
 ```bash
-pip install -e ".[dev]"
+python -m pip install -e ".[dev]"
 ```
+
+---
+
+# Releases
+
+DiffSage releases are published through GitHub Releases and distributed through PyPI.
+
+Released package versions can be installed directly with:
+
+```bash
+pipx install diffsage
+```
+
+A specific version can be installed with:
+
+```bash
+pipx install diffsage==1.2.0
+```
+
+Release builds and PyPI publishing are automated through GitHub Actions.
 
 ---
 
@@ -164,16 +204,17 @@ DiffSage supports layered configuration through global and repository-local TOML
 
 Application configuration controls how DiffSage behaves and can be managed through global, repository-local, and environment-based configuration.
 
-Provider credentials are managed separately from application configuration. 
 Provider credentials are managed separately from application configuration and are not part of the Settings configuration model.
 
 ```env
 DIFFSAGE_PROVIDER=gemini
-DIFFSAGE_AI_MODEL=gemini-3.5-flash-lite
+DIFFSAGE_AI_MODEL=<provider-supported-model>
 DIFFSAGE_LOG_LEVEL=INFO
 DIFFSAGE_TIMEOUT=60
 DIFFSAGE_MAX_RETRIES=3
 ```
+
+The configured model must be supported by the selected AI provider.
 
 Configuration can also be managed directly from the CLI:
 
@@ -236,7 +277,6 @@ Display AI suggestion
 Named credential profiles are also supported:
 
 ```bash
-
 diffsage auth set gemini YOUR_API_KEY --name paid
 ```
 
@@ -351,10 +391,6 @@ Additional project documentation is available within the repository.
 | `docs/changelog.md` | Project changes and milestones |
 | `docs/adrs/ADR-*` | Architecture Decision Records (ADRs) |
 
-Future documentation will include:
-
-- Contributing Guide
-
 ---
 
 # Roadmap
@@ -413,15 +449,11 @@ Features that fall outside these principles intentionally remain out of scope.
 
 # Contributing
 
-Contribution guidelines will be published when the project becomes publicly available.
+DiffSage is an open-source project and contributions are welcome.
 
-Future contributors will be encouraged to review:
+Before contributing, review the project architecture, coding conventions, and architectural decision records in the `docs/` directory.
 
-- Architecture documentation
-- Coding conventions
-- ADRs
-
-before submitting changes.
+Additional contribution guidelines will be documented as the project evolves.
 
 ---
 
