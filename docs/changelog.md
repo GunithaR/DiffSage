@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.2.1] - 2026-08-13
+
+### Fixed
+
+- Added user-friendly handling for unavailable AI models in the `ask` command.
+- Prevented model-not-found errors from being reported as unexpected errors.
+- Added command-level test coverage for model-not-found error handling.
+
+
 ## [1.2.0] - 2026-08-12
 
 ### Added

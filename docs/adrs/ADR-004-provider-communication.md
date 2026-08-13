@@ -8,7 +8,7 @@ Accepted
 
 ## Context
 
-DiffSage integrates with multiple AI providers such as Google Gemini, OpenAI, Anthropic, and local models.
+DiffSage is designed to support multiple AI providers, with Google Gemini currently implemented.
 
 There are two primary implementation approaches:
 

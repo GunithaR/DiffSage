@@ -263,7 +263,8 @@ Alternative formats such as JSON and YAML were considered but not selected.
 
 # Interactive Configuration
 
-Future configuration commands will support both direct and interactive editing.
+DiffSage currently provides direct configuration commands for inspecting,
+updating, and removing configuration values.
 
 Examples:
 
@@ -466,7 +467,7 @@ The following areas remain future work:
 
 12. Add command-line configuration overrides with per-invocation precedence.
 13. Add an interactive `diffsage init` configuration wizard.
-14. Continue updating documentation and installation guides as the configuration system evolves.
+14. Continue evolving documentation and installation guides as the configuration system develops.
 
 ---
 
