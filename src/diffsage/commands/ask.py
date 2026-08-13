@@ -4,6 +4,7 @@ from diffsage.exceptions import (
     AuthenticationError,
     ConfigError,
     CredentialNotFoundError,
+    ModelNotFoundError,
     ProviderUnavailableError,
 )
 from diffsage.logging.logger import get_logger
@@ -42,6 +43,11 @@ def ask(prompt: str) -> None:
         raise SystemExit(1) from None
 
     except CredentialNotFoundError as e:
+        logger.warning(str(e))
+        view.show_error(str(e))
+        raise SystemExit(1) from None
+
+    except ModelNotFoundError as e:
         logger.warning(str(e))
         view.show_error(str(e))
         raise SystemExit(1) from None
