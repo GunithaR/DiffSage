@@ -14,7 +14,7 @@ class GitStatus:
 
 @dataclass(slots=True)
 class GitCommit:
-    """Represents a commit history in a Git repository"""
+    """Represents a single commit in a Git repository"""
 
     hash: str
     author: str

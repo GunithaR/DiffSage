@@ -6,34 +6,34 @@ from diffsage.models.git import GitCommit
 from tests.helpers import init_git_repo, init_git_repo_with_initial_commit, run_git
 
 
-def test_is_git_repository_returns_false_for_non_git_directory(tmp_path: Path):
+def test_is_git_repository_returns_false_for_non_git_directory(tmp_path: Path) -> None:
     client = GitClient(tmp_path)
 
     assert client.is_git_repository() is False
 
 
-def test_is_git_repository_returns_true_for_git_repository(tmp_path: Path):
+def test_is_git_repository_returns_true_for_git_repository(tmp_path: Path) -> None:
     init_git_repo(tmp_path)
     client = GitClient(tmp_path)
 
     assert client.is_git_repository() is True
 
 
-def test_repository_root_returns_repository_root(tmp_path: Path):
+def test_repository_root_returns_repository_root(tmp_path: Path) -> None:
     init_git_repo(tmp_path)
     client = GitClient(tmp_path)
 
     assert client.repository_root() == tmp_path
 
 
-def test_current_branch_returns_current_branch(tmp_path: Path):
+def test_current_branch_returns_current_branch(tmp_path: Path) -> None:
     init_git_repo(tmp_path)
     client = GitClient(tmp_path)
 
     assert client.current_branch() == "main"
 
 
-def test_current_commit_returns_current_commit_hash(tmp_path: Path):
+def test_current_commit_returns_current_commit_hash(tmp_path: Path) -> None:
     init_git_repo_with_initial_commit(tmp_path)
 
     expected = run_git(
@@ -46,7 +46,7 @@ def test_current_commit_returns_current_commit_hash(tmp_path: Path):
     assert client.current_commit() == expected
 
 
-def test_status_returns_untracked_files(tmp_path: Path):
+def test_status_returns_untracked_files(tmp_path: Path) -> None:
     init_git_repo(tmp_path)
 
     readme = tmp_path / "README.md"
@@ -58,7 +58,7 @@ def test_status_returns_untracked_files(tmp_path: Path):
     assert status.untracked == ["README.md"]
 
 
-def test_status_returns_modified_files(tmp_path: Path):
+def test_status_returns_modified_files(tmp_path: Path) -> None:
     init_git_repo_with_initial_commit(tmp_path)
 
     readme = tmp_path / "README.md"
@@ -70,7 +70,7 @@ def test_status_returns_modified_files(tmp_path: Path):
     assert status.modified == ["README.md"]
 
 
-def test_status_returns_added_files(tmp_path: Path):
+def test_status_returns_added_files(tmp_path: Path) -> None:
     init_git_repo(tmp_path)
 
     readme = tmp_path / "README.md"
@@ -84,7 +84,7 @@ def test_status_returns_added_files(tmp_path: Path):
     assert status.added == ["README.md"]
 
 
-def test_status_returns_deleted_files(tmp_path: Path):
+def test_status_returns_deleted_files(tmp_path: Path) -> None:
     init_git_repo_with_initial_commit(tmp_path)
 
     readme = tmp_path / "README.md"
@@ -96,7 +96,7 @@ def test_status_returns_deleted_files(tmp_path: Path):
     assert status.deleted == ["README.md"]
 
 
-def test_staged_diff_returns_git_diff(tmp_path: Path):
+def test_staged_diff_returns_git_diff(tmp_path: Path) -> None:
     init_git_repo(tmp_path)
 
     readme = tmp_path / "README.md"
@@ -112,7 +112,7 @@ def test_staged_diff_returns_git_diff(tmp_path: Path):
     assert "+# DiffSage" in diff
 
 
-def test_unstaged_diff_returns_git_diff(tmp_path: Path):
+def test_unstaged_diff_returns_git_diff(tmp_path: Path) -> None:
     init_git_repo_with_initial_commit(tmp_path)
 
     readme = tmp_path / "README.md"
@@ -126,7 +126,7 @@ def test_unstaged_diff_returns_git_diff(tmp_path: Path):
     assert "+Modified" in diff
 
 
-def test_recent_commits_return_commit_history(tmp_path: Path):
+def test_recent_commits_return_commit_history(tmp_path: Path) -> None:
     init_git_repo(tmp_path)
 
     readme = tmp_path / "README.md"
@@ -155,7 +155,7 @@ def test_recent_commits_return_commit_history(tmp_path: Path):
     assert len(commits[0].hash) >= 40
 
 
-def test_branches_return_local_branches(tmp_path: Path):
+def test_branches_return_local_branches(tmp_path: Path) -> None:
     init_git_repo_with_initial_commit(tmp_path)
 
     run_git(["checkout", "-b", "feature"], tmp_path)
@@ -166,7 +166,7 @@ def test_branches_return_local_branches(tmp_path: Path):
     assert set(branches) == {"main", "feature"}
 
 
-def test_tags_return_all_tags(tmp_path: Path):
+def test_tags_return_all_tags(tmp_path: Path) -> None:
     init_git_repo_with_initial_commit(tmp_path)
 
     run_git(["tag", "v0.1.0"], tmp_path)
@@ -178,3 +178,58 @@ def test_tags_return_all_tags(tmp_path: Path):
     tags = client.tags()
 
     assert set(tags) == {"v0.1.0", "v0.2.0"}
+
+
+def test_merge_base_return_latest_commit_hash(tmp_path: Path) -> None:
+    init_git_repo_with_initial_commit(tmp_path)
+
+    (tmp_path / "second.txt").write_text("second commit")
+    run_git(["add", "second.txt"], tmp_path)
+    run_git(["commit", "-m", "second commit"], tmp_path)
+    expected = run_git(["rev-parse", "HEAD"], tmp_path)
+
+    run_git(["checkout", "-b", "feature"], tmp_path)
+    (tmp_path / "feature.txt").write_text("feature change")
+    run_git(["add", "feature.txt"], tmp_path)
+    run_git(["commit", "-m", "third commit from feature"], tmp_path)
+
+    run_git(["checkout", "main"], tmp_path)
+    (tmp_path / "main.txt").write_text("main change")
+    run_git(["add", "main.txt"], tmp_path)
+    run_git(["commit", "-m", "third commit from main"], tmp_path)
+
+    client = GitClient(tmp_path)
+
+    assert client.merge_base("main", "feature") == expected.stdout.strip()
+
+
+def test_commits_between_return_commit_list(tmp_path: Path) -> None:
+    init_git_repo_with_initial_commit(tmp_path)
+
+    run_git(["checkout", "-b", "feature"], tmp_path)
+
+    path = tmp_path / "file.txt"
+
+    path.write_text("feature change")
+    run_git(["add", "file.txt"], tmp_path)
+    run_git(["commit", "-m", "first commit from feature"], tmp_path)
+    feature_commit_1 = run_git(["rev-parse", "HEAD"], tmp_path).stdout.strip()
+
+    path.write_text("feature change again")
+    run_git(["add", "file.txt"], tmp_path)
+    run_git(["commit", "-m", "second commit from feature"], tmp_path)
+    feature_commit_2 = run_git(["rev-parse", "HEAD"], tmp_path).stdout.strip()
+
+    run_git(["checkout", "main"], tmp_path)
+
+    path.write_text("main change")
+    run_git(["add", "file.txt"], tmp_path)
+    run_git(["commit", "-m", "second commit from main"], tmp_path)
+
+    client = GitClient(tmp_path)
+    commits = client.commits_between("main", "feature")
+
+    assert len(commits) == 2
+
+    assert commits[0].hash == feature_commit_2
+    assert commits[1].hash == feature_commit_1

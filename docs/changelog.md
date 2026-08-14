@@ -35,9 +35,10 @@
 - Updated provider factory and provider implementations to receive resolved credentials.
 - Improved Gemini provider error handling with user-friendly authentication and provider errors.
 - Updated `ask` and `commit` commands to use the credential management system.
+- Updated Typer to 0.27.x and Click to 8.3.3+ after verifying compatibility with required CLI argument validation.
 
 ### Fixed
-- Pinned Click to the 8.1.x release line due to a compatibility issue with Typer 0.16.x that caused missing required CLI arguments to be passed as `None`.
+- Resolved a Typer and Click compatibility issue that caused missing required CLI arguments to be passed as `None` instead of triggering normal argument validation.
 - Prevented raw Gemini authentication errors from being exposed directly to users.
 - Added explicit handling for missing provider credentials.
 

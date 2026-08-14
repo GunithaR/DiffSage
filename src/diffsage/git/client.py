@@ -153,3 +153,35 @@ class GitClient:
             command.extend(["-m", body])
 
         self._run_git_command(command)
+
+    def merge_base(self, base_branch: str, head_branch: str) -> str:
+        """Return the common ancestor commit hash of two branches."""
+
+        result = self._run_git_command(
+            ["merge-base", base_branch, head_branch],
+        )   
+
+        return result.stdout.strip()
+
+    def commits_between(self, base_branch: str, head_branch: str) -> list[GitCommit]:
+        """Return commits reachable from the head branch but not the base branch."""
+        
+        result = self._run_git_command(
+            [
+                "log", 
+                "--format=%H%x09%an%x09%s%x09%aI",
+                f"{base_branch}..{head_branch}",
+            ],
+        )
+
+        commits: list[GitCommit] = []
+
+        for line in result.stdout.splitlines():
+            hash_, author, message, date = line.split("\t")
+
+            commit = GitCommit(
+                hash=hash_, author=author, message=message, date=datetime.fromisoformat(date)
+            )
+            commits.append(commit)
+
+        return commits
