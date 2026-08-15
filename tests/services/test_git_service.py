@@ -1,12 +1,12 @@
 from pathlib import Path
 
 from diffsage.git.client import GitClient
-from diffsage.models.git import CommitContext
+from diffsage.models.git import CommitContext, PullRequestContext
 from diffsage.services.git_service import GitService
-from tests.helpers import init_git_repo_with_initial_commit
+from tests.helpers import init_git_repo_with_initial_commit, run_git
 
 
-def test_build_commit_context_returns_commit_context(tmp_path: Path):
+def test_build_commit_context_returns_commit_context(tmp_path: Path) -> None:
     init_git_repo_with_initial_commit(tmp_path)
 
     readme = tmp_path / "README.md"
@@ -25,3 +25,60 @@ def test_build_commit_context_returns_commit_context(tmp_path: Path):
 
     assert len(context.recent_commits) == 1
     assert context.recent_commits[0].message == "Initial Commit"
+
+
+def test_build_pull_request_context_returns_pull_request_context(tmp_path: Path) -> None:
+    init_git_repo_with_initial_commit(tmp_path)
+
+    (tmp_path / "second.txt").write_text("second file")
+    run_git(["add", "second.txt"], tmp_path)
+    run_git(["commit", "-m", "second commit"], tmp_path)
+    expected_merge_base = run_git(
+        ["rev-parse", "HEAD"],
+        tmp_path,
+    ).stdout.strip()
+
+    run_git(["checkout", "-b", "feature"], tmp_path)
+
+    feature_file = tmp_path / "feature.txt"
+    feature_file.write_text("feature change")
+    run_git(["add", "feature.txt"], tmp_path)
+    run_git(["commit", "-m", "feature change"], tmp_path)
+
+    second_feature_file = tmp_path / "second-feature.txt"
+    second_feature_file.write_text("second feature change")
+    run_git(["add", "second-feature.txt"], tmp_path)
+    run_git(["commit", "-m", "second feature change"], tmp_path)
+
+    run_git(["checkout", "main"], tmp_path)
+
+    main_file = tmp_path / "main.txt"
+    main_file.write_text("main change")
+    run_git(["add", "main.txt"], tmp_path)
+    run_git(["commit", "-m", "main change"], tmp_path)
+
+    client = GitClient(tmp_path)
+    service = GitService(client)
+
+    run_git(["checkout", "feature"], tmp_path)
+
+    context = service.build_pull_request_context("main")
+
+    assert isinstance(context, PullRequestContext)
+
+    assert context.current_branch == "feature"
+    assert context.base_branch == "main"
+    assert context.merge_base == expected_merge_base
+
+    assert len(context.commits) == 2
+    assert context.commits[0].message == "second feature change"
+    assert context.commits[1].message == "feature change"
+
+    assert set(context.changed_files) == {
+        "feature.txt",
+        "second-feature.txt",
+    }
+
+    assert "feature change" in context.diff
+    assert "second feature change" in context.diff
+    assert "main change" not in context.diff

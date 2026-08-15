@@ -30,3 +30,15 @@ class CommitContext:
     staged_diff: str
     unstaged_diff: str
     recent_commits: list[GitCommit]
+
+
+@dataclass(slots=True)
+class PullRequestContext:
+    """Represents the information needed to generate a pull request."""
+
+    current_branch: str
+    base_branch: str
+    merge_base: str
+    commits: list[GitCommit]
+    changed_files: list[str]
+    diff: str

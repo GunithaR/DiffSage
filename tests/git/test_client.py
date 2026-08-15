@@ -233,3 +233,62 @@ def test_commits_between_return_commit_list(tmp_path: Path) -> None:
 
     assert commits[0].hash == feature_commit_2
     assert commits[1].hash == feature_commit_1
+
+
+def test_changed_files_return_file_list(tmp_path: Path) -> None:
+    init_git_repo_with_initial_commit(tmp_path)
+
+    run_git(["checkout","-b","feature"], tmp_path)
+
+    (tmp_path / "feature-file1.txt").write_text("feature 1")
+    run_git(["add","feature-file1.txt"], tmp_path)
+    run_git(["commit","-m","add feature 1 file"], tmp_path)
+
+    (tmp_path / "feature-file2.txt").write_text("feature 2")
+    run_git(["add","feature-file2.txt"], tmp_path)
+    run_git(["commit","-m","add feature 2 file"], tmp_path)
+
+    run_git(["checkout","main"], tmp_path)
+
+    (tmp_path / "main.txt").write_text("change from main")
+    run_git(["add","main.txt"], tmp_path)
+    run_git(["commit","-m","add main file"], tmp_path)
+
+    client = GitClient(tmp_path)
+
+    files = client.changed_files("main", "feature")
+
+    assert set(files) == {
+        "feature-file2.txt",
+        "feature-file1.txt",
+    }
+
+
+def test_branch_diff_return_changed_context(tmp_path: Path) -> None:
+    init_git_repo_with_initial_commit(tmp_path)
+
+    run_git(["checkout","-b","feature"], tmp_path)
+
+    (tmp_path / "feature-file1.txt").write_text("feature 1")
+    run_git(["add","feature-file1.txt"], tmp_path)
+    run_git(["commit","-m","add feature 1 file"], tmp_path)
+
+    (tmp_path / "feature-file2.txt").write_text("feature 2")
+    run_git(["add","feature-file2.txt"], tmp_path)
+    run_git(["commit","-m","add feature 2 file"], tmp_path)
+
+    run_git(["checkout","main"], tmp_path)
+
+    (tmp_path / "main.txt").write_text("change from main")
+    run_git(["add","main.txt"], tmp_path)
+    run_git(["commit","-m","add main file"], tmp_path)
+
+    client = GitClient(tmp_path)
+
+    diff = client.branch_diff("main", "feature")
+
+    assert "feature 1" in diff
+    assert "feature 2" in diff
+    assert "change from main" not in diff
+    assert "feature-file1.txt" in diff
+    assert "feature-file2.txt" in diff

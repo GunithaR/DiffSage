@@ -159,16 +159,16 @@ class GitClient:
 
         result = self._run_git_command(
             ["merge-base", base_branch, head_branch],
-        )   
+        )
 
         return result.stdout.strip()
 
     def commits_between(self, base_branch: str, head_branch: str) -> list[GitCommit]:
         """Return commits reachable from the head branch but not the base branch."""
-        
+
         result = self._run_git_command(
             [
-                "log", 
+                "log",
                 "--format=%H%x09%an%x09%s%x09%aI",
                 f"{base_branch}..{head_branch}",
             ],
@@ -185,3 +185,25 @@ class GitClient:
             commits.append(commit)
 
         return commits
+
+    def changed_files(self, base_branch: str, head_branch: str) -> list[str]:
+        """Return file paths changed between the base and head branches."""
+
+        merge_base = self.merge_base(base_branch, head_branch)
+
+        result = self._run_git_command(
+            ["diff", "--name-only", merge_base, head_branch],
+        )
+
+        return result.stdout.splitlines()
+
+    def branch_diff(self, base_branch: str, head_branch: str) -> str:
+        """Return the diff introduced by the head branch since the merge base."""
+
+        merge_base = self.merge_base(base_branch, head_branch)
+
+        result = self._run_git_command(
+            ["diff", merge_base, head_branch]
+        )
+
+        return result.stdout
