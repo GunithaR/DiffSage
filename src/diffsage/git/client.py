@@ -207,3 +207,33 @@ class GitClient:
         )
 
         return result.stdout
+
+    def default_branch(self) -> str | None:
+        """Return the default branch configured for the origin remote."""
+
+        try:
+            result = self._run_git_command(
+                ["symbolic-ref", "refs/remotes/origin/HEAD"]
+            )
+        except subprocess.CalledProcessError:
+            pass
+        else:
+            ref = result.stdout.strip()
+            prefix = "refs/remotes/origin/"
+
+            if ref.startswith(prefix):
+                return ref.removeprefix(prefix)
+
+        try:
+            result = self._run_git_command(
+                ["ls-remote", "--symref", "origin", "HEAD"]
+            )
+        except subprocess.CalledProcessError:
+            return None
+
+        for line in result.stdout.splitlines():
+            if line.startswith("ref:") and line.endswith("\tHEAD"):
+                ref = line.split("\t", 1)[0]
+                return ref.removeprefix("ref: refs/heads/")
+        
+        return None

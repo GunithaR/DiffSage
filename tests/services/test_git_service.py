@@ -1,8 +1,11 @@
+import pytest
+
 from pathlib import Path
 
 from diffsage.git.client import GitClient
 from diffsage.models.git import CommitContext, PullRequestContext
 from diffsage.services.git_service import GitService
+from diffsage.exceptions import BaseBranchNotFoundError
 from tests.helpers import init_git_repo_with_initial_commit, run_git
 
 
@@ -82,3 +85,97 @@ def test_build_pull_request_context_returns_pull_request_context(tmp_path: Path)
     assert "feature change" in context.diff
     assert "second feature change" in context.diff
     assert "main change" not in context.diff
+
+
+def test_resolve_base_branch_returns_explicit_branch(tmp_path: Path) -> None:
+    init_git_repo_with_initial_commit(tmp_path)
+
+    run_git(["checkout", "-b", "feature"], tmp_path)
+
+    client = GitClient(tmp_path)
+    service = GitService(client)
+
+    assert service.resolve_base_branch("feature") == "feature"
+
+
+def test_resolve_base_branch_raises_for_invalid_explicit_branch(tmp_path: Path) -> None:
+    init_git_repo_with_initial_commit(tmp_path)
+
+    client = GitClient(tmp_path)
+    service = GitService(client)
+
+    with pytest.raises(BaseBranchNotFoundError):
+        service.resolve_base_branch("does-not-exist")
+
+
+def test_resolve_base_branch_uses_git_default_branch(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    remote = tmp_path / "remote.git"
+
+    repo.mkdir()
+    remote.mkdir()
+
+    run_git(
+        ["init", "--bare", "--initial-branch=main"],
+        remote,
+    )
+
+    init_git_repo_with_initial_commit(repo)
+
+    run_git(
+        ["remote", "add", "origin", str(remote)],
+        repo,
+    )
+    run_git(
+        ["push", "-u", "origin", "main"],
+        repo,
+    )
+    run_git(
+        ["remote", "set-head", "origin", "main"],
+        repo,
+    )
+
+    client = GitClient(repo)
+    service = GitService(client)
+
+    assert service.resolve_base_branch() == "main"
+
+
+def test_resolve_base_branch_falls_back_to_main(
+    tmp_path: Path,
+) -> None:
+    init_git_repo_with_initial_commit(tmp_path)
+
+    client = GitClient(tmp_path)
+    service = GitService(client)
+
+    assert service.resolve_base_branch() == "main"
+
+
+def test_resolve_base_branch_falls_back_to_master(
+    tmp_path: Path,
+) -> None:
+    init_git_repo_with_initial_commit(tmp_path)
+
+    run_git(["checkout", "-b", "master"], tmp_path)
+    run_git(["branch", "-D", "main"], tmp_path)
+
+    client = GitClient(tmp_path)
+    service = GitService(client)
+
+    assert service.resolve_base_branch() == "master"
+
+
+def test_resolve_base_branch_raises_when_no_base_can_be_resolved(
+    tmp_path: Path,
+) -> None:
+    init_git_repo_with_initial_commit(tmp_path)
+
+    run_git(["checkout", "-b", "feature"], tmp_path)
+    run_git(["branch", "-D", "main"], tmp_path)
+
+    client = GitClient(tmp_path)
+    service = GitService(client)
+
+    with pytest.raises(BaseBranchNotFoundError):
+        service.resolve_base_branch()

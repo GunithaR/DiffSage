@@ -292,3 +292,115 @@ def test_branch_diff_return_changed_context(tmp_path: Path) -> None:
     assert "change from main" not in diff
     assert "feature-file1.txt" in diff
     assert "feature-file2.txt" in diff
+
+
+def test_default_branch_returns_origin_default_branch(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    remote = tmp_path / "remote.git"
+
+    repo.mkdir()
+    remote.mkdir()
+
+    run_git(
+        ["init", "--bare", "--initial-branch=main"],
+        remote,
+    )
+
+    init_git_repo_with_initial_commit(repo)
+
+    run_git(
+        ["remote", "add", "origin", str(remote)],
+        repo,
+    )
+    run_git(
+        ["push", "-u", "origin", "main"],
+        repo,
+    )
+    run_git(
+        ["remote", "set-head", "origin", "main"],
+        repo,
+    )
+
+    client = GitClient(repo)
+
+    assert client.default_branch() == "main"
+
+
+def test_default_branch_returns_origin_develop(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    remote = tmp_path / "remote.git"
+
+    repo.mkdir()
+    remote.mkdir()
+
+    run_git(
+        ["init", "--bare", "--initial-branch=main"],
+        remote,
+    )
+
+    init_git_repo_with_initial_commit(repo)
+
+    run_git(
+        ["remote", "add", "origin", str(remote)],
+        repo,
+    )
+    run_git(
+        ["push", "-u", "origin", "main"],
+        repo,
+    )
+    run_git(
+        ["checkout", "-b", "develop"],
+        repo,
+    )
+    run_git(
+        ["push", "-u", "origin", "develop"],
+        repo,
+    )
+    run_git(
+        ["remote", "set-head", "origin", "develop"],
+        repo,
+    )
+
+    client = GitClient(repo)
+
+    assert client.default_branch() == "develop"
+
+
+def test_default_branch_returns_none_when_origin_head_missing(tmp_path: Path,) -> None:
+    init_git_repo_with_initial_commit(tmp_path)
+
+    client = GitClient(tmp_path)
+
+    assert client.default_branch() is None
+
+
+def test_default_branch_queries_remote_when_origin_head_missing(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    remote = tmp_path / "remote.git"
+
+    repo.mkdir()
+    remote.mkdir()
+
+    run_git(
+        ["init", "--bare", "--initial-branch=main"],
+        remote,
+    )
+
+    init_git_repo_with_initial_commit(repo)
+
+    run_git(
+        ["remote", "add", "origin", str(remote)],
+        repo,
+    )
+    run_git(
+        ["remote", "set-head", "origin", "--delete"],
+        repo,
+    )
+    run_git(
+        ["push", "-u", "origin", "main"],
+        repo,
+    )
+
+    client = GitClient(repo)
+
+    assert client.default_branch() == "main"

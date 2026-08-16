@@ -8,7 +8,11 @@ from .base import (
     UnknownConfigurationKeyError,
 )
 from .credentials import CredentialNotFoundError
-from .git import NoStagedChangesError, NotGitRepositoryError
+from .git import (
+    NoStagedChangesError, 
+    NotGitRepositoryError,
+    BaseBranchNotFoundError,
+)
 from .provider import (
     AuthenticationError,
     ModelNotFoundError,
@@ -30,5 +34,6 @@ __all__ = [
     "InvalidCommitMessageError",
     "NoStagedChangesError",
     "NotGitRepositoryError",
+    "BaseBranchNotFoundError",
     "CredentialNotFoundError",
 ]

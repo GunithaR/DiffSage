@@ -7,3 +7,7 @@ class NotGitRepositoryError(GitError):
 
 class NoStagedChangesError(GitError):
     """Raised when there are no staged changes to commit."""
+
+
+class BaseBranchNotFoundError(GitError):
+    """Raise when a valid pull request base branch cannot be determined."""
