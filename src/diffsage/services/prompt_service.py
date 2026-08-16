@@ -83,10 +83,7 @@ class PromptService:
         )
 
         for commit in context.commits:
-            lines.append(
-                f"{commit.hash} | {commit.author} | "
-                f"{commit.message} | {commit.date}"
-            )
+            lines.append(f"{commit.hash} | {commit.author} | {commit.message} | {commit.date}")
 
         lines.extend(
             [
@@ -107,10 +104,7 @@ class PromptService:
                 f"Changed Areas: {', '.join(analysis.changed_areas)}",
                 (
                     "Changed Categories: "
-                    + ", ".join(
-                        category.value 
-                        for category in analysis.change_categories
-                    )
+                    + ", ".join(category.value for category in analysis.change_categories)
                 ),
                 "",
                 f"Risk Level: {analysis.risk_level.value}",
@@ -124,7 +118,7 @@ class PromptService:
             [
                 "",
                 "Testing Evidence:",
-                "No repository tests, linters, audits, or quality checks were executed by DiffSage.",
+                "No repository tests, linters, audits, quality checks were executed by DiffSage.",
                 "",
                 "Reviewer Focus:",
             ]
@@ -144,7 +138,8 @@ class PromptService:
     - Explain the motivation or purpose in Why.
     - Describe the significant changes in Changes.
     - Report testing evidence only from the supplied repository evidence.
-    - Do not claim that tests, linters, audits, or quality checks passed unless the supplied evidence explicitly confirms they were executed and passed.
+    - Do not claim that tests, linters, audits, or quality checks passed,
+    unless the supplied evidence explicitly confirms they were executed and passed.
     - If DiffSage did not execute repository checks, state that clearly.
     - Treat the supplied risk level as authoritative.
     - Do not upgrade, downgrade, or replace the supplied risk classification.
@@ -153,8 +148,22 @@ class PromptService:
     - Identify breaking changes only when supported by repository evidence.
     - Do not invent repository facts, changes, tests, risks, or breaking changes.
     - Use the supplied Git diff and commit history to understand the actual meaning of the changes.
-    - Treat deterministic analysis as repository evidence, not as a substitute for inspecting the diff.
-    - Return only the requested structured pull request content.
+    - Treat deterministic analysis as supporting evidence, not as substitute for inspect Git diff.
+    - Return ONLY a valid JSON object.
+    - The JSON object MUST contain exactly these fields:
+        - title: string
+        - summary: string
+        - why: string
+        - changes: array of strings
+        - testing: array of strings
+        - risks: array of strings
+        - reviewer_focus: array of strings
+        - breaking_changes: array of strings
+    - Use an empty array when a list section has no applicable content.
+    - Do not omit any required field.
+    - Do not include Markdown.
+    - Do not include code fences.
+    - Do not include explanations outside the JSON object.
     """.strip()
 
     def build_pull_request_prompt(

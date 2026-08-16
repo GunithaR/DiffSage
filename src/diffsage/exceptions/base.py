@@ -14,6 +14,10 @@ class InvalidCommitMessageError(DiffSageError):
     """Raised when an AI-generated commit message cannot be parsed."""
 
 
+class InvalidPullRequestDraftError(DiffSageError):
+    """Raised when an AI-generated pull request draft is invalid."""
+
+
 class ConfigError(DiffSageError):
     """Raised when configuration is invalid."""
 

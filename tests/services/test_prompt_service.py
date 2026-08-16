@@ -112,7 +112,9 @@ def test_build_pull_request_prompt() -> None:
         assert signal in prompt
 
     assert "Testing Evidence:" in prompt
-    assert "No repository tests, linters, audits, or quality checks were executed by DiffSage." in prompt
+    assert (
+        "No repository tests, linters, audits, quality checks were executed by DiffSage." in prompt
+    )
 
     for focus in analysis.reviewer_focus:
         assert focus in prompt

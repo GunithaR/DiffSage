@@ -4,6 +4,7 @@ from .base import (
     GitError,
     InvalidCommitMessageError,
     InvalidConfigurationValueError,
+    InvalidPullRequestDraftError,
     ProviderError,
     UnknownConfigurationKeyError,
 )
@@ -32,6 +33,7 @@ __all__ = [
     "UnknownConfigurationKeyError",
     "InvalidConfigurationValueError",
     "InvalidCommitMessageError",
+    "InvalidPullRequestDraftError",
     "NoStagedChangesError",
     "NotGitRepositoryError",
     "BaseBranchNotFoundError",
