@@ -1,11 +1,11 @@
-import pytest
-
 from pathlib import Path
 
+import pytest
+
+from diffsage.exceptions import BaseBranchNotFoundError
 from diffsage.git.client import GitClient
 from diffsage.models.git import CommitContext, PullRequestContext
 from diffsage.services.git_service import GitService
-from diffsage.exceptions import BaseBranchNotFoundError
 from tests.helpers import init_git_repo_with_initial_commit, run_git
 
 

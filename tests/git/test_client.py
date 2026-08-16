@@ -238,21 +238,21 @@ def test_commits_between_return_commit_list(tmp_path: Path) -> None:
 def test_changed_files_return_file_list(tmp_path: Path) -> None:
     init_git_repo_with_initial_commit(tmp_path)
 
-    run_git(["checkout","-b","feature"], tmp_path)
+    run_git(["checkout", "-b", "feature"], tmp_path)
 
     (tmp_path / "feature-file1.txt").write_text("feature 1")
-    run_git(["add","feature-file1.txt"], tmp_path)
-    run_git(["commit","-m","add feature 1 file"], tmp_path)
+    run_git(["add", "feature-file1.txt"], tmp_path)
+    run_git(["commit", "-m", "add feature 1 file"], tmp_path)
 
     (tmp_path / "feature-file2.txt").write_text("feature 2")
-    run_git(["add","feature-file2.txt"], tmp_path)
-    run_git(["commit","-m","add feature 2 file"], tmp_path)
+    run_git(["add", "feature-file2.txt"], tmp_path)
+    run_git(["commit", "-m", "add feature 2 file"], tmp_path)
 
-    run_git(["checkout","main"], tmp_path)
+    run_git(["checkout", "main"], tmp_path)
 
     (tmp_path / "main.txt").write_text("change from main")
-    run_git(["add","main.txt"], tmp_path)
-    run_git(["commit","-m","add main file"], tmp_path)
+    run_git(["add", "main.txt"], tmp_path)
+    run_git(["commit", "-m", "add main file"], tmp_path)
 
     client = GitClient(tmp_path)
 
@@ -267,21 +267,21 @@ def test_changed_files_return_file_list(tmp_path: Path) -> None:
 def test_branch_diff_return_changed_context(tmp_path: Path) -> None:
     init_git_repo_with_initial_commit(tmp_path)
 
-    run_git(["checkout","-b","feature"], tmp_path)
+    run_git(["checkout", "-b", "feature"], tmp_path)
 
     (tmp_path / "feature-file1.txt").write_text("feature 1")
-    run_git(["add","feature-file1.txt"], tmp_path)
-    run_git(["commit","-m","add feature 1 file"], tmp_path)
+    run_git(["add", "feature-file1.txt"], tmp_path)
+    run_git(["commit", "-m", "add feature 1 file"], tmp_path)
 
     (tmp_path / "feature-file2.txt").write_text("feature 2")
-    run_git(["add","feature-file2.txt"], tmp_path)
-    run_git(["commit","-m","add feature 2 file"], tmp_path)
+    run_git(["add", "feature-file2.txt"], tmp_path)
+    run_git(["commit", "-m", "add feature 2 file"], tmp_path)
 
-    run_git(["checkout","main"], tmp_path)
+    run_git(["checkout", "main"], tmp_path)
 
     (tmp_path / "main.txt").write_text("change from main")
-    run_git(["add","main.txt"], tmp_path)
-    run_git(["commit","-m","add main file"], tmp_path)
+    run_git(["add", "main.txt"], tmp_path)
+    run_git(["commit", "-m", "add main file"], tmp_path)
 
     client = GitClient(tmp_path)
 
@@ -366,7 +366,9 @@ def test_default_branch_returns_origin_develop(tmp_path: Path) -> None:
     assert client.default_branch() == "develop"
 
 
-def test_default_branch_returns_none_when_origin_head_missing(tmp_path: Path,) -> None:
+def test_default_branch_returns_none_when_origin_head_missing(
+    tmp_path: Path,
+) -> None:
     init_git_repo_with_initial_commit(tmp_path)
 
     client = GitClient(tmp_path)

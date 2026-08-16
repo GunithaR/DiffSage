@@ -9,9 +9,9 @@ from .base import (
 )
 from .credentials import CredentialNotFoundError
 from .git import (
-    NoStagedChangesError, 
-    NotGitRepositoryError,
     BaseBranchNotFoundError,
+    NoStagedChangesError,
+    NotGitRepositoryError,
 )
 from .provider import (
     AuthenticationError,

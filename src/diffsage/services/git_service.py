@@ -1,6 +1,6 @@
+from diffsage.exceptions import BaseBranchNotFoundError
 from diffsage.git.client import GitClient
 from diffsage.models.git import CommitContext, PullRequestContext
-from diffsage.exceptions import BaseBranchNotFoundError
 
 
 class GitService:
@@ -26,7 +26,7 @@ class GitService:
     ) -> PullRequestContext:
         head_branch = self._git_client.current_branch()
         merge_base = self._git_client.merge_base(
-            base_branch, 
+            base_branch,
             head_branch,
         )
         commits = self._git_client.commits_between(
@@ -51,19 +51,14 @@ class GitService:
             diff=diff,
         )
 
-    def resolve_base_branch(
-        self,
-        base_branch: str | None = None
-    ) -> str:
+    def resolve_base_branch(self, base_branch: str | None = None) -> str:
         """Resolve the base branch for a pull request."""
 
         branches = self._git_client.branches()
 
         if base_branch is not None:
             if base_branch not in branches:
-                raise BaseBranchNotFoundError(
-                    f"Base branch {base_branch} does not exist."
-                )
+                raise BaseBranchNotFoundError(f"Base branch {base_branch} does not exist.")
 
             return base_branch
 
@@ -79,6 +74,6 @@ class GitService:
             return "master"
 
         raise BaseBranchNotFoundError(
-            "Could not determine a base branch automatically." \
+            "Could not determine a base branch automatically."
             "Specify one explicitly with 'diffsage pr <base-branch>'."
         )

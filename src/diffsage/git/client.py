@@ -202,9 +202,7 @@ class GitClient:
 
         merge_base = self.merge_base(base_branch, head_branch)
 
-        result = self._run_git_command(
-            ["diff", merge_base, head_branch]
-        )
+        result = self._run_git_command(["diff", merge_base, head_branch])
 
         return result.stdout
 
@@ -212,9 +210,7 @@ class GitClient:
         """Return the default branch configured for the origin remote."""
 
         try:
-            result = self._run_git_command(
-                ["symbolic-ref", "refs/remotes/origin/HEAD"]
-            )
+            result = self._run_git_command(["symbolic-ref", "refs/remotes/origin/HEAD"])
         except subprocess.CalledProcessError:
             pass
         else:
@@ -225,9 +221,7 @@ class GitClient:
                 return ref.removeprefix(prefix)
 
         try:
-            result = self._run_git_command(
-                ["ls-remote", "--symref", "origin", "HEAD"]
-            )
+            result = self._run_git_command(["ls-remote", "--symref", "origin", "HEAD"])
         except subprocess.CalledProcessError:
             return None
 
@@ -235,5 +229,5 @@ class GitClient:
             if line.startswith("ref:") and line.endswith("\tHEAD"):
                 ref = line.split("\t", 1)[0]
                 return ref.removeprefix("ref: refs/heads/")
-        
+
         return None
