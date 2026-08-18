@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from diffsage.exceptions import BaseBranchNotFoundError
+from diffsage.exceptions import BaseBranchNotFoundError, DetachedHeadError, SameBranchError
 from diffsage.git.client import GitClient
 from diffsage.models.git import CommitContext, PullRequestContext
 from diffsage.services.git_service import GitService
@@ -95,7 +95,7 @@ def test_resolve_base_branch_returns_explicit_branch(tmp_path: Path) -> None:
     client = GitClient(tmp_path)
     service = GitService(client)
 
-    assert service.resolve_base_branch("feature") == "feature"
+    assert service.resolve_base_branch("main") == "main"
 
 
 def test_resolve_base_branch_raises_for_invalid_explicit_branch(tmp_path: Path) -> None:
@@ -134,6 +134,7 @@ def test_resolve_base_branch_uses_git_default_branch(tmp_path: Path) -> None:
         ["remote", "set-head", "origin", "main"],
         repo,
     )
+    run_git(["checkout", "-b", "feature"], repo)
 
     client = GitClient(repo)
     service = GitService(client)
@@ -145,6 +146,8 @@ def test_resolve_base_branch_falls_back_to_main(
     tmp_path: Path,
 ) -> None:
     init_git_repo_with_initial_commit(tmp_path)
+
+    run_git(["checkout", "-b", "feature"], tmp_path)
 
     client = GitClient(tmp_path)
     service = GitService(client)
@@ -159,6 +162,8 @@ def test_resolve_base_branch_falls_back_to_master(
 
     run_git(["checkout", "-b", "master"], tmp_path)
     run_git(["branch", "-D", "main"], tmp_path)
+
+    run_git(["checkout", "-b", "feature"], tmp_path)
 
     client = GitClient(tmp_path)
     service = GitService(client)
@@ -178,4 +183,35 @@ def test_resolve_base_branch_raises_when_no_base_can_be_resolved(
     service = GitService(client)
 
     with pytest.raises(BaseBranchNotFoundError):
+        service.resolve_base_branch()
+
+
+def test_resolve_base_branch_raises_for_same_branch(tmp_path: Path) -> None:
+    init_git_repo_with_initial_commit(tmp_path)
+
+    run_git(["checkout", "-b", "feature"], tmp_path)
+
+    client = GitClient(tmp_path)
+    service = GitService(client)
+
+    with pytest.raises(SameBranchError):
+        service.resolve_base_branch("feature")
+
+
+def test_resolve_base_branch_raises_for_detached_head(
+    tmp_path: Path,
+) -> None:
+    init_git_repo_with_initial_commit(tmp_path)
+
+    commit_hash = run_git(
+        ["rev-parse", "HEAD"],
+        tmp_path,
+    ).stdout.strip()
+
+    run_git(["checkout", commit_hash], tmp_path)
+
+    client = GitClient(tmp_path)
+    service = GitService(client)
+
+    with pytest.raises(DetachedHeadError):
         service.resolve_base_branch()

@@ -1,4 +1,4 @@
-from diffsage.exceptions import BaseBranchNotFoundError
+from diffsage.exceptions import BaseBranchNotFoundError, DetachedHeadError, SameBranchError
 from diffsage.git.client import GitClient
 from diffsage.models.git import CommitContext, PullRequestContext
 
@@ -54,26 +54,37 @@ class GitService:
     def resolve_base_branch(self, base_branch: str | None = None) -> str:
         """Resolve the base branch for a pull request."""
 
+        current_branch = self._git_client.current_branch()
+
+        if not current_branch:
+            raise DetachedHeadError("Cannot generate a pull request from a detached HEAD.")
+
         branches = self._git_client.branches()
 
         if base_branch is not None:
             if base_branch not in branches:
                 raise BaseBranchNotFoundError(f"Base branch {base_branch} does not exist.")
 
-            return base_branch
+            resolved_base = base_branch
 
-        default_branch = self._git_client.default_branch()
+        else:
+            default_branch = self._git_client.default_branch()
 
-        if default_branch is not None:
-            return default_branch
+            if default_branch is not None:
+                return default_branch
 
-        if "main" in branches:
-            return "main"
+            if "main" in branches:
+                return "main"
 
-        if "master" in branches:
-            return "master"
+            if "master" in branches:
+                return "master"
 
-        raise BaseBranchNotFoundError(
-            "Could not determine a base branch automatically."
-            "Specify one explicitly with 'diffsage pr <base-branch>'."
-        )
+            raise BaseBranchNotFoundError(
+                "Could not determine a base branch automatically."
+                "Specify one explicitly with 'diffsage pr <base-branch>'."
+            )
+
+        if resolved_base == current_branch:
+            raise SameBranchError("Current branch and base branch are the same.")
+
+        return resolved_base

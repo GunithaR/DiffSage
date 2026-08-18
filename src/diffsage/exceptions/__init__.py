@@ -1,11 +1,13 @@
 from .base import (
     ConfigError,
+    DetachedHeadError,
     DiffSageError,
     GitError,
     InvalidCommitMessageError,
     InvalidConfigurationValueError,
     InvalidPullRequestDraftError,
     ProviderError,
+    SameBranchError,
     UnknownConfigurationKeyError,
 )
 from .credentials import CredentialNotFoundError
@@ -34,6 +36,8 @@ __all__ = [
     "InvalidConfigurationValueError",
     "InvalidCommitMessageError",
     "InvalidPullRequestDraftError",
+    "DetachedHeadError",
+    "SameBranchError",
     "NoStagedChangesError",
     "NotGitRepositoryError",
     "BaseBranchNotFoundError",
