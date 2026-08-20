@@ -1,3 +1,5 @@
+import json
+
 import typer
 
 from diffsage.config.loader import load_settings
@@ -7,6 +9,7 @@ from diffsage.exceptions import (
     ConfigError,
     CredentialNotFoundError,
     DetachedHeadError,
+    InvalidPullRequestDraftError,
     NotGitRepositoryError,
     ProviderError,
     SameBranchError,
@@ -16,6 +19,7 @@ from diffsage.logging.logger import get_logger
 from diffsage.parsers.pull_request_parser import PullRequestParser
 from diffsage.services.ai_service import AIService
 from diffsage.services.credentials_service import CredentialService
+from diffsage.services.editor_service import EditorService
 from diffsage.services.git_service import GitService
 from diffsage.services.prompt_service import PromptService
 from diffsage.services.pull_request_analysis_service import (
@@ -49,6 +53,7 @@ def pr(
         git_service = GitService(git_client)
         analysis_service = PullRequestAnalysisService()
         prompt_service = PromptService()
+        editor_service = EditorService()
 
         ai_service = AIService(
             settings,
@@ -73,6 +78,45 @@ def pr(
             )
 
         view.show_generated(draft)
+
+        while True:
+            choice = view.prompt_action()
+
+            if choice in ("", "y"):
+                logger.info("User accepted pull request draft.")
+                break
+
+            if choice == "e":
+                logger.info("User selected edit.")
+
+                edited_content = editor_service.edit(
+                    json.dumps(
+                        draft.to_dict(),
+                        indent=2,
+                    )
+                )
+
+                draft = parser.parse(edited_content)
+                view.show_generated(draft)
+                continue
+
+            if choice == "r":
+                logger.info("User selected regenerate.")
+
+                with view.generating():
+                    draft = pull_request_service.generate_draft(
+                        resolved_base_branch,
+                    )
+
+                view.show_generated(draft)
+                continue
+
+            if choice == "n":
+                logger.info("User cancelled pull request generation.")
+                view.show_cancelled()
+                break
+
+            view.show_invalid_option()
 
     except NotGitRepositoryError:
         logger.info("Command aborted: not a Git repository.")
@@ -105,6 +149,11 @@ def pr(
         raise SystemExit(1) from None
 
     except ConfigError as e:
+        logger.warning(str(e))
+        view.show_error(str(e))
+        raise SystemExit(1) from None
+
+    except InvalidPullRequestDraftError as e:
         logger.warning(str(e))
         view.show_error(str(e))
         raise SystemExit(1) from None

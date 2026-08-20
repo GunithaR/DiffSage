@@ -83,3 +83,19 @@ class PullRequestView(BaseView):
 
     def show_same_branch(self) -> None:
         self._console.print("[yellow]Current branch and base branch are the same.[/yellow]")
+
+    def prompt_action(self) -> str:
+        self._console.print()
+
+        return self._console.input(
+            "[bold cyan][Y][/bold cyan] Accept (default)   "
+            "[bold cyan][E][/bold cyan] Edit   "
+            "[bold cyan][R][/bold cyan] Regenerate   "
+            "[bold cyan][N][/bold cyan] Cancel:  "
+        )
+
+    def show_cancelled(self) -> None:
+        self._console.print("[yellow]Cancelled.[/yellow]")
+
+    def show_invalid_option(self) -> None:
+        self._console.print("[red]Invalid option. Please choose Y, E, R or N.[/red]")

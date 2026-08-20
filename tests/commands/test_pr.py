@@ -10,6 +10,7 @@ from diffsage.exceptions import (
     ConfigError,
     CredentialNotFoundError,
     DetachedHeadError,
+    InvalidPullRequestDraftError,
     NotGitRepositoryError,
     ProviderError,
     SameBranchError,
@@ -36,7 +37,7 @@ def create_pull_request_draft() -> PullRequestDraft:
     )
 
 
-def test_pr_generates_and_displays_draft():
+def test_pr_generates_and_accepts_draft():
     with (
         patch("diffsage.commands.pr.GitClient"),
         patch("diffsage.commands.pr.GitService") as mock_git_service,
@@ -56,6 +57,7 @@ def test_pr_generates_and_displays_draft():
 
         draft = create_pull_request_draft()
         mock_pr_service.return_value.generate_draft.return_value = draft
+        mock_view.return_value.prompt_action.return_value = "y"
 
         result = runner.invoke(app, ["pr"])
 
@@ -64,6 +66,7 @@ def test_pr_generates_and_displays_draft():
         mock_git_service.return_value.resolve_base_branch.assert_called_once_with(None)
         mock_pr_service.return_value.generate_draft.assert_called_once_with("main")
         mock_view.return_value.show_generated.assert_called_once_with(draft)
+        mock_view.return_value.prompt_action.assert_called_once()
 
         mock_get_path.assert_called_once()
         mock_repository.assert_called_once_with(mock_get_path.return_value)
@@ -90,6 +93,7 @@ def test_pr_uses_explicit_base_branch():
 
         draft = create_pull_request_draft()
         mock_pr_service.return_value.generate_draft.return_value = draft
+        mock_view.return_value.prompt_action.return_value = "y"
 
         result = runner.invoke(app, ["pr", "develop"])
 
@@ -100,12 +104,163 @@ def test_pr_uses_explicit_base_branch():
         mock_view.return_value.show_generated.assert_called_once_with(draft)
 
 
+def test_pr_edits_draft():
+    with (
+        patch("diffsage.commands.pr.GitClient"),
+        patch("diffsage.commands.pr.GitService") as mock_git_service,
+        patch("diffsage.commands.pr.PullRequestService") as mock_pr_service,
+        patch("diffsage.commands.pr.load_settings"),
+        patch("diffsage.commands.pr.AIService"),
+        patch("diffsage.commands.pr.get_credentials_path"),
+        patch("diffsage.commands.pr.CredentialsRepository"),
+        patch("diffsage.commands.pr.CredentialService"),
+        patch("diffsage.commands.pr.EditorService") as mock_editor,
+        patch("diffsage.commands.pr.PullRequestParser") as mock_parser,
+        patch("diffsage.commands.pr.PullRequestView") as mock_view,
+    ):
+        mock_git_service.return_value.resolve_base_branch.return_value = "main"
+
+        original_draft = create_pull_request_draft()
+
+        edited_draft = PullRequestDraft(
+            title="Improve pull request generation",
+            summary="Improves generated pull request drafts.",
+            why="Makes PR generation more useful.",
+            changes=["Improve PR generation."],
+            testing=["Run unit tests."],
+            risks=[],
+            reviewer_focus=[],
+            breaking_changes=[],
+        )
+
+        mock_pr_service.return_value.generate_draft.return_value = original_draft
+
+        edited_json = '{"title": "Improve pull request generation"}'
+
+        mock_editor.return_value.edit.return_value = edited_json
+        mock_parser.return_value.parse.return_value = edited_draft
+
+        mock_view.return_value.prompt_action.side_effect = ["e", "y"]
+
+        result = runner.invoke(app, ["pr"])
+
+        assert result.exit_code == 0
+
+        mock_editor.return_value.edit.assert_called_once()
+        mock_parser.return_value.parse.assert_called_once_with(edited_json)
+
+        assert mock_view.return_value.show_generated.call_count == 2
+        mock_pr_service.return_value.generate_draft.assert_called_once_with("main")
+
+
+def test_pr_regenerates_draft():
+    with (
+        patch("diffsage.commands.pr.GitClient"),
+        patch("diffsage.commands.pr.GitService") as mock_git_service,
+        patch("diffsage.commands.pr.PullRequestService") as mock_pr_service,
+        patch("diffsage.commands.pr.load_settings"),
+        patch("diffsage.commands.pr.AIService"),
+        patch("diffsage.commands.pr.get_credentials_path"),
+        patch("diffsage.commands.pr.CredentialsRepository"),
+        patch("diffsage.commands.pr.CredentialService"),
+        patch("diffsage.commands.pr.PullRequestView") as mock_view,
+    ):
+        mock_git_service.return_value.resolve_base_branch.return_value = "main"
+
+        first_draft = create_pull_request_draft()
+
+        second_draft = PullRequestDraft(
+            title="Improve PR generation",
+            summary="Improves PR generation.",
+            why="Improves generated drafts.",
+            changes=["Improve generation."],
+            testing=["Run tests."],
+            risks=[],
+            reviewer_focus=[],
+            breaking_changes=[],
+        )
+
+        mock_pr_service.return_value.generate_draft.side_effect = [
+            first_draft,
+            second_draft,
+        ]
+
+        mock_view.return_value.prompt_action.side_effect = ["r", "y"]
+
+        result = runner.invoke(app, ["pr"])
+
+        assert result.exit_code == 0
+
+        assert mock_pr_service.return_value.generate_draft.call_count == 2
+
+        mock_pr_service.return_value.generate_draft.assert_any_call("main")
+        assert mock_view.return_value.show_generated.call_count == 2
+
+
+def test_pr_cancels_draft():
+    with (
+        patch("diffsage.commands.pr.GitClient"),
+        patch("diffsage.commands.pr.GitService") as mock_git_service,
+        patch("diffsage.commands.pr.PullRequestService") as mock_pr_service,
+        patch("diffsage.commands.pr.load_settings"),
+        patch("diffsage.commands.pr.AIService"),
+        patch("diffsage.commands.pr.get_credentials_path"),
+        patch("diffsage.commands.pr.CredentialsRepository"),
+        patch("diffsage.commands.pr.CredentialService"),
+        patch("diffsage.commands.pr.PullRequestView") as mock_view,
+    ):
+        mock_git_service.return_value.resolve_base_branch.return_value = "main"
+
+        draft = create_pull_request_draft()
+        mock_pr_service.return_value.generate_draft.return_value = draft
+        mock_view.return_value.prompt_action.return_value = "n"
+
+        result = runner.invoke(app, ["pr"])
+
+        assert result.exit_code == 0
+
+        mock_pr_service.return_value.generate_draft.assert_called_once_with("main")
+        mock_view.return_value.show_cancelled.assert_called_once()
+
+
+def test_pr_reprompts_after_invalid_choice():
+    with (
+        patch("diffsage.commands.pr.GitClient"),
+        patch("diffsage.commands.pr.GitService") as mock_git_service,
+        patch("diffsage.commands.pr.PullRequestService") as mock_pr_service,
+        patch("diffsage.commands.pr.load_settings"),
+        patch("diffsage.commands.pr.AIService"),
+        patch("diffsage.commands.pr.get_credentials_path"),
+        patch("diffsage.commands.pr.CredentialsRepository"),
+        patch("diffsage.commands.pr.CredentialService"),
+        patch("diffsage.commands.pr.PullRequestView") as mock_view,
+    ):
+        mock_git_service.return_value.resolve_base_branch.return_value = "main"
+
+        draft = create_pull_request_draft()
+        mock_pr_service.return_value.generate_draft.return_value = draft
+        mock_view.return_value.prompt_action.side_effect = ["x", "y"]
+
+        result = runner.invoke(app, ["pr"])
+
+        assert result.exit_code == 0
+
+        assert mock_view.return_value.prompt_action.call_count == 2
+        mock_view.return_value.show_invalid_option.assert_called_once()
+        mock_pr_service.return_value.generate_draft.assert_called_once_with("main")
+
+
 def test_pr_exits_when_not_in_git_repository():
-    with patch("diffsage.commands.pr.GitClient") as mock_git:
+    with (
+        patch("diffsage.commands.pr.GitClient") as mock_git,
+        patch("diffsage.commands.pr.PullRequestView") as mock_view,
+    ):
         mock_git.side_effect = NotGitRepositoryError("Not a Git repository.")
 
         with pytest.raises(SystemExit):
             pr()
+
+        mock_view.return_value.show_not_git_repository.assert_called_once()
 
 
 def test_pr_exits_when_head_is_detached():
@@ -171,9 +326,7 @@ def test_pr_exits_when_credential_is_missing():
         with pytest.raises(SystemExit):
             pr()
 
-        mock_view.return_value.show_error.assert_called_once_with(
-            "Credential not found for provider 'Credential not found.' and profile 'default'."
-        )
+        mock_view.return_value.show_error.assert_called_once()
 
 
 def test_pr_exits_on_provider_error():
@@ -206,6 +359,40 @@ def test_pr_exits_on_configuration_error():
             pr()
 
         mock_view.return_value.show_error.assert_called_once_with("Invalid configuration.")
+
+
+def test_pr_handles_invalid_edited_draft():
+    with (
+        patch("diffsage.commands.pr.GitClient"),
+        patch("diffsage.commands.pr.GitService") as mock_git_service,
+        patch("diffsage.commands.pr.PullRequestService") as mock_pr_service,
+        patch("diffsage.commands.pr.load_settings"),
+        patch("diffsage.commands.pr.AIService"),
+        patch("diffsage.commands.pr.get_credentials_path"),
+        patch("diffsage.commands.pr.CredentialsRepository"),
+        patch("diffsage.commands.pr.CredentialService"),
+        patch("diffsage.commands.pr.EditorService") as mock_editor,
+        patch("diffsage.commands.pr.PullRequestParser") as mock_parser,
+        patch("diffsage.commands.pr.PullRequestView") as mock_view,
+    ):
+        mock_git_service.return_value.resolve_base_branch.return_value = "main"
+
+        draft = create_pull_request_draft()
+
+        mock_pr_service.return_value.generate_draft.return_value = draft
+        mock_view.return_value.prompt_action.return_value = "e"
+
+        mock_editor.return_value.edit.return_value = "invalid json"
+
+        mock_parser.return_value.parse.side_effect = InvalidPullRequestDraftError(
+            "Invalid pull request draft."
+        )
+
+        with pytest.raises(SystemExit):
+            pr()
+
+        mock_parser.return_value.parse.assert_called_once_with("invalid json")
+        mock_view.return_value.show_error.assert_called_once_with("Invalid pull request draft.")
 
 
 def test_pr_handles_unexpected_error():

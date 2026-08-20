@@ -13,3 +13,15 @@ class PullRequestDraft:
     risks: list[str] = field(default_factory=list)
     reviewer_focus: list[str] = field(default_factory=list)
     breaking_changes: list[str] = field(default_factory=list)
+
+    def to_dict(self) -> dict:
+        return {
+            "title": self.title,
+            "summary": self.summary,
+            "why": self.why,
+            "changes": self.changes,
+            "testing": self.testing,
+            "risks": self.risks,
+            "reviewer_focus": self.reviewer_focus,
+            "breaking_changes": self.breaking_changes,
+        }

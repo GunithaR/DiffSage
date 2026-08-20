@@ -22,9 +22,7 @@ def test_show_generated_displays_pull_request_draft(capsys) -> None:
             "Review command behavior.",
             "Review generated PR content.",
         ],
-        breaking_changes=[
-            "None.",
-        ],
+        breaking_changes=[],
     )
 
     view = PullRequestView()
@@ -101,3 +99,33 @@ def test_show_same_branch(capsys) -> None:
     view.show_same_branch()
 
     assert "same" in capsys.readouterr().out
+
+
+def test_prompt_action_returns_user_choice(monkeypatch) -> None:
+    view = PullRequestView()
+
+    monkeypatch.setattr(
+        view._console,
+        "input",
+        lambda _: "e",
+    )
+
+    assert view.prompt_action() == "e"
+
+
+def test_show_cancelled(capsys) -> None:
+    view = PullRequestView()
+
+    view.show_cancelled()
+
+    assert "Cancelled" in capsys.readouterr().out
+
+
+def test_show_invalid_option(capsys) -> None:
+    view = PullRequestView()
+
+    view.show_invalid_option()
+
+    output = capsys.readouterr().out
+
+    assert "Invalid option" in output
