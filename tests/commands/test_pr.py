@@ -62,6 +62,7 @@ def test_pr_generates_and_accepts_draft():
         mock_git_service.return_value.resolve_base_branch.return_value = "main"
         mock_git_service.return_value.current_branch.return_value = "feature/pr-generation"
         mock_git_service.return_value.validate_remote_head.return_value = None
+        mock_github_service.return_value.validate.return_value = None
         mock_github_service.return_value.create_pull_request.return_value = (
             "https://github.com/example/repo/pull/42"
         )
@@ -75,6 +76,7 @@ def test_pr_generates_and_accepts_draft():
         assert result.exit_code == 0
 
         mock_git_service.return_value.resolve_base_branch.assert_called_once_with(None)
+        mock_github_service.return_value.validate.assert_called_once()
         mock_git_service.return_value.validate_remote_head.assert_called_once_with(
             "feature/pr-generation"
         )
@@ -112,6 +114,7 @@ def test_pr_uses_explicit_base_branch():
     ):
         mock_git_service.return_value.resolve_base_branch.return_value = "develop"
         mock_git_service.return_value.current_branch.return_value = "feature/pr-generation"
+        mock_github_service.return_value.validate.return_value = None
         mock_github_service.return_value.create_pull_request.return_value = (
             "https://github.com/example/repo/pull/42"
         )
@@ -125,6 +128,7 @@ def test_pr_uses_explicit_base_branch():
         assert result.exit_code == 0
 
         mock_git_service.return_value.resolve_base_branch.assert_called_once_with("develop")
+        mock_github_service.return_value.validate.assert_called_once()
         mock_github_service.return_value.create_pull_request.assert_called_once_with(
             draft=draft,
             base_branch="develop",
@@ -203,6 +207,9 @@ def test_pr_regenerates_draft():
         patch("diffsage.commands.pr.PullRequestView") as mock_view,
     ):
         mock_git_service.return_value.resolve_base_branch.return_value = "main"
+        mock_git_service.return_value.current_branch.return_value = "feature/pr-generation"
+        mock_git_service.return_value.validate_remote_head.return_value = None
+        mock_github_service.return_value.validate.return_value = None
         mock_github_service.return_value.create_pull_request.return_value = (
             "https://github.com/example/repo/pull/42"
         )
@@ -240,7 +247,9 @@ def test_pr_regenerates_draft():
 def test_pr_cancels_draft():
     with (
         patch("diffsage.commands.pr.GitClient"),
+        patch("diffsage.commands.pr.GitHubClient"),
         patch("diffsage.commands.pr.GitService") as mock_git_service,
+        patch("diffsage.commands.pr.GitHubService"),
         patch("diffsage.commands.pr.PullRequestService") as mock_pr_service,
         patch("diffsage.commands.pr.load_settings"),
         patch("diffsage.commands.pr.AIService"),
@@ -424,7 +433,9 @@ def test_pr_exits_on_configuration_error():
 def test_pr_handles_invalid_edited_draft():
     with (
         patch("diffsage.commands.pr.GitClient"),
+        patch("diffsage.commands.pr.GitHubClient"),
         patch("diffsage.commands.pr.GitService") as mock_git_service,
+        patch("diffsage.commands.pr.GitHubService"),
         patch("diffsage.commands.pr.PullRequestService") as mock_pr_service,
         patch("diffsage.commands.pr.load_settings"),
         patch("diffsage.commands.pr.AIService"),
@@ -492,7 +503,7 @@ def test_pr_exits_when_github_cli_is_unavailable():
 
         mock_view.return_value.prompt_action.return_value = "y"
 
-        mock_github_service.return_value.create_pull_request.side_effect = (
+        mock_github_service.return_value.validate.side_effect = (
             GitHubCLIUnavailableError(
                 "GitHub CLI is not installed. Install GitHub CLI and try again."
             )
@@ -502,6 +513,8 @@ def test_pr_exits_when_github_cli_is_unavailable():
 
         assert result.exit_code == 1
 
+        mock_pr_service.return_value.generate_draft.assert_not_called()
+        mock_github_service.return_value.create_pull_request.assert_not_called()
         mock_view.return_value.show_error.assert_called_once_with(
             "GitHub CLI is not installed. Install GitHub CLI and try again."
         )
@@ -527,7 +540,7 @@ def test_pr_exits_when_github_cli_is_not_authenticated():
 
         mock_view.return_value.prompt_action.return_value = "y"
 
-        mock_github_service.return_value.create_pull_request.side_effect = (
+        mock_github_service.return_value.validate.side_effect = (
             GitHubAuthenticationError(
                 "GitHub CLI is not authenticated. Run 'gh auth login' and try again."
             )
@@ -537,6 +550,8 @@ def test_pr_exits_when_github_cli_is_not_authenticated():
 
         assert result.exit_code == 1
 
+        mock_pr_service.return_value.generate_draft.assert_not_called()
+        mock_github_service.return_value.create_pull_request.assert_not_called()
         mock_view.return_value.show_error.assert_called_once_with(
             "GitHub CLI is not authenticated. Run 'gh auth login' and try again."
         )
@@ -563,9 +578,7 @@ def test_pr_exits_when_remote_branch_does_not_exist():
             "Remote branch 'feature/pr-generation' does not exist on origin."
         )
 
-        draft = create_pull_request_draft()
-        mock_pr_service.return_value.generate_draft.return_value = draft
-        mock_view.return_value.prompt_action.return_value = "y"
+        create_pull_request_draft()
 
         result = runner.invoke(app, ["pr"])
 
@@ -574,6 +587,8 @@ def test_pr_exits_when_remote_branch_does_not_exist():
         mock_git_service.return_value.validate_remote_head.assert_called_once_with(
             "feature/pr-generation"
         )
+        mock_pr_service.return_value.generate_draft.assert_not_called()
+        mock_github_service.return_value.valiadte.assert_not_called()
         mock_github_service.return_value.create_pull_request.assert_not_called()
         mock_view.return_value.show_error.assert_called_once()
 
@@ -600,9 +615,7 @@ def test_pr_exits_when_branch_has_unpushed_commits():
             "that have not been pushed to origin."
         )
 
-        draft = create_pull_request_draft()
-        mock_pr_service.return_value.generate_draft.return_value = draft
-        mock_view.return_value.prompt_action.return_value = "y"
+        create_pull_request_draft()
 
         result = runner.invoke(app, ["pr"])
 
@@ -611,5 +624,7 @@ def test_pr_exits_when_branch_has_unpushed_commits():
         mock_git_service.return_value.validate_remote_head.assert_called_once_with(
             "feature/pr-generation"
         )
+        mock_pr_service.return_value.generate_draft.assert_not_called()
+        mock_github_service.return_value.valiadte.assert_not_called()
         mock_github_service.return_value.create_pull_request.assert_not_called()
         mock_view.return_value.show_error.assert_called_once()

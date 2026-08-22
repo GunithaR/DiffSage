@@ -94,134 +94,119 @@ def test_build_pull_request_context_returns_pull_request_context(tmp_path: Path)
     assert "main change" not in context.diff
 
 
-def test_resolve_base_branch_returns_explicit_branch(tmp_path: Path) -> None:
-    init_git_repo_with_initial_commit(tmp_path)
+def test_resolve_base_branch_returns_explicit_branch() -> None:
+    client = Mock(spec=GitClient)
+    client.current_branch.return_value = "feature"
+    client.branches.return_value = ["main", "feature"]
 
-    run_git(["checkout", "-b", "feature"], tmp_path)
-
-    client = GitClient(tmp_path)
     service = GitService(client)
 
     assert service.resolve_base_branch("main") == "main"
 
+    client.current_branch.assert_called_once()
+    client.branches.assert_called_once()
 
-def test_resolve_base_branch_raises_for_invalid_explicit_branch(tmp_path: Path) -> None:
-    init_git_repo_with_initial_commit(tmp_path)
 
-    client = GitClient(tmp_path)
+def test_resolve_base_branch_raises_for_invalid_explicit_branch() -> None:
+    client = Mock(spec=GitClient)
+    client.current_branch.return_value = "feature"
+    client.branches.return_value = ["main", "feature"]
+
     service = GitService(client)
 
     with pytest.raises(BaseBranchNotFoundError):
         service.resolve_base_branch("does-not-exist")
 
 
-def test_resolve_base_branch_uses_git_default_branch(tmp_path: Path) -> None:
-    repo = tmp_path / "repo"
-    remote = tmp_path / "remote.git"
+def test_resolve_base_branch_uses_git_default_branch() -> None:
+    client = Mock(spec=GitClient)
 
-    repo.mkdir()
-    remote.mkdir()
+    client.current_branch.return_value = "feature"
+    client.default_branch.return_value = "main"
+    client.branches.return_value = ["main", "feature"]
 
-    run_git(
-        ["init", "--bare", "--initial-branch=main"],
-        remote,
-    )
-
-    init_git_repo_with_initial_commit(repo)
-
-    run_git(
-        ["remote", "add", "origin", str(remote)],
-        repo,
-    )
-    run_git(
-        ["push", "-u", "origin", "main"],
-        repo,
-    )
-    run_git(
-        ["remote", "set-head", "origin", "main"],
-        repo,
-    )
-    run_git(["checkout", "-b", "feature"], repo)
-
-    client = GitClient(repo)
     service = GitService(client)
 
     assert service.resolve_base_branch() == "main"
 
+    client.current_branch.assert_called_once()
+    client.default_branch.assert_called_once()
 
-def test_resolve_base_branch_falls_back_to_main(
-    tmp_path: Path,
-) -> None:
-    init_git_repo_with_initial_commit(tmp_path)
 
-    run_git(["checkout", "-b", "feature"], tmp_path)
+def test_resolve_base_branch_falls_back_to_main() -> None:
+    client = Mock(spec=GitClient)
 
-    client = GitClient(tmp_path)
+    client.current_branch.return_value = "feature"
+    client.default_branch.return_value = None
+    client.branches.return_value = ["main", "feature"]
+
     service = GitService(client)
 
     assert service.resolve_base_branch() == "main"
 
+    client.current_branch.assert_called_once()
+    client.default_branch.assert_called_once()
+    client.branches.assert_called_once()
 
-def test_resolve_base_branch_falls_back_to_master(
-    tmp_path: Path,
-) -> None:
-    init_git_repo_with_initial_commit(tmp_path)
 
-    run_git(["checkout", "-b", "master"], tmp_path)
-    run_git(["branch", "-D", "main"], tmp_path)
+def test_resolve_base_branch_falls_back_to_master() -> None:
+    client = Mock(spec=GitClient)
 
-    run_git(["checkout", "-b", "feature"], tmp_path)
+    client.current_branch.return_value = "feature"
+    client.default_branch.return_value = None
+    client.branches.return_value = ["master", "feature"]
 
-    client = GitClient(tmp_path)
     service = GitService(client)
 
     assert service.resolve_base_branch() == "master"
 
+    client.current_branch.assert_called_once()
+    client.default_branch.assert_called_once()
+    client.branches.assert_called_once()
 
-def test_resolve_base_branch_raises_when_no_base_can_be_resolved(
-    tmp_path: Path,
-) -> None:
-    init_git_repo_with_initial_commit(tmp_path)
 
-    run_git(["checkout", "-b", "feature"], tmp_path)
-    run_git(["branch", "-D", "main"], tmp_path)
+def test_resolve_base_branch_raises_when_no_base_can_be_resolved() -> None:
+    client = Mock(spec=GitClient)
 
-    client = GitClient(tmp_path)
+    client.current_branch.return_value = "feature"
+    client.default_branch.return_value = None
+    client.branches.return_value = ["feature"]
+
     service = GitService(client)
 
     with pytest.raises(BaseBranchNotFoundError):
         service.resolve_base_branch()
 
+    client.current_branch.assert_called_once()
+    client.default_branch.assert_called_once()
+    client.branches.assert_called_once()
 
-def test_resolve_base_branch_raises_for_same_branch(tmp_path: Path) -> None:
-    init_git_repo_with_initial_commit(tmp_path)
 
-    run_git(["checkout", "-b", "feature"], tmp_path)
+def test_resolve_base_branch_raises_for_same_branch() -> None:
+    client = Mock(spec=GitClient)
 
-    client = GitClient(tmp_path)
+    client.current_branch.return_value = "feature"
+    client.default_branch.return_value = None
+    client.branches.return_value = ["feature"]
+
     service = GitService(client)
 
     with pytest.raises(SameBranchError):
         service.resolve_base_branch("feature")
 
 
-def test_resolve_base_branch_raises_for_detached_head(
-    tmp_path: Path,
-) -> None:
-    init_git_repo_with_initial_commit(tmp_path)
+def test_resolve_base_branch_raises_for_detached_head() -> None:
+    client = Mock(spec=GitClient)
+    client.current_branch.return_value = None
 
-    commit_hash = run_git(
-        ["rev-parse", "HEAD"],
-        tmp_path,
-    ).stdout.strip()
-
-    run_git(["checkout", commit_hash], tmp_path)
-
-    client = GitClient(tmp_path)
     service = GitService(client)
 
     with pytest.raises(DetachedHeadError):
         service.resolve_base_branch()
+
+    client.current_branch.assert_called_once()
+    client.branches.assert_not_called()
+    client.default_branch.assert_not_called()
 
 
 def test_validate_remote_head_succeeds_when_local_and_remote_match() -> None:

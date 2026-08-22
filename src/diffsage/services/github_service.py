@@ -65,8 +65,6 @@ class GitHubService:
     ) -> str:
         """Create a GitHub pull request from a generated draft."""
 
-        self.validate()
-
         body = self._build_pull_request_body(draft)
 
         return self._github_client.create_pull_request(
