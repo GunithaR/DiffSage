@@ -312,6 +312,11 @@ def test_pr_exits_when_head_is_detached():
     with (
         patch("diffsage.commands.pr.GitClient"),
         patch("diffsage.commands.pr.GitService") as mock_git_service,
+        patch("diffsage.commands.pr.load_settings"),
+        patch("diffsage.commands.pr.AIService"),
+        patch("diffsage.commands.pr.get_credentials_path"),
+        patch("diffsage.commands.pr.CredentialsRepository"),
+        patch("diffsage.commands.pr.CredentialService"),
         patch("diffsage.commands.pr.PullRequestView") as mock_view,
     ):
         mock_git_service.return_value.resolve_base_branch.side_effect = DetachedHeadError(
@@ -328,6 +333,11 @@ def test_pr_exits_when_base_branch_cannot_be_resolved():
     with (
         patch("diffsage.commands.pr.GitClient"),
         patch("diffsage.commands.pr.GitService") as mock_git_service,
+        patch("diffsage.commands.pr.load_settings"),
+        patch("diffsage.commands.pr.AIService"),
+        patch("diffsage.commands.pr.get_credentials_path"),
+        patch("diffsage.commands.pr.CredentialsRepository"),
+        patch("diffsage.commands.pr.CredentialService"),
         patch("diffsage.commands.pr.PullRequestView") as mock_view,
     ):
         mock_git_service.return_value.resolve_base_branch.side_effect = BaseBranchNotFoundError(
@@ -344,6 +354,11 @@ def test_pr_exits_when_base_branch_is_current_branch():
     with (
         patch("diffsage.commands.pr.GitClient"),
         patch("diffsage.commands.pr.GitService") as mock_git_service,
+        patch("diffsage.commands.pr.load_settings"),
+        patch("diffsage.commands.pr.AIService"),
+        patch("diffsage.commands.pr.get_credentials_path"),
+        patch("diffsage.commands.pr.CredentialsRepository"),
+        patch("diffsage.commands.pr.CredentialService"),
         patch("diffsage.commands.pr.PullRequestView") as mock_view,
     ):
         mock_git_service.return_value.resolve_base_branch.side_effect = SameBranchError(
