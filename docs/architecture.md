@@ -62,7 +62,7 @@ Responsible for:
 - Composing application dependencies
 - Calling services
 - Handling domain exceptions
-- Displaying terminal output thorugh Views
+- Displaying terminal output through Views
 
 Commands should not implement business logic.
 
@@ -78,7 +78,7 @@ Responsible for:
 - Coordinating GitHub operations
 - Coordinating storage
 - Performing validation
-- Returning structred domain models
+- Returning structured domain models
 
 Services should not directly print to the terminal.
 
