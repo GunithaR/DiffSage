@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.3.0] - 2026-08-22
+
+### Added
+
+- AI-assisted pull request generation from Git repository evidence.
+- Interactive pull request draft review workflow.
+- Pull request draft editing and regeneration.
+- Structured pull request draft parsing and validation.
+- GitHub CLI integration for pull request creation.
+- GitHub CLI availability and authentication validation.
+- Remote branch synchronization validation before pull request creation.
+- Pull request creation through GitHub.
+- Pull request URL display after successful creation.
+- Comprehensive automated tests for pull request generation and creation.
+
+
 ## [1.2.1] - 2026-08-13
 
 ### Fixed

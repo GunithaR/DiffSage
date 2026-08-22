@@ -77,6 +77,10 @@ Current capabilities include:
 - AI provider authentication and error handling
 - Layered architecture
 - Comprehensive automated test suite
+- Add AI-assisted PR generation
+- Interactive PR draft review/edit/regeneration
+- GitHub PR creation
+- Branch synchronization validation
 
 ---
 
@@ -274,6 +278,35 @@ Display AI suggestion
 [N] Cancel
 ```
 
+```bash
+diffsage pr 
+```
+
+PR workflow
+
+```text
+Generate PR draft
+       │
+       ▼
+Show base/head branches
+       │
+       ▼
+Display PR draft
+       │
+ ┌─────┼───────────┐
+ ▼     ▼           ▼
+Edit Regenerate   Cancel
+       │
+       ▼
+    Accept
+       │
+       ▼
+Create GitHub PR
+       │
+       ▼
+Display PR URL
+```
+
 Named credential profiles are also supported:
 
 ```bash
@@ -301,6 +334,8 @@ diffsage auth unset gemini
 |----------|-------------|
 | `diffsage doctor` | Validate the local DiffSage environment |
 | `diffsage commit` | Generate and manage AI-assisted commit messages |
+| `diffsage pr` | Generate, review, and create a GitHub pull request |
+| `diffsage pr <base-branch>` | Generate and create a pull request against a specific base branch |
 | `diffsage config list` | Display the current DiffSage configuration |
 | `diffsage config get` | Display the value of a configuration setting |
 | `diffsage config set` | Update a configuration setting |
@@ -311,7 +346,46 @@ diffsage auth unset gemini
 | `diffsage auth unset` | Remove a provider credential |
 | `diffsage ask` | Ask the configured AI provider a question |
 
-More commands will be introduced as the project evolves.
+---
+
+## Pull Request Workflow
+
+The `diffsage pr` command analyzes the current Git branch against a resolved base branch and generates a structured pull request draft.
+
+The workflow is interactive:
+
+```text
+Analyze Git repository
+        │
+        ▼
+Resolve base branch
+        │
+        ▼
+Generate PR draft
+        │
+        ▼
+Display base/head branches
+        │
+        ▼
+Review PR draft
+        │
+ ┌──────┼──────────────┐
+ ▼      ▼              ▼
+Edit  Regenerate      Cancel
+ │      │
+ └──────┴───────┐
+                ▼
+             Accept
+                │
+                ▼
+        Validate GitHub access
+                │
+                ▼
+        Create GitHub pull request
+                │
+                ▼
+        Display pull request URL
+```
 
 ---
 
@@ -329,15 +403,22 @@ Commands
 │
 ├── Authentication
 │
-▼
-Services
+├── Commit Workflow
 │
-├── Git
-├── AI
-├── Prompt Generation
-└── Credentials
-│
-▼
+└── Pull Request Workflow
+        │
+        ▼
+    Services
+        │
+        ├── Git
+        ├── GitHub
+        ├── AI
+        ├── Prompt Generation
+        ├── Pull Request Analysis
+        ├── Pull Request Parsing
+        └── Credentials
+        │
+        ▼
 Providers / Storage
 ```
 
@@ -363,6 +444,7 @@ src/
     ├── config/
     ├── exceptions/
     ├── git/
+    ├── github/
     ├── logging/
     ├── models/
     ├── parsers/
@@ -373,6 +455,18 @@ src/
     └── ui/
 
 tests/
+├── commands/
+├── config/
+├── git/
+├── github/
+├── integration/
+├── models/
+├── parsers/
+├── prompts/
+├── providers/
+├── services/
+├── storage/
+└── ui/
 
 docs/
 ```
@@ -421,6 +515,7 @@ Instead of requiring every automation tool or AI agent to implement Git workflow
 
 - Repository validation
 - Git operations
+- GitHub integration
 - AI integration
 - Workflow execution
 - Error handling
