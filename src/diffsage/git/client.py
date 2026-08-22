@@ -240,3 +240,18 @@ class GitClient:
             return True
         except subprocess.CalledProcessError:
             return False
+
+    def remote_branch_commit(self, branch: str) -> str | None:
+        """Return the commit hash of the remote origin branch."""
+
+        try:
+            result = self._run_git_command(["ls-remote", "origin", f"refs/heads/{branch}"])
+        except subprocess.CalledProcessError:
+            return None
+
+        output = result.stdout.strip()
+
+        if not output:
+            return None
+
+        return output.split("\t", 1)[0]

@@ -464,3 +464,68 @@ def test_remote_branch_exists_returns_false_for_missing_branch(tmp_path: Path) -
     client = GitClient(repo)
 
     assert client.remote_branch_exists("feature/missing") is False
+
+
+def test_remote_branch_commit_returns_commit_hash(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    remote = tmp_path / "remote.git"
+
+    repo.mkdir()
+    remote.mkdir()
+
+    run_git(
+        ["init", "--bare", "--initial-branch=main"],
+        remote,
+    )
+
+    init_git_repo_with_initial_commit(repo)
+
+    run_git(
+        ["remote", "add", "origin", str(remote)],
+        repo,
+    )
+
+    run_git(
+        ["push", "-u", "origin", "main"],
+        repo,
+    )
+
+    expected = run_git(
+        ["rev-parse", "HEAD"],
+        repo,
+    ).stdout.strip()
+
+    client = GitClient(repo)
+
+    assert client.remote_branch_commit("main") == expected
+
+
+def test_remote_branch_commit_returns_none_for_missing_branch(
+    tmp_path: Path,
+) -> None:
+    repo = tmp_path / "repo"
+    remote = tmp_path / "remote.git"
+
+    repo.mkdir()
+    remote.mkdir()
+
+    run_git(
+        ["init", "--bare", "--initial-branch=main"],
+        remote,
+    )
+
+    init_git_repo_with_initial_commit(repo)
+
+    run_git(
+        ["remote", "add", "origin", str(remote)],
+        repo,
+    )
+
+    run_git(
+        ["push", "-u", "origin", "main"],
+        repo,
+    )
+
+    client = GitClient(repo)
+
+    assert client.remote_branch_commit("feature/missing") is None

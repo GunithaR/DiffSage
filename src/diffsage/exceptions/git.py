@@ -11,3 +11,11 @@ class NoStagedChangesError(GitError):
 
 class BaseBranchNotFoundError(GitError):
     """Raise when a valid pull request base branch cannot be determined."""
+
+
+class RemoteBranchNotFoundError(GitError):
+    """Raised when the current branch does not exist on the remote."""
+
+
+class UnpushedChangesError(GitError):
+    """Raised when the local branch contains commits not pushed to the remote."""

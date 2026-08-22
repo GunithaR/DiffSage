@@ -1,8 +1,15 @@
 from pathlib import Path
+from unittest.mock import Mock
 
 import pytest
 
-from diffsage.exceptions import BaseBranchNotFoundError, DetachedHeadError, SameBranchError
+from diffsage.exceptions import (
+    BaseBranchNotFoundError,
+    DetachedHeadError,
+    RemoteBranchNotFoundError,
+    SameBranchError,
+    UnpushedChangesError,
+)
 from diffsage.git.client import GitClient
 from diffsage.models.git import CommitContext, PullRequestContext
 from diffsage.services.git_service import GitService
@@ -215,3 +222,44 @@ def test_resolve_base_branch_raises_for_detached_head(
 
     with pytest.raises(DetachedHeadError):
         service.resolve_base_branch()
+
+
+def test_validate_remote_head_succeeds_when_local_and_remote_match() -> None:
+    client = Mock(spec=GitClient)
+    client.current_commit.return_value = "abc123"
+    client.remote_branch_commit.return_value = "abc123"
+
+    service = GitService(client)
+
+    service.validate_remote_head("feature")
+
+    client.current_commit.assert_called_once()
+    client.remote_branch_commit.assert_called_once_with("feature")
+
+
+def test_validate_remote_head_raises_when_local_branch_has_unpushed_commits() -> None:
+    client = Mock(spec=GitClient)
+    client.current_commit.return_value = "local123"
+    client.remote_branch_commit.return_value = "remote123"
+
+    service = GitService(client)
+
+    with pytest.raises(UnpushedChangesError):
+        service.validate_remote_head("feature")
+
+    client.current_commit.assert_called_once()
+    client.remote_branch_commit.assert_called_once_with("feature")
+
+
+def test_validate_remote_head_raises_when_remote_branch_does_not_exist() -> None:
+    client = Mock(spec=GitClient)
+    client.current_commit.return_value = "local123"
+    client.remote_branch_commit.return_value = None
+
+    service = GitService(client)
+
+    with pytest.raises(RemoteBranchNotFoundError):
+        service.validate_remote_head("feature")
+
+    client.current_commit.assert_called_once()
+    client.remote_branch_commit.assert_called_once_with("feature")

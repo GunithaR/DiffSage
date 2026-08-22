@@ -9,12 +9,14 @@ from diffsage.exceptions import (
     ConfigError,
     CredentialNotFoundError,
     DetachedHeadError,
+    GitHubAuthenticationError,
+    GitHubCLIUnavailableError,
     InvalidPullRequestDraftError,
     NotGitRepositoryError,
     ProviderError,
+    RemoteBranchNotFoundError,
     SameBranchError,
-    GitHubAuthenticationError,
-    GitHubCLIUnavailableError,
+    UnpushedChangesError,
 )
 from diffsage.git.client import GitClient
 from diffsage.github.client import GitHubClient
@@ -97,6 +99,8 @@ def pr(
             if choice in ("", "y"):
                 logger.info("User accepted pull request draft.")
 
+                git_service.validate_remote_head(head_branch)
+
                 with view.creating():
                     pull_request_url = github_service.create_pull_request(
                         draft=draft,
@@ -163,6 +167,16 @@ def pr(
         view.show_same_branch()
         raise SystemExit(1) from None
 
+    except RemoteBranchNotFoundError:
+        logger.info("Command aborted: remote branch does not exist.")
+        view.show_error("Remote branch does not exist on origin.")
+        raise SystemExit(1) from None
+
+    except UnpushedChangesError:
+        logger.info("Command aborted: branch contains unpushed commits.")
+        view.show_error("Your branch contains commits that have not been pushed to origin.")
+        raise SystemExit(1) from None
+
     except ProviderError as e:
         logger.warning(str(e))
         view.show_error(str(e))
@@ -187,7 +201,7 @@ def pr(
         logger.warning(str(e))
         view.show_error(str(e))
         raise SystemExit(1) from None
-    
+
     except GitHubAuthenticationError as e:
         logger.warning(str(e))
         view.show_error(str(e))

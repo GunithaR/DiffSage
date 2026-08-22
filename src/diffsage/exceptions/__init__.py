@@ -15,6 +15,8 @@ from .git import (
     BaseBranchNotFoundError,
     NoStagedChangesError,
     NotGitRepositoryError,
+    RemoteBranchNotFoundError,
+    UnpushedChangesError,
 )
 from .github import (
     GitHubAuthenticationError,
@@ -42,6 +44,8 @@ __all__ = [
     "BaseBranchNotFoundError",
     "NoStagedChangesError",
     "NotGitRepositoryError",
+    "RemoteBranchNotFoundError",
+    "UnpushedChangesError",
     "GitHubAuthenticationError",
     "GitHubCLIUnavailableError",
     "AuthenticationError",

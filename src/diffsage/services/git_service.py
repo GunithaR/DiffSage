@@ -1,4 +1,10 @@
-from diffsage.exceptions import BaseBranchNotFoundError, DetachedHeadError, SameBranchError
+from diffsage.exceptions import (
+    BaseBranchNotFoundError,
+    DetachedHeadError,
+    RemoteBranchNotFoundError,
+    SameBranchError,
+    UnpushedChangesError,
+)
 from diffsage.git.client import GitClient
 from diffsage.models.git import CommitContext, PullRequestContext
 
@@ -94,3 +100,17 @@ class GitService:
             raise DetachedHeadError("Cannot generate a pull request from detached HEAD.")
 
         return branch
+
+    def validate_remote_head(self, branch: str) -> None:
+        """Ensure the local branch is synchronized with origin."""
+
+        local_head = self._git_client.current_commit()
+        remote_head = self._git_client.remote_branch_commit(branch)
+
+        if remote_head is None:
+            raise RemoteBranchNotFoundError(f"Remote branch '{branch}' does not exist on origin.")
+
+        if local_head != remote_head:
+            raise UnpushedChangesError(
+                f"Local branch '{branch}' contains commits that have not been pushed to origin."
+            )

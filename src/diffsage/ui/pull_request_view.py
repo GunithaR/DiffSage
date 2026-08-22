@@ -77,12 +77,8 @@ class PullRequestView(BaseView):
         base_branch: str,
         head_branch: str,
     ) -> None:
-        self._console.print(
-            f"[bold cyan]Head:[/bold cyan] {head_branch} [cyan]>>>[/cyan]"
-        )
-        self._console.print(
-            f"[bold cyan]Base:[/bold cyan] {base_branch} [cyan]<<<[/cyan]"
-        )
+        self._console.print(f"[bold cyan]Head:[/bold cyan] {head_branch} [cyan]>>>[/cyan]")
+        self._console.print(f"[bold cyan]Base:[/bold cyan] {base_branch} [cyan]<<<[/cyan]")
         self._console.print()
 
     @contextmanager

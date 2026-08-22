@@ -10,12 +10,14 @@ from diffsage.exceptions import (
     ConfigError,
     CredentialNotFoundError,
     DetachedHeadError,
+    GitHubAuthenticationError,
+    GitHubCLIUnavailableError,
     InvalidPullRequestDraftError,
     NotGitRepositoryError,
     ProviderError,
+    RemoteBranchNotFoundError,
     SameBranchError,
-    GitHubAuthenticationError,
-    GitHubCLIUnavailableError,
+    UnpushedChangesError,
 )
 from diffsage.models.pull_request import PullRequestDraft
 
@@ -59,6 +61,7 @@ def test_pr_generates_and_accepts_draft():
 
         mock_git_service.return_value.resolve_base_branch.return_value = "main"
         mock_git_service.return_value.current_branch.return_value = "feature/pr-generation"
+        mock_git_service.return_value.validate_remote_head.return_value = None
         mock_github_service.return_value.create_pull_request.return_value = (
             "https://github.com/example/repo/pull/42"
         )
@@ -72,6 +75,9 @@ def test_pr_generates_and_accepts_draft():
         assert result.exit_code == 0
 
         mock_git_service.return_value.resolve_base_branch.assert_called_once_with(None)
+        mock_git_service.return_value.validate_remote_head.assert_called_once_with(
+            "feature/pr-generation"
+        )
         mock_github_service.return_value.create_pull_request.assert_called_once_with(
             draft=draft,
             base_branch="main",
@@ -467,9 +473,7 @@ def test_pr_exits_when_github_cli_is_unavailable():
     ):
         mock_git_service.return_value.resolve_base_branch.return_value = "main"
 
-        mock_pr_service.return_value.generate_draft.return_value = (
-            create_pull_request_draft()
-        )
+        mock_pr_service.return_value.generate_draft.return_value = create_pull_request_draft()
 
         mock_view.return_value.prompt_action.return_value = "y"
 
@@ -504,9 +508,7 @@ def test_pr_exits_when_github_cli_is_not_authenticated():
     ):
         mock_git_service.return_value.resolve_base_branch.return_value = "main"
 
-        mock_pr_service.return_value.generate_draft.return_value = (
-            create_pull_request_draft()
-        )
+        mock_pr_service.return_value.generate_draft.return_value = create_pull_request_draft()
 
         mock_view.return_value.prompt_action.return_value = "y"
 
@@ -523,3 +525,76 @@ def test_pr_exits_when_github_cli_is_not_authenticated():
         mock_view.return_value.show_error.assert_called_once_with(
             "GitHub CLI is not authenticated. Run 'gh auth login' and try again."
         )
+
+
+def test_pr_exits_when_remote_branch_does_not_exist():
+    with (
+        patch("diffsage.commands.pr.GitClient"),
+        patch("diffsage.commands.pr.GitHubClient"),
+        patch("diffsage.commands.pr.GitService") as mock_git_service,
+        patch("diffsage.commands.pr.GitHubService") as mock_github_service,
+        patch("diffsage.commands.pr.PullRequestService") as mock_pr_service,
+        patch("diffsage.commands.pr.load_settings"),
+        patch("diffsage.commands.pr.AIService"),
+        patch("diffsage.commands.pr.get_credentials_path"),
+        patch("diffsage.commands.pr.CredentialsRepository"),
+        patch("diffsage.commands.pr.CredentialService"),
+        patch("diffsage.commands.pr.PullRequestView") as mock_view,
+    ):
+        mock_git_service.return_value.resolve_base_branch.return_value = "main"
+        mock_git_service.return_value.current_branch.return_value = "feature/pr-generation"
+
+        mock_git_service.return_value.validate_remote_head.side_effect = RemoteBranchNotFoundError(
+            "Remote branch 'feature/pr-generation' does not exist on origin."
+        )
+
+        draft = create_pull_request_draft()
+        mock_pr_service.return_value.generate_draft.return_value = draft
+        mock_view.return_value.prompt_action.return_value = "y"
+
+        result = runner.invoke(app, ["pr"])
+
+        assert result.exit_code == 1
+
+        mock_git_service.return_value.validate_remote_head.assert_called_once_with(
+            "feature/pr-generation"
+        )
+        mock_github_service.return_value.create_pull_request.assert_not_called()
+        mock_view.return_value.show_error.assert_called_once()
+
+
+def test_pr_exits_when_branch_has_unpushed_commits():
+    with (
+        patch("diffsage.commands.pr.GitClient"),
+        patch("diffsage.commands.pr.GitHubClient"),
+        patch("diffsage.commands.pr.GitService") as mock_git_service,
+        patch("diffsage.commands.pr.GitHubService") as mock_github_service,
+        patch("diffsage.commands.pr.PullRequestService") as mock_pr_service,
+        patch("diffsage.commands.pr.load_settings"),
+        patch("diffsage.commands.pr.AIService"),
+        patch("diffsage.commands.pr.get_credentials_path"),
+        patch("diffsage.commands.pr.CredentialsRepository"),
+        patch("diffsage.commands.pr.CredentialService"),
+        patch("diffsage.commands.pr.PullRequestView") as mock_view,
+    ):
+        mock_git_service.return_value.resolve_base_branch.return_value = "main"
+        mock_git_service.return_value.current_branch.return_value = "feature/pr-generation"
+
+        mock_git_service.return_value.validate_remote_head.side_effect = UnpushedChangesError(
+            "Local branch 'feature/pr-generation' contains commits "
+            "that have not been pushed to origin."
+        )
+
+        draft = create_pull_request_draft()
+        mock_pr_service.return_value.generate_draft.return_value = draft
+        mock_view.return_value.prompt_action.return_value = "y"
+
+        result = runner.invoke(app, ["pr"])
+
+        assert result.exit_code == 1
+
+        mock_git_service.return_value.validate_remote_head.assert_called_once_with(
+            "feature/pr-generation"
+        )
+        mock_github_service.return_value.create_pull_request.assert_not_called()
+        mock_view.return_value.show_error.assert_called_once()
