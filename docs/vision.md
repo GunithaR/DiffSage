@@ -4,7 +4,7 @@
 
 DiffSage exists to make Git workflows more reliable, consistent, and easier to automate through an AI-aware toolkit that builds on top of Git rather than replacing it.
 
-Our goal is to provide developers, automation, and AI agents with a dependable interface for performing Git operations while preserving Git as the single source of truth.
+Our goal is to provide developers, automation, and AI agents with a dependable interface for performing Git operations—including automated pull request generation and creation—while preserving Git as the single source of truth.
 
 ---
 
@@ -12,9 +12,9 @@ Our goal is to provide developers, automation, and AI agents with a dependable i
 
 Software development is increasingly assisted by AI and automation, yet Git workflows often remain fragmented across manual commands, shell scripts, and custom integrations.
 
-DiffSage aims to become the trusted workflow layer that bridges this gap by providing a consistent, extensible, and developer-friendly interface for Git operations.
+DiffSage aims to become the trusted workflow layer that bridges this gap by providing a consistent, extensible, and developer-friendly interface for Git operations, streamlining everything from local commits to pull request creation.
 
-Rather than competing with Git or AI coding assistants, DiffSage complements them by simplifying Git workflows while maintaining reliability and human control.
+Rather than competing with Git or AI coding assistants, DiffSage complements them by simplifying Git workflows—such as automating AI-powered pull request drafts and interactive editing—while maintaining reliability and human control.
 
 ---
 

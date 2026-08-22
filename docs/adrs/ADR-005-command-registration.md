@@ -14,7 +14,7 @@ CLI command registration should remain centralized as the number of commands gro
 
 ## Decision
 
-Register commands from the CLI layer instead of scattering registration logic across command modules.
+Register commands from the CLI layer instead of scattering registration logic across command modules. Accordingly, the new 'pr' command—which automates pull request creation through AI-powered draft generation, interactive editing, and GitHub integration—is registered centrally within the CLI application.
 
 ---
 

@@ -21,7 +21,7 @@ Each approach solves part of the problem but leaves Git workflow logic scattered
 
 DiffSage centralizes that logic into a single toolkit.
 
-Instead of reinventing Git operations in every script or AI workflow, developers and automation can invoke DiffSage commands that handle repository validation, Git interactions, AI integration, and workflow execution through a consistent interface.
+Instead of reinventing Git operations and pull request workflows in every script or AI workflow, developers and automation can invoke DiffSage commands that handle repository validation, Git interactions, AI-powered draft generation, interactive editing, GitHub pull request creation, and workflow execution through a consistent interface.
 
 ---
 

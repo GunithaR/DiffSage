@@ -42,7 +42,7 @@ Infrastructure
 Responsible for:
 
 - Initializing the Typer application
-- Registering commands
+- Registering commands, including the `pr` command
 - Starting the application
 
 Contains no business logic.
@@ -66,9 +66,9 @@ Commands should never contain business logic.
 
 Responsible for:
 
-- Implementing business logic
+- Implementing business logic, including AI-powered draft generation and interactive editing
 - Coordinating providers
-- Coordinating Git operations
+- Coordinating Git operations, including GitHub pull request creation
 - Coordinating storage
 
 Services should not directly print to the terminal.

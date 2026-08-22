@@ -18,6 +18,8 @@ Introduce a common `BaseProvider` abstraction.
 
 All provider implementations inherit from this abstraction and expose a common interface to the service layer.
 
+The service layer and CLI commands, such as the newly registered `pr` command for AI-powered draft generation, interactive editing, and GitHub pull request creation, will interact with LLM providers exclusively through this interface.
+
 ---
 
 ## Alternatives
@@ -39,3 +41,4 @@ Advantages
 Disadvantages
 
 - Requires maintaining a shared provider contract.
+---

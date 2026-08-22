@@ -1,9 +1,15 @@
 # Changelog
 
+## [1.3.0] - 2026-08-15
+
+### Added
+- New `pr` command to automate the generation and creation of pull requests.
+- AI-powered draft generation, interactive editing, and GitHub pull request creation.
+
+
 ## [1.2.1] - 2026-08-13
 
 ### Fixed
-
 - Added user-friendly handling for unavailable AI models in the `ask` command.
 - Prevented model-not-found errors from being reported as unexpected errors.
 - Added command-level test coverage for model-not-found error handling.

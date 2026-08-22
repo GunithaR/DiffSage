@@ -19,6 +19,8 @@ As the project evolved, its architecture became increasingly modular, introducin
 - Comprehensive testing
 - Command-oriented workflows
 
+This modularity enabled the expansion of the CLI to support more complex, end-to-end Git operations, such as the introduction of the `pr` command to automate AI-powered draft generation, interactive editing, and GitHub pull request creation.
+
 During this evolution, it became clear that the project's architecture supported a broader and more sustainable goal than simply providing AI-generated commit messages.
 
 At the same time, the software development ecosystem has seen rapid growth in AI coding assistants and autonomous development tools. These systems increasingly require reliable mechanisms for interacting with Git repositories, yet frequently duplicate Git workflow logic or rely on ad hoc shell commands.
@@ -33,7 +35,7 @@ This raised an important architectural question:
 
 DiffSage will be positioned as an **AI-aware Git workflow toolkit**.
 
-Its primary responsibility is to provide reliable, consistent, and extensible Git workflow capabilities for developers, automation, and AI agents.
+Its primary responsibility is to provide reliable, consistent, and extensible Git workflow capabilities for developers, automation, and AI agents. This is exemplified by commands like `pr`, which integrate AI-powered draft generation and interactive editing directly with Git hosting services.
 
 DiffSage builds upon Git rather than replacing it and integrates AI where it meaningfully enhances Git workflows.
 
