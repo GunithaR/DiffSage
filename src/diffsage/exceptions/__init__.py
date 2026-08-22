@@ -1,14 +1,27 @@
 from .base import (
     ConfigError,
+    DetachedHeadError,
     DiffSageError,
     GitError,
     InvalidCommitMessageError,
     InvalidConfigurationValueError,
+    InvalidPullRequestDraftError,
     ProviderError,
+    SameBranchError,
     UnknownConfigurationKeyError,
 )
 from .credentials import CredentialNotFoundError
-from .git import NoStagedChangesError, NotGitRepositoryError
+from .git import (
+    BaseBranchNotFoundError,
+    NoStagedChangesError,
+    NotGitRepositoryError,
+    RemoteBranchNotFoundError,
+    UnpushedChangesError,
+)
+from .github import (
+    GitHubAuthenticationError,
+    GitHubCLIUnavailableError,
+)
 from .provider import (
     AuthenticationError,
     ModelNotFoundError,
@@ -17,18 +30,26 @@ from .provider import (
 )
 
 __all__ = [
-    "DiffSageError",
-    "ProviderError",
-    "AuthenticationError",
-    "RateLimitError",
-    "ModelNotFoundError",
-    "ProviderUnavailableError",
     "ConfigError",
+    "DetachedHeadError",
+    "DiffSageError",
     "GitError",
-    "UnknownConfigurationKeyError",
-    "InvalidConfigurationValueError",
     "InvalidCommitMessageError",
+    "InvalidConfigurationValueError",
+    "InvalidPullRequestDraftError",
+    "ProviderError",
+    "SameBranchError",
+    "UnknownConfigurationKeyError",
+    "CredentialNotFoundError",
+    "BaseBranchNotFoundError",
     "NoStagedChangesError",
     "NotGitRepositoryError",
-    "CredentialNotFoundError",
+    "RemoteBranchNotFoundError",
+    "UnpushedChangesError",
+    "GitHubAuthenticationError",
+    "GitHubCLIUnavailableError",
+    "AuthenticationError",
+    "ModelNotFoundError",
+    "ProviderUnavailableError",
+    "RateLimitError",
 ]

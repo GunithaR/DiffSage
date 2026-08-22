@@ -7,6 +7,7 @@ from diffsage.commands.auth import app as auth_app
 from diffsage.commands.commit import commit
 from diffsage.commands.config import app as config_app
 from diffsage.commands.doctor import doctor
+from diffsage.commands.pr import pr
 from diffsage.config.loader import load_settings
 from diffsage.logging.logger import configure_logging
 
@@ -31,8 +32,13 @@ def main() -> None:
 app.command()(doctor)
 app.command()(ask)
 app.command()(commit)
+app.command()(pr)
+
 app.add_typer(
     config_app,
     name="config",
 )
-app.add_typer(auth_app, name="auth")
+app.add_typer(
+    auth_app,
+    name="auth",
+)

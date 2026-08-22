@@ -153,3 +153,105 @@ class GitClient:
             command.extend(["-m", body])
 
         self._run_git_command(command)
+
+    def merge_base(self, base_branch: str, head_branch: str) -> str:
+        """Return the common ancestor commit hash of two branches."""
+
+        result = self._run_git_command(
+            ["merge-base", base_branch, head_branch],
+        )
+
+        return result.stdout.strip()
+
+    def commits_between(self, base_branch: str, head_branch: str) -> list[GitCommit]:
+        """Return commits reachable from the head branch but not the base branch."""
+
+        result = self._run_git_command(
+            [
+                "log",
+                "--format=%H%x09%an%x09%s%x09%aI",
+                f"{base_branch}..{head_branch}",
+            ],
+        )
+
+        commits: list[GitCommit] = []
+
+        for line in result.stdout.splitlines():
+            hash_, author, message, date = line.split("\t")
+
+            commit = GitCommit(
+                hash=hash_, author=author, message=message, date=datetime.fromisoformat(date)
+            )
+            commits.append(commit)
+
+        return commits
+
+    def changed_files(self, base_branch: str, head_branch: str) -> list[str]:
+        """Return file paths changed between the base and head branches."""
+
+        merge_base = self.merge_base(base_branch, head_branch)
+
+        result = self._run_git_command(
+            ["diff", "--name-only", merge_base, head_branch],
+        )
+
+        return result.stdout.splitlines()
+
+    def branch_diff(self, base_branch: str, head_branch: str) -> str:
+        """Return the diff introduced by the head branch since the merge base."""
+
+        merge_base = self.merge_base(base_branch, head_branch)
+
+        result = self._run_git_command(["diff", merge_base, head_branch])
+
+        return result.stdout
+
+    def default_branch(self) -> str | None:
+        """Return the default branch configured for the origin remote."""
+
+        try:
+            result = self._run_git_command(["symbolic-ref", "refs/remotes/origin/HEAD"])
+        except subprocess.CalledProcessError:
+            pass
+        else:
+            ref = result.stdout.strip()
+            prefix = "refs/remotes/origin/"
+
+            if ref.startswith(prefix):
+                return ref.removeprefix(prefix)
+
+        try:
+            result = self._run_git_command(["ls-remote", "--symref", "origin", "HEAD"])
+        except subprocess.CalledProcessError:
+            return None
+
+        for line in result.stdout.splitlines():
+            if line.startswith("ref:") and line.endswith("\tHEAD"):
+                ref = line.split("\t", 1)[0]
+                return ref.removeprefix("ref: refs/heads/")
+
+        return None
+
+    def remote_branch_exists(self, branch: str) -> bool:
+        """Return True if the branch exists on the origin remote."""
+
+        try:
+            self._run_git_command(["ls-remote", "--exit-code", "--heads", "origin", branch])
+            return True
+        except subprocess.CalledProcessError:
+            return False
+
+    def remote_branch_commit(self, branch: str) -> str | None:
+        """Return the commit hash of the remote origin branch."""
+
+        try:
+            result = self._run_git_command(["ls-remote", "origin", f"refs/heads/{branch}"])
+        except subprocess.CalledProcessError:
+            return None
+
+        output = result.stdout.strip()
+
+        if not output:
+            return None
+
+        return output.split("\t", 1)[0]

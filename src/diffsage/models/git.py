@@ -14,7 +14,7 @@ class GitStatus:
 
 @dataclass(slots=True)
 class GitCommit:
-    """Represents a commit history in a Git repository"""
+    """Represents a single commit in a Git repository"""
 
     hash: str
     author: str
@@ -30,3 +30,15 @@ class CommitContext:
     staged_diff: str
     unstaged_diff: str
     recent_commits: list[GitCommit]
+
+
+@dataclass(slots=True)
+class PullRequestContext:
+    """Represents the information needed to generate a pull request."""
+
+    current_branch: str
+    base_branch: str
+    merge_base: str
+    commits: list[GitCommit]
+    changed_files: list[str]
+    diff: str
