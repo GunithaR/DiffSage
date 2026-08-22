@@ -79,6 +79,11 @@ def pr(
         resolved_base_branch = git_service.resolve_base_branch(base_branch)
         head_branch = git_service.current_branch()
 
+        view.show_branches(
+            base_branch=resolved_base_branch,
+            head_branch=head_branch,
+        )
+
         with view.generating():
             draft = pull_request_service.generate_draft(
                 resolved_base_branch,

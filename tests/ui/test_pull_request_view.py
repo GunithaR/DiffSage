@@ -2,6 +2,20 @@ from diffsage.models.pull_request import PullRequestDraft
 from diffsage.ui.pull_request_view import PullRequestView
 
 
+def test_show_branches(capsys) -> None:
+    view = PullRequestView()
+
+    view.show_branches(
+        base_branch="main",
+        head_branch="feature/pr-generation",
+    )
+
+    output = capsys.readouterr().out
+
+    assert "main" in output
+    assert "feature/pr-generation" in output
+
+
 def test_show_generated_displays_pull_request_draft(capsys) -> None:
     draft = PullRequestDraft(
         title="Add pull request generation",
