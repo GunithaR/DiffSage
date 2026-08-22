@@ -14,6 +14,8 @@ from diffsage.exceptions import (
     NotGitRepositoryError,
     ProviderError,
     SameBranchError,
+    GitHubAuthenticationError,
+    GitHubCLIUnavailableError,
 )
 from diffsage.models.pull_request import PullRequestDraft
 
@@ -40,7 +42,9 @@ def create_pull_request_draft() -> PullRequestDraft:
 def test_pr_generates_and_accepts_draft():
     with (
         patch("diffsage.commands.pr.GitClient"),
+        patch("diffsage.commands.pr.GitHubClient"),
         patch("diffsage.commands.pr.GitService") as mock_git_service,
+        patch("diffsage.commands.pr.GitHubService") as mock_github_service,
         patch("diffsage.commands.pr.PullRequestService") as mock_pr_service,
         patch("diffsage.commands.pr.load_settings") as mock_load_settings,
         patch("diffsage.commands.pr.AIService") as mock_ai_service,
@@ -54,6 +58,10 @@ def test_pr_generates_and_accepts_draft():
         credential_service = mock_credential_service.return_value
 
         mock_git_service.return_value.resolve_base_branch.return_value = "main"
+        mock_git_service.return_value.current_branch.return_value = "feature/pr-generation"
+        mock_github_service.return_value.create_pull_request.return_value = (
+            "https://github.com/example/repo/pull/42"
+        )
 
         draft = create_pull_request_draft()
         mock_pr_service.return_value.generate_draft.return_value = draft
@@ -64,6 +72,11 @@ def test_pr_generates_and_accepts_draft():
         assert result.exit_code == 0
 
         mock_git_service.return_value.resolve_base_branch.assert_called_once_with(None)
+        mock_github_service.return_value.create_pull_request.assert_called_once_with(
+            draft=draft,
+            base_branch="main",
+            head_branch="feature/pr-generation",
+        )
         mock_pr_service.return_value.generate_draft.assert_called_once_with("main")
         mock_view.return_value.show_generated.assert_called_once_with(draft)
         mock_view.return_value.prompt_action.assert_called_once()
@@ -80,7 +93,9 @@ def test_pr_generates_and_accepts_draft():
 def test_pr_uses_explicit_base_branch():
     with (
         patch("diffsage.commands.pr.GitClient"),
+        patch("diffsage.commands.pr.GitHubClient"),
         patch("diffsage.commands.pr.GitService") as mock_git_service,
+        patch("diffsage.commands.pr.GitHubService") as mock_github_service,
         patch("diffsage.commands.pr.PullRequestService") as mock_pr_service,
         patch("diffsage.commands.pr.load_settings"),
         patch("diffsage.commands.pr.AIService"),
@@ -90,6 +105,10 @@ def test_pr_uses_explicit_base_branch():
         patch("diffsage.commands.pr.PullRequestView") as mock_view,
     ):
         mock_git_service.return_value.resolve_base_branch.return_value = "develop"
+        mock_git_service.return_value.current_branch.return_value = "feature/pr-generation"
+        mock_github_service.return_value.create_pull_request.return_value = (
+            "https://github.com/example/repo/pull/42"
+        )
 
         draft = create_pull_request_draft()
         mock_pr_service.return_value.generate_draft.return_value = draft
@@ -100,6 +119,11 @@ def test_pr_uses_explicit_base_branch():
         assert result.exit_code == 0
 
         mock_git_service.return_value.resolve_base_branch.assert_called_once_with("develop")
+        mock_github_service.return_value.create_pull_request.assert_called_once_with(
+            draft=draft,
+            base_branch="develop",
+            head_branch="feature/pr-generation",
+        )
         mock_pr_service.return_value.generate_draft.assert_called_once_with("develop")
         mock_view.return_value.show_generated.assert_called_once_with(draft)
 
@@ -107,7 +131,9 @@ def test_pr_uses_explicit_base_branch():
 def test_pr_edits_draft():
     with (
         patch("diffsage.commands.pr.GitClient"),
+        patch("diffsage.commands.pr.GitHubClient"),
         patch("diffsage.commands.pr.GitService") as mock_git_service,
+        patch("diffsage.commands.pr.GitHubService") as mock_github_service,
         patch("diffsage.commands.pr.PullRequestService") as mock_pr_service,
         patch("diffsage.commands.pr.load_settings"),
         patch("diffsage.commands.pr.AIService"),
@@ -119,6 +145,9 @@ def test_pr_edits_draft():
         patch("diffsage.commands.pr.PullRequestView") as mock_view,
     ):
         mock_git_service.return_value.resolve_base_branch.return_value = "main"
+        mock_github_service.return_value.create_pull_request.return_value = (
+            "https://github.com/example/repo/pull/42"
+        )
 
         original_draft = create_pull_request_draft()
 
@@ -156,7 +185,9 @@ def test_pr_edits_draft():
 def test_pr_regenerates_draft():
     with (
         patch("diffsage.commands.pr.GitClient"),
+        patch("diffsage.commands.pr.GitHubClient"),
         patch("diffsage.commands.pr.GitService") as mock_git_service,
+        patch("diffsage.commands.pr.GitHubService") as mock_github_service,
         patch("diffsage.commands.pr.PullRequestService") as mock_pr_service,
         patch("diffsage.commands.pr.load_settings"),
         patch("diffsage.commands.pr.AIService"),
@@ -166,6 +197,9 @@ def test_pr_regenerates_draft():
         patch("diffsage.commands.pr.PullRequestView") as mock_view,
     ):
         mock_git_service.return_value.resolve_base_branch.return_value = "main"
+        mock_github_service.return_value.create_pull_request.return_value = (
+            "https://github.com/example/repo/pull/42"
+        )
 
         first_draft = create_pull_request_draft()
 
@@ -226,7 +260,9 @@ def test_pr_cancels_draft():
 def test_pr_reprompts_after_invalid_choice():
     with (
         patch("diffsage.commands.pr.GitClient"),
+        patch("diffsage.commands.pr.GitHubClient"),
         patch("diffsage.commands.pr.GitService") as mock_git_service,
+        patch("diffsage.commands.pr.GitHubService") as mock_github_service,
         patch("diffsage.commands.pr.PullRequestService") as mock_pr_service,
         patch("diffsage.commands.pr.load_settings"),
         patch("diffsage.commands.pr.AIService"),
@@ -236,6 +272,9 @@ def test_pr_reprompts_after_invalid_choice():
         patch("diffsage.commands.pr.PullRequestView") as mock_view,
     ):
         mock_git_service.return_value.resolve_base_branch.return_value = "main"
+        mock_github_service.return_value.create_pull_request.return_value = (
+            "https://github.com/example/repo/pull/42"
+        )
 
         draft = create_pull_request_draft()
         mock_pr_service.return_value.generate_draft.return_value = draft
@@ -380,7 +419,7 @@ def test_pr_handles_invalid_edited_draft():
         draft = create_pull_request_draft()
 
         mock_pr_service.return_value.generate_draft.return_value = draft
-        mock_view.return_value.prompt_action.return_value = "e"
+        mock_view.return_value.prompt_action.side_effect = ["e", "n"]
 
         mock_editor.return_value.edit.return_value = "invalid json"
 
@@ -388,11 +427,13 @@ def test_pr_handles_invalid_edited_draft():
             "Invalid pull request draft."
         )
 
-        with pytest.raises(SystemExit):
-            pr()
+        result = runner.invoke(app, ["pr"])
+
+        assert result.exit_code == 0
 
         mock_parser.return_value.parse.assert_called_once_with("invalid json")
         mock_view.return_value.show_error.assert_called_once_with("Invalid pull request draft.")
+        mock_view.return_value.show_cancelled.assert_called_once()
 
 
 def test_pr_handles_unexpected_error():
@@ -407,4 +448,78 @@ def test_pr_handles_unexpected_error():
 
         mock_view.return_value.show_error.assert_called_once_with(
             "An unexpected error occurred. Please check the log file for more details."
+        )
+
+
+def test_pr_exits_when_github_cli_is_unavailable():
+    with (
+        patch("diffsage.commands.pr.GitClient"),
+        patch("diffsage.commands.pr.GitHubClient"),
+        patch("diffsage.commands.pr.GitService") as mock_git_service,
+        patch("diffsage.commands.pr.GitHubService") as mock_github_service,
+        patch("diffsage.commands.pr.PullRequestService") as mock_pr_service,
+        patch("diffsage.commands.pr.load_settings"),
+        patch("diffsage.commands.pr.AIService"),
+        patch("diffsage.commands.pr.get_credentials_path"),
+        patch("diffsage.commands.pr.CredentialsRepository"),
+        patch("diffsage.commands.pr.CredentialService"),
+        patch("diffsage.commands.pr.PullRequestView") as mock_view,
+    ):
+        mock_git_service.return_value.resolve_base_branch.return_value = "main"
+
+        mock_pr_service.return_value.generate_draft.return_value = (
+            create_pull_request_draft()
+        )
+
+        mock_view.return_value.prompt_action.return_value = "y"
+
+        mock_github_service.return_value.create_pull_request.side_effect = (
+            GitHubCLIUnavailableError(
+                "GitHub CLI is not installed. Install GitHub CLI and try again."
+            )
+        )
+
+        result = runner.invoke(app, ["pr"])
+
+        assert result.exit_code == 1
+
+        mock_view.return_value.show_error.assert_called_once_with(
+            "GitHub CLI is not installed. Install GitHub CLI and try again."
+        )
+
+
+def test_pr_exits_when_github_cli_is_not_authenticated():
+    with (
+        patch("diffsage.commands.pr.GitClient"),
+        patch("diffsage.commands.pr.GitHubClient"),
+        patch("diffsage.commands.pr.GitService") as mock_git_service,
+        patch("diffsage.commands.pr.GitHubService") as mock_github_service,
+        patch("diffsage.commands.pr.PullRequestService") as mock_pr_service,
+        patch("diffsage.commands.pr.load_settings"),
+        patch("diffsage.commands.pr.AIService"),
+        patch("diffsage.commands.pr.get_credentials_path"),
+        patch("diffsage.commands.pr.CredentialsRepository"),
+        patch("diffsage.commands.pr.CredentialService"),
+        patch("diffsage.commands.pr.PullRequestView") as mock_view,
+    ):
+        mock_git_service.return_value.resolve_base_branch.return_value = "main"
+
+        mock_pr_service.return_value.generate_draft.return_value = (
+            create_pull_request_draft()
+        )
+
+        mock_view.return_value.prompt_action.return_value = "y"
+
+        mock_github_service.return_value.create_pull_request.side_effect = (
+            GitHubAuthenticationError(
+                "GitHub CLI is not authenticated. Run 'gh auth login' and try again."
+            )
+        )
+
+        result = runner.invoke(app, ["pr"])
+
+        assert result.exit_code == 1
+
+        mock_view.return_value.show_error.assert_called_once_with(
+            "GitHub CLI is not authenticated. Run 'gh auth login' and try again."
         )

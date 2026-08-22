@@ -16,6 +16,10 @@ from .git import (
     NoStagedChangesError,
     NotGitRepositoryError,
 )
+from .github import (
+    GitHubAuthenticationError,
+    GitHubCLIUnavailableError,
+)
 from .provider import (
     AuthenticationError,
     ModelNotFoundError,
@@ -24,22 +28,24 @@ from .provider import (
 )
 
 __all__ = [
-    "DiffSageError",
-    "ProviderError",
-    "AuthenticationError",
-    "RateLimitError",
-    "ModelNotFoundError",
-    "ProviderUnavailableError",
     "ConfigError",
-    "GitError",
-    "UnknownConfigurationKeyError",
-    "InvalidConfigurationValueError",
-    "InvalidCommitMessageError",
-    "InvalidPullRequestDraftError",
     "DetachedHeadError",
+    "DiffSageError",
+    "GitError",
+    "InvalidCommitMessageError",
+    "InvalidConfigurationValueError",
+    "InvalidPullRequestDraftError",
+    "ProviderError",
     "SameBranchError",
+    "UnknownConfigurationKeyError",
+    "CredentialNotFoundError",
+    "BaseBranchNotFoundError",
     "NoStagedChangesError",
     "NotGitRepositoryError",
-    "BaseBranchNotFoundError",
-    "CredentialNotFoundError",
+    "GitHubAuthenticationError",
+    "GitHubCLIUnavailableError",
+    "AuthenticationError",
+    "ModelNotFoundError",
+    "ProviderUnavailableError",
+    "RateLimitError",
 ]

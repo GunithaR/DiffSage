@@ -62,7 +62,12 @@ AI Service
 Structured Pull Request Draft
       │
       ▼
-Preview / Edit / Regenerate / Confirm
+Preview
+      │
+      ├── [Y] Create
+      ├── [E] Edit
+      ├── [R] Regenerate
+      └── [N] Cancel
       │
       ▼
 Git Hosting Service
@@ -101,6 +106,8 @@ The first implementation of pull request generation and creation will include:
 - Pull request regeneration.
 - User confirmation before creation.
 - GitHub pull request creation.
+- Github CLI authentication and availability validation.
+- Detection of whether the current branch is available on the configured Github remote before pull request creation.
 - Detection of an existing pull request for the current branch.
 
 The initial user-facing command will be:
@@ -296,7 +303,25 @@ GitHub-specific operations should be isolated behind the hosting abstraction.
 
 The initial GitHub implementation should reuse the user's existing GitHub CLI authentication where practical rather than introducing a second authentication system or custom OAuth implementation.
 
-The first implementation may use the GitHub CLI (`gh`) for authenticated GitHub operations.
+The first implementation will use the GitHub CLI (`gh`) for authenticated
+GitHub operations.
+
+DiffSage will not implement its own GitHub OAuth flow or directly manage
+GitHub access tokens in the initial implementation.
+
+Before GitHub operations are performed, DiffSage should verify that the
+GitHub CLI is available and that the user is authenticated.
+
+Pull request creation will delegate authentication and authorization to
+the user's existing GitHub CLI session.
+
+Repository and organization permissions remain authoritative at the
+GitHub level. DiffSage must not attempt to reproduce GitHub's permission,
+branch protection, or organization policy logic locally.
+
+The initial implementation assumes the user has sufficient permission
+to create a pull request for the target repository. Fork-based pull
+request workflows are deferred.
 
 Direct GitHub API integration may be introduced later if the required workflow capabilities exceed what the GitHub CLI can provide.
 
@@ -452,6 +477,8 @@ The following are explicitly outside the initial implementation:
 - Merge conflict resolution.
 - Multi-host support.
 - Custom GitHub OAuth implementation.
+- Fork-based pull request creation.
+- Automatic pushing of local branches to Github.
 - Fully automated pull request creation without user confirmation.
 
 ---
@@ -467,6 +494,9 @@ Potential future extensions include:
 - Label suggestions.
 - Issue linking.
 - Direct GitHub API integration.
+- Fork-based pull request workflow.
+- Automatic branch publishing.
+- GitHub App Authentication for hosted/unattended workflows.
 - GitLab and Bitbucket support.
 - Merge assistance.
 - Additional repository-aware PR analysis.

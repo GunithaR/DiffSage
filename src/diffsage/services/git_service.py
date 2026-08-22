@@ -71,20 +71,26 @@ class GitService:
             default_branch = self._git_client.default_branch()
 
             if default_branch is not None:
-                return default_branch
-
-            if "main" in branches:
-                return "main"
-
-            if "master" in branches:
-                return "master"
-
-            raise BaseBranchNotFoundError(
-                "Could not determine a base branch automatically."
-                "Specify one explicitly with 'diffsage pr <base-branch>'."
-            )
+                resolved_base = default_branch
+            elif "main" in branches:
+                resolved_base = "main"
+            elif "master" in branches:
+                resolved_base = "master"
+            else:
+                raise BaseBranchNotFoundError(
+                    "Could not determine a base branch automatically."
+                    "Specify one explicitly with 'diffsage pr <base-branch>'."
+                )
 
         if resolved_base == current_branch:
             raise SameBranchError("Current branch and base branch are the same.")
 
         return resolved_base
+
+    def current_branch(self) -> str:
+        branch = self._git_client.current_branch()
+
+        if not branch:
+            raise DetachedHeadError("Cannot generate a pull request from detached HEAD.")
+
+        return branch

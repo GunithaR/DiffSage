@@ -231,3 +231,12 @@ class GitClient:
                 return ref.removeprefix("ref: refs/heads/")
 
         return None
+
+    def remote_branch_exists(self, branch: str) -> bool:
+        """Return True if the branch exists on the origin remote."""
+
+        try:
+            self._run_git_command(["ls-remote", "--exit-code", "--heads", "origin", branch])
+            return True
+        except subprocess.CalledProcessError:
+            return False

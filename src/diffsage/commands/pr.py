@@ -13,14 +13,18 @@ from diffsage.exceptions import (
     NotGitRepositoryError,
     ProviderError,
     SameBranchError,
+    GitHubAuthenticationError,
+    GitHubCLIUnavailableError,
 )
 from diffsage.git.client import GitClient
+from diffsage.github.client import GitHubClient
 from diffsage.logging.logger import get_logger
 from diffsage.parsers.pull_request_parser import PullRequestParser
 from diffsage.services.ai_service import AIService
 from diffsage.services.credentials_service import CredentialService
 from diffsage.services.editor_service import EditorService
 from diffsage.services.git_service import GitService
+from diffsage.services.github_service import GitHubService
 from diffsage.services.prompt_service import PromptService
 from diffsage.services.pull_request_analysis_service import (
     PullRequestAnalysisService,
@@ -44,6 +48,7 @@ def pr(
 
     try:
         git_client = GitClient()
+        github_client = GitHubClient()
         settings = load_settings()
 
         credential_path = get_credentials_path()
@@ -51,6 +56,7 @@ def pr(
         credential_service = CredentialService(credential_repository)
 
         git_service = GitService(git_client)
+        github_service = GitHubService(github_client)
         analysis_service = PullRequestAnalysisService()
         prompt_service = PromptService()
         editor_service = EditorService()
@@ -71,6 +77,7 @@ def pr(
         )
 
         resolved_base_branch = git_service.resolve_base_branch(base_branch)
+        head_branch = git_service.current_branch()
 
         with view.generating():
             draft = pull_request_service.generate_draft(
@@ -84,6 +91,15 @@ def pr(
 
             if choice in ("", "y"):
                 logger.info("User accepted pull request draft.")
+
+                with view.creating():
+                    pull_request_url = github_service.create_pull_request(
+                        draft=draft,
+                        base_branch=resolved_base_branch,
+                        head_branch=head_branch,
+                    )
+
+                view.show_created(pull_request_url)
                 break
 
             if choice == "e":
@@ -95,8 +111,12 @@ def pr(
                         indent=2,
                     )
                 )
+                try:
+                    draft = parser.parse(edited_content)
+                except InvalidPullRequestDraftError as e:
+                    view.show_error(str(e))
+                    continue
 
-                draft = parser.parse(edited_content)
                 view.show_generated(draft)
                 continue
 
@@ -154,6 +174,16 @@ def pr(
         raise SystemExit(1) from None
 
     except InvalidPullRequestDraftError as e:
+        logger.warning(str(e))
+        view.show_error(str(e))
+        raise SystemExit(1) from None
+
+    except GitHubCLIUnavailableError as e:
+        logger.warning(str(e))
+        view.show_error(str(e))
+        raise SystemExit(1) from None
+    
+    except GitHubAuthenticationError as e:
         logger.warning(str(e))
         view.show_error(str(e))
         raise SystemExit(1) from None

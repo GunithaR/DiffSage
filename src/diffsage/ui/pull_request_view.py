@@ -72,6 +72,18 @@ class PullRequestView(BaseView):
             )
         )
 
+    @contextmanager
+    def creating(self):
+        with self._console.status("Creating pull request..."):
+            yield
+
+    def show_created(self, url: str) -> None:
+        self._console.print()
+        self._console.print("[bold green]✓ Pull request created successfully.[/bold green]")
+        self._console.print()
+        self._console.print(f"[link={url}]{url}[/link]")
+        self._console.print()
+
     def show_not_git_repository(self) -> None:
         self._console.print("[red]Not inside a Git repository[/red]")
 

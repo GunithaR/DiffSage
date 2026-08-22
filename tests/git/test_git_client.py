@@ -406,3 +406,61 @@ def test_default_branch_queries_remote_when_origin_head_missing(tmp_path: Path) 
     client = GitClient(repo)
 
     assert client.default_branch() == "main"
+
+
+def test_remote_branch_exists_returns_true(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    remote = tmp_path / "remote.git"
+
+    repo.mkdir()
+    remote.mkdir()
+
+    run_git(
+        ["init", "--bare", "--initial-branch=main"],
+        remote,
+    )
+
+    init_git_repo_with_initial_commit(repo)
+
+    run_git(
+        ["remote", "add", "origin", str(remote)],
+        repo,
+    )
+
+    run_git(
+        ["push", "-u", "origin", "main"],
+        repo,
+    )
+
+    client = GitClient(repo)
+
+    assert client.remote_branch_exists("main") is True
+
+
+def test_remote_branch_exists_returns_false_for_missing_branch(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    remote = tmp_path / "remote.git"
+
+    repo.mkdir()
+    remote.mkdir()
+
+    run_git(
+        ["init", "--bare", "--initial-branch=main"],
+        remote,
+    )
+
+    init_git_repo_with_initial_commit(repo)
+
+    run_git(
+        ["remote", "add", "origin", str(remote)],
+        repo,
+    )
+
+    run_git(
+        ["push", "-u", "origin", "main"],
+        repo,
+    )
+
+    client = GitClient(repo)
+
+    assert client.remote_branch_exists("feature/missing") is False

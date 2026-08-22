@@ -26,7 +26,9 @@ class PullRequestParser:
         }
 
         if set(data) != required_fields:
-            raise InvalidPullRequestDraftError("AI response contains invalid pull request fields.")
+            raise InvalidPullRequestDraftError(
+                "AI response contains invalid or missing pull request fields."
+            )
 
         if not isinstance(data["title"], str):
             raise InvalidPullRequestDraftError("Pull request title must be a string.")
