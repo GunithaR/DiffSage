@@ -137,10 +137,15 @@ class PromptService:
     - Explain what changed in the Summary.
     - Explain the motivation or purpose in Why.
     - Describe the significant changes in Changes.
-    - Report testing evidence only from the supplied repository evidence.
-    - Do not claim that tests, linters, audits, or quality checks passed,
-    unless the supplied evidence explicitly confirms they were executed and passed.
-    - If DiffSage did not execute repository checks, state that clearly.
+    - Report testing status only from supplied repository evidence.
+    - Describe repository tests, linters, audits, or quality checks only when
+    the supplied evidence provides information about them.
+    - Do not claim that any check passed unless the supplied evidence explicitly
+    confirms that it was executed and passed.
+    - If testing evidence is unavailable, use a neutral statement such as
+    "Testing status was not provided."
+    - Do not mention DiffSage, its execution, its internal analysis, or whether
+    DiffSage itself ran repository checks.
     - Treat the supplied risk level as authoritative.
     - Do not upgrade, downgrade, or replace the supplied risk classification.
     - Explain the risk using the supplied risk signals and actual Git diff.
