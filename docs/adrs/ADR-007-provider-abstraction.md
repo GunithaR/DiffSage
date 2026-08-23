@@ -18,6 +18,8 @@ Introduce a common `BaseProvider` abstraction.
 
 All provider implementations inherit from this abstraction and expose a common interface to the service layer.
 
+The provider's `ask` method supports an optional callback parameter to track retry attempts, enabling real-time progress feedback during generation.
+
 ---
 
 ## Alternatives

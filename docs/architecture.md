@@ -58,11 +58,11 @@ Contains no business logic.
 Responsible for:
 
 - Receiving user input
-- Validating command arguments
+- Validating command arguments and performing early validation before initiating generation
 - Composing application dependencies
 - Calling services
 - Handling domain exceptions
-- Displaying terminal output through Views
+- Displaying terminal output and real-time progress feedback (such as retry attempts) through Views
 
 Commands should not implement business logic.
 
@@ -79,6 +79,7 @@ Responsible for:
 - Coordinating storage
 - Performing validation
 - Returning structured domain models
+- Supporting progress tracking and retry callbacks to enable real-time UI feedback during generation
 
 Services should not directly print to the terminal.
 
@@ -98,6 +99,8 @@ provide persistence and application infrastructure.
 Includes:
 
 - Providers
+  - Communicate with external AI services
+  - Support optional callbacks in generation methods to track and report retry attempts
 - Git
   - Provides the low-level interface for repository operations.
   - Responsibilities include:

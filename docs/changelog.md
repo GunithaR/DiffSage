@@ -20,6 +20,9 @@
 ### Changed
 
 - Improved CLI feedback during AI provider retries by displaying the current generation attempt and total allowed attempts.
+- Updated the `ask` method to accept an optional callback for tracking retry attempts.
+- Updated `generate_commit_message` to support progress tracking callbacks.
+- Moved validation logic earlier in the pull request generation process.
 
 
 ## [1.2.1] - 2026-08-13
