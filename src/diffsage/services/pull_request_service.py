@@ -1,3 +1,5 @@
+from collections.abc import Callable
+
 from diffsage.models.pull_request import PullRequestDraft
 from diffsage.parsers.pull_request_parser import PullRequestParser
 from diffsage.services.ai_service import AIService
@@ -21,7 +23,11 @@ class PullRequestService:
         self._ai_service = ai_service
         self._parser = parser
 
-    def generate_draft(self, base_branch: str) -> PullRequestDraft:
+    def generate_draft(
+        self, 
+        base_branch: str,
+        on_attempt: Callable[[int, int], None] | None = None, 
+    ) -> PullRequestDraft:
         context = self._git_service.build_pull_request_context(base_branch)
 
         analysis = self._analysis_service.analyze(context)
@@ -31,6 +37,9 @@ class PullRequestService:
             analysis,
         )
 
-        response = self._ai_service.ask(prompt)
+        response = self._ai_service.ask(
+            prompt, 
+            on_attempt=on_attempt
+        )
 
         return self._parser.parse(response.content)

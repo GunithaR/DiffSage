@@ -85,7 +85,13 @@ def test_pr_generates_and_accepts_draft():
             base_branch="main",
             head_branch="feature/pr-generation",
         )
-        mock_pr_service.return_value.generate_draft.assert_called_once_with("main")
+
+        call = mock_pr_service.return_value.generate_draft.call_args
+
+        assert call.args == ("main",)
+        assert "on_attempt" in call.kwargs
+        assert callable(call.kwargs["on_attempt"])
+
         mock_view.return_value.show_generated.assert_called_once_with(draft)
         mock_view.return_value.prompt_action.assert_called_once()
 
@@ -134,7 +140,13 @@ def test_pr_uses_explicit_base_branch():
             base_branch="develop",
             head_branch="feature/pr-generation",
         )
-        mock_pr_service.return_value.generate_draft.assert_called_once_with("develop")
+
+        call = mock_pr_service.return_value.generate_draft.call_args
+
+        assert call.args == ("develop",)
+        assert "on_attempt" in call.kwargs
+        assert callable(call.kwargs["on_attempt"])
+
         mock_view.return_value.show_generated.assert_called_once_with(draft)
 
 
@@ -189,7 +201,12 @@ def test_pr_edits_draft():
         mock_parser.return_value.parse.assert_called_once_with(edited_json)
 
         assert mock_view.return_value.show_generated.call_count == 2
-        mock_pr_service.return_value.generate_draft.assert_called_once_with("main")
+
+        call = mock_pr_service.return_value.generate_draft.call_args
+
+        assert call.args == ("main",)
+        assert "on_attempt" in call.kwargs
+        assert callable(call.kwargs["on_attempt"])
 
 
 def test_pr_regenerates_draft():
@@ -240,7 +257,11 @@ def test_pr_regenerates_draft():
 
         assert mock_pr_service.return_value.generate_draft.call_count == 2
 
-        mock_pr_service.return_value.generate_draft.assert_any_call("main")
+        for call in mock_pr_service.return_value.generate_draft.call_args_list:
+            assert call.args == ("main",)
+            assert "on_attempt" in call.kwargs
+            assert callable(call.kwargs["on_attempt"])
+
         assert mock_view.return_value.show_generated.call_count == 2
 
 
@@ -268,7 +289,12 @@ def test_pr_cancels_draft():
 
         assert result.exit_code == 0
 
-        mock_pr_service.return_value.generate_draft.assert_called_once_with("main")
+        call = mock_pr_service.return_value.generate_draft.call_args
+
+        assert call.args == ("main",)
+        assert "on_attempt" in call.kwargs
+        assert callable(call.kwargs["on_attempt"])
+
         mock_view.return_value.show_cancelled.assert_called_once()
 
 
@@ -301,7 +327,12 @@ def test_pr_reprompts_after_invalid_choice():
 
         assert mock_view.return_value.prompt_action.call_count == 2
         mock_view.return_value.show_invalid_option.assert_called_once()
-        mock_pr_service.return_value.generate_draft.assert_called_once_with("main")
+
+        call = mock_pr_service.return_value.generate_draft.call_args
+
+        assert call.args == ("main",)
+        assert "on_attempt" in call.kwargs
+        assert callable(call.kwargs["on_attempt"])
 
 
 def test_pr_exits_when_not_in_git_repository():
@@ -578,8 +609,6 @@ def test_pr_exits_when_remote_branch_does_not_exist():
             "Remote branch 'feature/pr-generation' does not exist on origin."
         )
 
-        create_pull_request_draft()
-
         result = runner.invoke(app, ["pr"])
 
         assert result.exit_code == 1
@@ -588,7 +617,7 @@ def test_pr_exits_when_remote_branch_does_not_exist():
             "feature/pr-generation"
         )
         mock_pr_service.return_value.generate_draft.assert_not_called()
-        mock_github_service.return_value.valiadte.assert_not_called()
+        mock_github_service.return_value.validate.assert_not_called()
         mock_github_service.return_value.create_pull_request.assert_not_called()
         mock_view.return_value.show_error.assert_called_once()
 
@@ -615,8 +644,6 @@ def test_pr_exits_when_branch_has_unpushed_commits():
             "that have not been pushed to origin."
         )
 
-        create_pull_request_draft()
-
         result = runner.invoke(app, ["pr"])
 
         assert result.exit_code == 1
@@ -625,6 +652,6 @@ def test_pr_exits_when_branch_has_unpushed_commits():
             "feature/pr-generation"
         )
         mock_pr_service.return_value.generate_draft.assert_not_called()
-        mock_github_service.return_value.valiadte.assert_not_called()
+        mock_github_service.return_value.validate.assert_not_called()
         mock_github_service.return_value.create_pull_request.assert_not_called()
         mock_view.return_value.show_error.assert_called_once()

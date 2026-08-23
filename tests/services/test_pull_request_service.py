@@ -142,13 +142,12 @@ def test_generate_draft_returns_generated_pull_request_draft() -> None:
     ai_service.ask.return_value = response
     parser.parse.return_value = draft
 
-    git_service.build_pull_request_context.return_value = context
-    analysis_service.analyze.return_value = analysis
-    prompt_service.build_pull_request_prompt.return_value = "generated prompt"
-    ai_service.ask.return_value = response
-    parser.parse.return_value = draft
+    on_attempt = Mock()
 
-    result = service.generate_draft("main")
+    result = service.generate_draft(
+        "main",
+        on_attempt=on_attempt,
+    )
 
     assert result == draft
 
@@ -158,7 +157,13 @@ def test_generate_draft_returns_generated_pull_request_draft() -> None:
         context,
         analysis,
     )
-    ai_service.ask.assert_called_once_with("generated prompt")
+
+    call = ai_service.ask.call_args
+
+    assert call.args[0] == "generated prompt"
+    assert "on_attempt" in call.kwargs
+    assert call.kwargs["on_attempt"] is on_attempt
+
     parser.parse.assert_called_once_with(response.content)
 
 

@@ -89,9 +89,12 @@ def pr(
             head_branch=head_branch,
         )
 
-        with view.generating():
+        with view.generating() as status:
             draft = pull_request_service.generate_draft(
                 resolved_base_branch,
+                on_attempt=lambda attempt, total: status.update(
+                    f"Generating pull request draft... Atempt {attempt}/{total}"
+                ),
             )
 
         view.show_generated(draft)
@@ -136,6 +139,9 @@ def pr(
                 with view.generating():
                     draft = pull_request_service.generate_draft(
                         resolved_base_branch,
+                        on_attempt=lambda attempt, total: status.update(
+                            f"Generating pull request draft... Attempt {attempt}/{total}"
+                        ),
                     )
 
                 view.show_generated(draft)

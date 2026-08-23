@@ -15,8 +15,8 @@ class CommitView(BaseView):
 
     @contextmanager
     def generating(self):
-        with self._console.status("Generating commit message..."):
-            yield
+        with self._console.status("Generating commit message...") as status:
+            yield status
 
     def show_generated(self) -> None:
         self._console.print("[green]✓ Commit message generated successfully.[/green]")
