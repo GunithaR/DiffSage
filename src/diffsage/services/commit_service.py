@@ -1,3 +1,5 @@
+from collections.abc import Callable
+
 from diffsage.exceptions import NoStagedChangesError, NotGitRepositoryError
 from diffsage.git.client import GitClient
 from diffsage.logging.logger import get_logger
@@ -21,7 +23,10 @@ class CommitService:
         self._prompt_service = prompt_service
         self._ai_service = ai_service
 
-    def generate_commit_message(self) -> str:
+    def generate_commit_message(
+        self,
+        on_attempt: Callable[[int, int], None] | None = None,
+    ) -> str:
         if not self._git_client.is_git_repository():
             raise NotGitRepositoryError
 
@@ -32,7 +37,10 @@ class CommitService:
         prompt = self._prompt_service.build_commit_prompt(context)
 
         logger.info("Generating commit message.")
-        response = self._ai_service.ask(prompt)
+        response = self._ai_service.ask(
+            prompt,
+            on_attempt=on_attempt,
+        )
         logger.info("Commit message generated successfully.")
 
         return response.content

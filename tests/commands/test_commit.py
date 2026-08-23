@@ -35,7 +35,7 @@ def test_commit_calls_git_commit_on_confirmation():
         patch("diffsage.commands.commit.get_credentials_path") as mock_get_path,
         patch("diffsage.commands.commit.CredentialsRepository") as mock_repository,
         patch("diffsage.commands.commit.CredentialService") as mock_credential_service,
-        patch("diffsage.commands.commit.CommitView.prompt_action", return_value="y"),
+        patch("diffsage.commands.commit.CommitView") as mock_view,
     ):
         git = mock_git.return_value
         settings = mock_load_settings.return_value
@@ -48,7 +48,14 @@ def test_commit_calls_git_commit_on_confirmation():
         service = mock_commit_service.return_value
         service.generate_commit_message.return_value = "feat: add commit command"
 
+        mock_view.return_value.prompt_action.return_value = "y"
+
         commit()
+
+        call = service.generate_commit_message.call_args
+
+        assert "on_attempt" in call.kwargs
+        assert callable(call.kwargs["on_attempt"])
 
         service.generate_commit_message.assert_called_once()
         git.commit.assert_called_once_with("feat: add commit command")
@@ -73,7 +80,7 @@ def test_commit_cancels_when_user_declines():
         patch("diffsage.commands.commit.get_credentials_path"),
         patch("diffsage.commands.commit.CredentialsRepository"),
         patch("diffsage.commands.commit.CredentialService"),
-        patch("diffsage.commands.commit.CommitView.prompt_action", return_value="n"),
+        patch("diffsage.commands.commit.CommitView") as mock_view,
     ):
         git = mock_git.return_value
 
@@ -83,7 +90,14 @@ def test_commit_cancels_when_user_declines():
         service = mock_commit_service.return_value
         service.generate_commit_message.return_value = "feat: add commit command"
 
+        mock_view.return_value.prompt_action.return_value = "n"
+
         commit()
+
+        call = service.generate_commit_message.call_args
+
+        assert "on_attempt" in call.kwargs
+        assert callable(call.kwargs["on_attempt"])
 
         service.generate_commit_message.assert_called_once()
         git.commit.assert_not_called()
@@ -98,7 +112,7 @@ def test_commit_regenerates_when_user_chooses():
         patch("diffsage.commands.commit.get_credentials_path"),
         patch("diffsage.commands.commit.CredentialsRepository"),
         patch("diffsage.commands.commit.CredentialService"),
-        patch("diffsage.commands.commit.CommitView.prompt_action", side_effect=["r", "y"]),
+        patch("diffsage.commands.commit.CommitView") as mock_view,
     ):
         git = mock_git.return_value
 
@@ -108,9 +122,14 @@ def test_commit_regenerates_when_user_chooses():
         service = mock_commit_service.return_value
         service.generate_commit_message.return_value = "feat: add commit command"
 
+        mock_view.return_value.prompt_action.side_effect = ["r", "y"]
+
         commit()
 
         assert service.generate_commit_message.call_count == 2
+
+        for call in service.generate_commit_message.call_args_list:
+            assert callable(call.kwargs["on_attempt"])
         git.commit.assert_called_once_with("feat: add commit command")
 
 
@@ -123,7 +142,7 @@ def test_commit_reprompts_after_invalid_choice():
         patch("diffsage.commands.commit.get_credentials_path"),
         patch("diffsage.commands.commit.CredentialsRepository"),
         patch("diffsage.commands.commit.CredentialService"),
-        patch("diffsage.commands.commit.CommitView.prompt_action", side_effect=["x", "y"]),
+        patch("diffsage.commands.commit.CommitView") as mock_view,
     ):
         git = mock_git.return_value
 
@@ -133,7 +152,14 @@ def test_commit_reprompts_after_invalid_choice():
         service = mock_commit_service.return_value
         service.generate_commit_message.return_value = "feat: add commit command"
 
+        mock_view.return_value.prompt_action.side_effect = ["x", "y"]
+
         commit()
+
+        call = service.generate_commit_message.call_args
+
+        assert "on_attempt" in call.kwargs
+        assert callable(call.kwargs["on_attempt"])
 
         service.generate_commit_message.assert_called_once()
         git.commit.assert_called_once_with("feat: add commit command")
@@ -149,7 +175,7 @@ def test_commit_uses_edited_message():
         patch("diffsage.commands.commit.get_credentials_path"),
         patch("diffsage.commands.commit.CredentialsRepository"),
         patch("diffsage.commands.commit.CredentialService"),
-        patch("diffsage.commands.commit.CommitView.prompt_action", side_effect=["e", "y"]),
+        patch("diffsage.commands.commit.CommitView") as mock_view,
     ):
         git = mock_git.return_value
 
@@ -162,7 +188,14 @@ def test_commit_uses_edited_message():
         editor = mock_editor.return_value
         editor.edit.return_value = "feat(commit): edited commit message"
 
+        mock_view.return_value.prompt_action.side_effect = ["e", "y"]
+
         commit()
+
+        call = service.generate_commit_message.call_args
+
+        assert "on_attempt" in call.kwargs
+        assert callable(call.kwargs["on_attempt"])
 
         service.generate_commit_message.assert_called_once()
         editor.edit.assert_called_once_with("feat: add commit command")

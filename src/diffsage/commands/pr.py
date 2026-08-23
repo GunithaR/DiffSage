@@ -81,14 +81,20 @@ def pr(
         resolved_base_branch = git_service.resolve_base_branch(base_branch)
         head_branch = git_service.current_branch()
 
+        git_service.validate_remote_head(head_branch)
+        github_service.validate()
+
         view.show_branches(
             base_branch=resolved_base_branch,
             head_branch=head_branch,
         )
 
-        with view.generating():
+        with view.generating() as status:
             draft = pull_request_service.generate_draft(
                 resolved_base_branch,
+                on_attempt=lambda attempt, total: status.update(
+                    f"Generating pull request draft... Attempt {attempt}/{total}"
+                ),
             )
 
         view.show_generated(draft)
@@ -98,8 +104,6 @@ def pr(
 
             if choice in ("", "y"):
                 logger.info("User accepted pull request draft.")
-
-                git_service.validate_remote_head(head_branch)
 
                 with view.creating():
                     pull_request_url = github_service.create_pull_request(
@@ -135,6 +139,9 @@ def pr(
                 with view.generating():
                     draft = pull_request_service.generate_draft(
                         resolved_base_branch,
+                        on_attempt=lambda attempt, total: status.update(
+                            f"Generating pull request draft... Attempt {attempt}/{total}"
+                        ),
                     )
 
                 view.show_generated(draft)

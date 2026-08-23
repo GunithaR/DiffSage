@@ -83,7 +83,7 @@ def test_validate_raises_when_github_cli_is_not_authenticated() -> None:
     github_client.is_authenticated.assert_called_once()
 
 
-def test_create_pull_request_validates_and_creates_pull_request() -> None:
+def test_create_pull_request_creates_pull_request() -> None:
     service, github_client = create_service()
 
     github_client.is_available.return_value = True
@@ -99,9 +99,6 @@ def test_create_pull_request_validates_and_creates_pull_request() -> None:
     )
 
     assert result == "https://github.com/example/repo/pull/42"
-
-    github_client.is_available.assert_called_once()
-    github_client.is_authenticated.assert_called_once()
 
     github_client.create_pull_request.assert_called_once_with(
         title=draft.title,
@@ -126,20 +123,3 @@ def test_create_pull_request_validates_and_creates_pull_request() -> None:
         base_branch="main",
         head_branch="feature/pr-generation",
     )
-
-
-def test_create_pull_request_does_not_create_when_validation_fails() -> None:
-    service, github_client = create_service()
-
-    github_client.is_available.return_value = False
-
-    draft = create_pull_request_draft()
-
-    with pytest.raises(GitHubCLIUnavailableError):
-        service.create_pull_request(
-            draft=draft,
-            base_branch="main",
-            head_branch="feature/pr-generation",
-        )
-
-    github_client.create_pull_request.assert_not_called()

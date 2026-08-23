@@ -1,3 +1,5 @@
+from collections.abc import Callable
+
 from diffsage.config.loader import load_settings
 from diffsage.config.paths import get_credentials_path
 from diffsage.exceptions import (
@@ -22,8 +24,13 @@ from diffsage.ui.commit_view import CommitView
 logger = get_logger(__name__)
 
 
-def generate_message(commit_service: CommitService) -> str:
-    return commit_service.generate_commit_message()
+def generate_message(
+    commit_service: CommitService,
+    on_attempt: Callable[[int, int], None] | None = None,
+) -> str:
+    return commit_service.generate_commit_message(
+        on_attempt=on_attempt,
+    )
 
 
 def commit() -> None:
@@ -54,8 +61,13 @@ def commit() -> None:
             ai_service,
         )
 
-        with view.generating():
-            raw_message = generate_message(commit_service)
+        with view.generating() as status:
+            raw_message = generate_message(
+                commit_service,
+                on_attempt=lambda attempt, total: status.update(
+                    f"Generating commit message... Attempt {attempt}/{total}"
+                ),
+            )
             commit_message = CommitMessageParser.parse(raw_message)
 
         view.show_generated()
@@ -79,8 +91,13 @@ def commit() -> None:
 
             if choice == "r":
                 logger.info("User selected regenerate.")
-                with view.generating():
-                    raw_message = generate_message(commit_service)
+                with view.generating() as status:
+                    raw_message = generate_message(
+                        commit_service,
+                        on_attempt=lambda attempt, total: status.update(
+                            f"Generating commit message... Attempt {attempt}/{total}"
+                        ),
+                    )
                     commit_message = CommitMessageParser.parse(raw_message)
 
                 view.show_generated()

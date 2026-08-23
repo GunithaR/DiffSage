@@ -26,8 +26,8 @@ class PullRequestView(BaseView):
 
     @contextmanager
     def generating(self):
-        with self._console.status("Generating pull request draft..."):
-            yield
+        with self._console.status("Generating pull request draft...") as status:
+            yield status
 
     def show_generated(self, draft: PullRequestDraft) -> None:
         content = Text()

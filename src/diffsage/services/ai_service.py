@@ -1,4 +1,5 @@
 import time
+from collections.abc import Callable
 
 from diffsage.config.settings import Settings
 from diffsage.exceptions import CredentialNotFoundError, ProviderUnavailableError
@@ -48,10 +49,19 @@ class AIService:
     def _backoff_delay(self, attempt: int) -> int:
         return 2**attempt
 
-    def ask(self, prompt: str) -> ProviderResponse:
+    def ask(
+        self,
+        prompt: str,
+        on_attempt: Callable[[int, int], None] | None = None,
+    ) -> ProviderResponse:
         total_attempts = self._settings.max_retries + 1
 
         for attempt in range(total_attempts):
+            attempt_number = attempt + 1
+
+            if on_attempt is not None:
+                on_attempt(attempt_number, total_attempts)
+
             try:
                 return self._ask_once(prompt)
 
