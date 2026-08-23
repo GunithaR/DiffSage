@@ -1,4 +1,5 @@
 import logging
+from importlib.metadata import version
 
 import typer
 
@@ -14,8 +15,23 @@ from diffsage.logging.logger import configure_logging
 app = typer.Typer(help="DiffSage: AI-aware Git workflow toolkit")
 
 
+def version_callback(value: bool) -> None:
+    if value:
+        typer.echo(version("diffsage"))
+        raise typer.Exit()
+
+
 @app.callback()
-def main() -> None:
+def main(
+    version: bool = typer.Option(
+        False,
+        "--version",
+        "-v",
+        callback=version_callback,
+        is_eager=True,
+        help="Show the Diffsage version.",
+    ),
+) -> None:
     """
     Initialize DiffSage.
     """

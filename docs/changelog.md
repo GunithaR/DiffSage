@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.3.1] - 2026-08-23
+
+### Added
+
+- Added `diffsage --version` and `diffsage -v` options to display the installed DiffSage version.
+- Added automated tests for the version options.
+
+### Changed
+
+- CLI version information is resolved from the installed package metadata.
+
+
 ## [1.3.0] - 2026-08-23
 
 ### Added
