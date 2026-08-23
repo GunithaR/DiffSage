@@ -24,9 +24,9 @@ class PullRequestService:
         self._parser = parser
 
     def generate_draft(
-        self, 
+        self,
         base_branch: str,
-        on_attempt: Callable[[int, int], None] | None = None, 
+        on_attempt: Callable[[int, int], None] | None = None,
     ) -> PullRequestDraft:
         context = self._git_service.build_pull_request_context(base_branch)
 
@@ -37,9 +37,6 @@ class PullRequestService:
             analysis,
         )
 
-        response = self._ai_service.ask(
-            prompt, 
-            on_attempt=on_attempt
-        )
+        response = self._ai_service.ask(prompt, on_attempt=on_attempt)
 
         return self._parser.parse(response.content)

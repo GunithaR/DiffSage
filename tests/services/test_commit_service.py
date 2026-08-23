@@ -3,6 +3,7 @@ from unittest.mock import Mock
 from diffsage.models.provider import ProviderResponse
 from diffsage.services.commit_service import CommitService
 
+
 def test_generate_commit_message_forwards_attempt_callback() -> None:
     git_client = Mock()
     git_service = Mock()
@@ -16,7 +17,7 @@ def test_generate_commit_message_forwards_attempt_callback() -> None:
         content='{"message": "feat: add retry progress"}',
         provider="test-provider",
         model="test-model",
-        input_tokens=10, 
+        input_tokens=10,
         output_tokens=20,
         finish_reason="stop",
         latency_ms=100,

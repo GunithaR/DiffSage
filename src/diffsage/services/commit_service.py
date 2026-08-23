@@ -1,4 +1,4 @@
-from collections.abc import Callable 
+from collections.abc import Callable
 
 from diffsage.exceptions import NoStagedChangesError, NotGitRepositoryError
 from diffsage.git.client import GitClient

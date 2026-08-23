@@ -534,10 +534,8 @@ def test_pr_exits_when_github_cli_is_unavailable():
 
         mock_view.return_value.prompt_action.return_value = "y"
 
-        mock_github_service.return_value.validate.side_effect = (
-            GitHubCLIUnavailableError(
-                "GitHub CLI is not installed. Install GitHub CLI and try again."
-            )
+        mock_github_service.return_value.validate.side_effect = GitHubCLIUnavailableError(
+            "GitHub CLI is not installed. Install GitHub CLI and try again."
         )
 
         result = runner.invoke(app, ["pr"])
@@ -571,10 +569,8 @@ def test_pr_exits_when_github_cli_is_not_authenticated():
 
         mock_view.return_value.prompt_action.return_value = "y"
 
-        mock_github_service.return_value.validate.side_effect = (
-            GitHubAuthenticationError(
-                "GitHub CLI is not authenticated. Run 'gh auth login' and try again."
-            )
+        mock_github_service.return_value.validate.side_effect = GitHubAuthenticationError(
+            "GitHub CLI is not authenticated. Run 'gh auth login' and try again."
         )
 
         result = runner.invoke(app, ["pr"])

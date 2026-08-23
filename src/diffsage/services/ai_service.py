@@ -1,6 +1,5 @@
-from collections.abc import Callable
-
 import time
+from collections.abc import Callable
 
 from diffsage.config.settings import Settings
 from diffsage.exceptions import CredentialNotFoundError, ProviderUnavailableError
@@ -51,7 +50,7 @@ class AIService:
         return 2**attempt
 
     def ask(
-        self, 
+        self,
         prompt: str,
         on_attempt: Callable[[int, int], None] | None = None,
     ) -> ProviderResponse:
@@ -62,7 +61,7 @@ class AIService:
 
             if on_attempt is not None:
                 on_attempt(attempt_number, total_attempts)
-                
+
             try:
                 return self._ask_once(prompt)
 

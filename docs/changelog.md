@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.3.0] - 2026-08-22
+## [1.3.0] - 2026-08-23
 
 ### Added
 
@@ -14,6 +14,12 @@
 - Pull request creation through GitHub.
 - Pull request URL display after successful creation.
 - Comprehensive automated tests for pull request generation and creation.
+- Display AI generation attempt progress during commit message generation.
+- Display AI generation attempt progress during pull request draft generation.
+
+### Changed
+
+- Improved CLI feedback during AI provider retries by displaying the current generation attempt and total allowed attempts.
 
 
 ## [1.2.1] - 2026-08-13
