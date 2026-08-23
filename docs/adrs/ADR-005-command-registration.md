@@ -14,7 +14,7 @@ CLI command registration should remain centralized as the number of commands gro
 
 ## Decision
 
-Register commands from the CLI layer instead of scattering registration logic across command modules.
+Register commands from the CLI layer instead of scattering registration logic across command modules. Additionally, expose a `--version` / `-v` command line option at the CLI entry point to allow users to check the installed version of the tool (updated to 1.3.1).
 
 ---
 

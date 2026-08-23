@@ -23,6 +23,8 @@ DiffSage centralizes that logic into a single toolkit.
 
 Instead of reinventing Git operations in every script or AI workflow, developers and automation can invoke DiffSage commands that handle repository validation, Git interactions, AI integration, and workflow execution through a consistent interface.
 
+With the release of version 1.3.1, DiffSage also includes standard CLI options like `--version` (or `-v`) to easily verify the installed version, ensuring predictable behavior across automated environments.
+
 ---
 
 # Philosophy

@@ -46,7 +46,7 @@ Infrastructure
 Responsible for:
 
 - Initializing the Typer application
-- Registering commands
+- Registering commands and global options (such as `--version`/`-v` to display the current package version, 1.3.1)
 - Starting the application
 
 Contains no business logic.
@@ -57,7 +57,7 @@ Contains no business logic.
 
 Responsible for:
 
-- Receiving user input
+- Receiving user input and command-line options
 - Validating command arguments
 - Composing application dependencies
 - Calling services
@@ -80,7 +80,7 @@ Responsible for:
 - Performing validation
 - Returning structured domain models
 
-Services should not directly print to the terminal.
+**Services should not directly print to the terminal.**
 
 Services communicate using structured report models rather than terminal output, 
 raw subprocess output, provider-specific JSON, or formatted terminal text whenever practical.
