@@ -38,7 +38,8 @@ def test_isolated_env_redirects_config_credentials_and_logs(isolated_env) -> Non
     assert get_log_file_path().is_relative_to(isolated_env.log_dir)
 
 
-def test_isolated_env_ignores_diffsage_environment_variables(isolated_env) -> None:
+@pytest.mark.usefixtures("isolated_env")
+def test_isolated_env_ignores_diffsage_environment_variables() -> None:
     settings = load_settings()
 
     assert settings.provider == "gemini"
@@ -55,7 +56,7 @@ def test_fake_provider_returns_queued_responses_and_records_prompts(fake_provide
 
 
 def test_fake_provider_raises_queued_exceptions(fake_provider, monkeypatch) -> None:
-    monkeypatch.setattr("diffsage.services.ai_service.time.sleep", lambda seconds: None)
+    monkeypatch.setattr("diffsage.services.ai_service.time.sleep", lambda _seconds: None)
     fake_provider.queue(ProviderUnavailableError("down"), "recovered")
 
     response = create_ai_service().ask("prompt")
@@ -64,7 +65,8 @@ def test_fake_provider_raises_queued_exceptions(fake_provider, monkeypatch) -> N
     assert len(fake_provider.requests) == 2
 
 
-def test_fake_provider_fails_loudly_without_queued_response(fake_provider) -> None:
+@pytest.mark.usefixtures("fake_provider")
+def test_fake_provider_fails_loudly_without_queued_response() -> None:
     with pytest.raises(AssertionError, match="no queued response"):
         create_ai_service().ask("prompt")
 
@@ -113,7 +115,8 @@ def test_git_repo_is_working_directory_with_one_commit(git_repo: Path) -> None:
     assert len(client.recent_commits()) == 1
 
 
-def test_git_remote_tracks_main(git_repo: Path, git_remote: Path) -> None:
+@pytest.mark.usefixtures("git_repo", "git_remote")
+def test_git_remote_tracks_main() -> None:
     client = GitClient()
 
     assert client.remote_branch_commit("main") == client.current_commit()

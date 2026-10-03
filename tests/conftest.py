@@ -10,19 +10,23 @@ from diffsage.storage.credentials_repository import CredentialsRepository
 from tests.fakes import FakeGitHubCLI, FakeProvider
 from tests.helpers import init_git_repo_with_initial_commit, run_git
 
+DIFFSAGE_ENV_VARIABLES = [
+    "DIFFSAGE_PROVIDER",
+    "DIFFSAGE_AI_MODEL",
+    "DIFFSAGE_TIMEOUT",
+    "DIFFSAGE_MAX_RETRIES",
+    "DIFFSAGE_LOG_LEVEL",
+]
+
+
+def remove_diffsage_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    for variable in DIFFSAGE_ENV_VARIABLES:
+        monkeypatch.delenv(variable, raising=False)
+
 
 @pytest.fixture
 def clean_diffsage_env(monkeypatch):
-    variables = [
-        "DIFFSAGE_PROVIDER",
-        "DIFFSAGE_AI_MODEL",
-        "DIFFSAGE_TIMEOUT",
-        "DIFFSAGE_MAX_RETRIES",
-        "DIFFSAGE_LOG_LEVEL",
-    ]
-
-    for variable in variables:
-        monkeypatch.delenv(variable, raising=False)
+    remove_diffsage_env(monkeypatch)
 
 
 @dataclass(slots=True)
@@ -32,27 +36,29 @@ class IsolatedEnv:
 
 
 @pytest.fixture
-def isolated_env(tmp_path, monkeypatch, clean_diffsage_env) -> IsolatedEnv:
+def isolated_env(tmp_path, monkeypatch) -> IsolatedEnv:
     """Keep DiffSage away from the developer's real config, credentials, logs and .env.
 
     platformdirs is patched directly because on Windows it ignores HOME-style
     environment variables.
     """
 
+    remove_diffsage_env(monkeypatch)
+
     config_dir = tmp_path / "config"
     log_dir = tmp_path / "logs"
 
     monkeypatch.setattr(
         "diffsage.config.paths.user_config_path",
-        lambda *args, **kwargs: config_dir,
+        lambda *_args, **_kwargs: config_dir,
     )
     monkeypatch.setattr(
         "diffsage.config.paths.user_log_path",
-        lambda *args, **kwargs: log_dir,
+        lambda *_args, **_kwargs: log_dir,
     )
     monkeypatch.setattr(
         "diffsage.config.resolver.load_dotenv",
-        lambda *args, **kwargs: False,
+        lambda *_args, **_kwargs: False,
     )
     monkeypatch.setattr("diffsage.logging.logger._CONFIGURED", True)
 
@@ -104,8 +110,13 @@ def git_remote(tmp_path, git_repo) -> Path:
 def credential(isolated_env) -> Credential:
     """A stored default Gemini credential in the isolated config directory."""
 
+    path = get_credentials_path()
+
+    # Guard: never write a test credential over the developer's real one.
+    assert path.is_relative_to(isolated_env.config_dir)
+
     stored = Credential(provider="gemini", name="default", api_key="test-api-key")
-    CredentialsRepository(get_credentials_path()).save(stored)
+    CredentialsRepository(path).save(stored)
 
     return stored
 
@@ -116,9 +127,13 @@ def fake_provider(monkeypatch, credential) -> FakeProvider:
 
     provider = FakeProvider()
 
+    def create_fake_provider(_settings, used_credential: Credential) -> FakeProvider:
+        assert used_credential == credential
+        return provider
+
     monkeypatch.setattr(
         "diffsage.services.ai_service.create_provider",
-        lambda settings, credential: provider,
+        create_fake_provider,
     )
 
     return provider
@@ -133,7 +148,7 @@ def fake_gh(tmp_path, monkeypatch) -> FakeGitHubCLI:
     monkeypatch.setattr(
         GitHubClient,
         "_run_gh_command",
-        lambda self, args: cli.run(args),
+        lambda _self, args: cli.run(args),
     )
 
     return cli

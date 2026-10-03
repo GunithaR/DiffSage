@@ -42,6 +42,8 @@ def feature_branch(git_repo: Path, git_remote: Path) -> Path:
     commit_file(git_repo, "greeting.py", "print('hello')\n", "feat: add greeting script")
     run_git(["push", "-u", "origin", "feature/greeting"], git_repo)
 
+    assert run_git(["branch", "--list", "feature/greeting"], git_remote).stdout.strip()
+
     return git_repo
 
 
@@ -49,7 +51,8 @@ def pr_create_call(calls: list[list[str]]) -> list[str] | None:
     return next((call for call in calls if call[:2] == ["pr", "create"]), None)
 
 
-def test_pr_accept_creates_pull_request(feature_branch, fake_provider, fake_gh) -> None:
+@pytest.mark.usefixtures("feature_branch")
+def test_pr_accept_creates_pull_request(fake_provider, fake_gh) -> None:
     fake_provider.queue(draft_json())
 
     result = runner.invoke(app, ["pr"], input="y\n")
@@ -71,7 +74,8 @@ def test_pr_accept_creates_pull_request(feature_branch, fake_provider, fake_gh) 
     assert "## Summary\nAdds a script that prints a greeting." in call[9]
 
 
-def test_pr_prompt_contains_branch_evidence(feature_branch, fake_provider, fake_gh) -> None:
+@pytest.mark.usefixtures("feature_branch", "fake_gh")
+def test_pr_prompt_contains_branch_evidence(fake_provider) -> None:
     fake_provider.queue(draft_json())
 
     runner.invoke(app, ["pr"], input="n\n")
@@ -83,7 +87,8 @@ def test_pr_prompt_contains_branch_evidence(feature_branch, fake_provider, fake_
     assert "feat: add greeting script" in prompt
 
 
-def test_pr_shows_resolved_branches(feature_branch, fake_provider, fake_gh) -> None:
+@pytest.mark.usefixtures("feature_branch", "fake_gh")
+def test_pr_shows_resolved_branches(fake_provider) -> None:
     fake_provider.queue(draft_json())
 
     result = runner.invoke(app, ["pr"], input="n\n")
@@ -92,7 +97,8 @@ def test_pr_shows_resolved_branches(feature_branch, fake_provider, fake_gh) -> N
     assert "Base: main" in result.output
 
 
-def test_pr_cancel_creates_nothing(feature_branch, fake_provider, fake_gh) -> None:
+@pytest.mark.usefixtures("feature_branch")
+def test_pr_cancel_creates_nothing(fake_provider, fake_gh) -> None:
     fake_provider.queue(draft_json())
 
     result = runner.invoke(app, ["pr"], input="n\n")
@@ -102,7 +108,8 @@ def test_pr_cancel_creates_nothing(feature_branch, fake_provider, fake_gh) -> No
     assert pr_create_call(fake_gh.calls) is None
 
 
-def test_pr_regenerate_uses_second_draft(feature_branch, fake_provider, fake_gh) -> None:
+@pytest.mark.usefixtures("feature_branch")
+def test_pr_regenerate_uses_second_draft(fake_provider, fake_gh) -> None:
     fake_provider.queue(draft_json(title="First draft"), draft_json(title="Second draft"))
 
     result = runner.invoke(app, ["pr"], input="r\ny\n")
@@ -122,7 +129,8 @@ def test_pr_against_explicit_base_branch(feature_branch, fake_provider, fake_gh)
     assert pr_create_call(fake_gh.calls)[2:4] == ["--base", "develop"]
 
 
-def test_pr_with_unpushed_commits_exits_before_ai(feature_branch, fake_provider, fake_gh) -> None:
+@pytest.mark.usefixtures("fake_gh")
+def test_pr_with_unpushed_commits_exits_before_ai(feature_branch, fake_provider) -> None:
     commit_file(feature_branch, "extra.py", "print('extra')\n", "feat: add extra script")
 
     result = runner.invoke(app, ["pr"])
@@ -132,7 +140,8 @@ def test_pr_with_unpushed_commits_exits_before_ai(feature_branch, fake_provider,
     assert fake_provider.requests == []
 
 
-def test_pr_with_unpushed_branch_exits(git_repo, git_remote, fake_provider, fake_gh) -> None:
+@pytest.mark.usefixtures("git_remote", "fake_provider", "fake_gh")
+def test_pr_with_unpushed_branch_exits(git_repo) -> None:
     run_git(["switch", "-c", "feature/local-only"], git_repo)
     commit_file(git_repo, "local.py", "print('local')\n", "feat: add local script")
 
@@ -142,14 +151,16 @@ def test_pr_with_unpushed_branch_exits(git_repo, git_remote, fake_provider, fake
     assert "Remote branch does not exist on origin" in result.output
 
 
-def test_pr_on_base_branch_exits(git_repo, git_remote, fake_provider, fake_gh) -> None:
+@pytest.mark.usefixtures("git_remote", "fake_provider", "fake_gh")
+def test_pr_on_base_branch_exits() -> None:
     result = runner.invoke(app, ["pr"])
 
     assert result.exit_code == 1
     assert "Current branch and base branch are the same" in result.output
 
 
-def test_pr_unauthenticated_gh_exits_before_ai(feature_branch, fake_provider, fake_gh) -> None:
+@pytest.mark.usefixtures("feature_branch")
+def test_pr_unauthenticated_gh_exits_before_ai(fake_provider, fake_gh) -> None:
     fake_gh.configure(authenticated=False)
 
     result = runner.invoke(app, ["pr"])
@@ -159,7 +170,8 @@ def test_pr_unauthenticated_gh_exits_before_ai(feature_branch, fake_provider, fa
     assert fake_provider.requests == []
 
 
-def test_pr_without_gh_installed_exits(feature_branch, fake_provider, fake_gh) -> None:
+@pytest.mark.usefixtures("feature_branch", "fake_provider")
+def test_pr_without_gh_installed_exits(fake_gh) -> None:
     fake_gh.installed = False
 
     result = runner.invoke(app, ["pr"])
@@ -168,7 +180,8 @@ def test_pr_without_gh_installed_exits(feature_branch, fake_provider, fake_gh) -
     assert "GitHub CLI is not installed" in result.output
 
 
-def test_pr_invalid_ai_json_exits(feature_branch, fake_provider, fake_gh) -> None:
+@pytest.mark.usefixtures("feature_branch")
+def test_pr_invalid_ai_json_exits(fake_provider, fake_gh) -> None:
     fake_provider.queue("This is not JSON")
 
     result = runner.invoke(app, ["pr"])

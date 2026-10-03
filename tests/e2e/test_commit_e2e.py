@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+import pytest
 from typer.testing import CliRunner
 
 from diffsage.cli import app
@@ -93,7 +94,8 @@ def test_commit_rejects_invalid_option_then_commits(git_repo, fake_provider) -> 
     assert commit_count(git_repo) == 2
 
 
-def test_commit_without_staged_changes_exits_without_calling_ai(git_repo, fake_provider) -> None:
+@pytest.mark.usefixtures("git_repo")
+def test_commit_without_staged_changes_exits_without_calling_ai(fake_provider) -> None:
     result = runner.invoke(app, ["commit"])
 
     assert result.exit_code == 1
@@ -113,7 +115,8 @@ def test_commit_outside_git_repository_exits(tmp_path, monkeypatch, fake_provide
     assert fake_provider.requests == []
 
 
-def test_commit_without_credential_exits(git_repo, isolated_env) -> None:
+@pytest.mark.usefixtures("isolated_env")
+def test_commit_without_credential_exits(git_repo) -> None:
     stage_file(git_repo, "greeting.py", "print('hello')\n")
 
     result = runner.invoke(app, ["commit"])

@@ -1,8 +1,11 @@
+from typing import override
+
 from diffsage.models.provider import ProviderRequest, ProviderResponse
 from diffsage.providers.base import BaseProvider
 
 
 class FakeProvider(BaseProvider):
+    @override
     def generate(self, request: ProviderRequest) -> ProviderResponse:
         return ProviderResponse(
             content="Response",
