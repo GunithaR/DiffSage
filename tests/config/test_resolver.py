@@ -1,12 +1,15 @@
 from pathlib import Path
 from unittest.mock import Mock, patch
 
+import pytest
+
 from diffsage.config.defaults import DEFAULT_CONFIG
 from diffsage.config.resolver import resolve_settings
 from diffsage.config.schema import PartialDiffSageConfig, PartialNetworkConfig
 
 
-def test_resolver_uses_defaults_when_no_config_files_exist(clean_diffsage_env):
+@pytest.mark.usefixtures("clean_diffsage_env")
+def test_resolver_uses_defaults_when_no_config_files_exist():
     with (
         patch(
             "diffsage.config.resolver.load_dotenv",
@@ -30,7 +33,8 @@ def test_resolver_uses_defaults_when_no_config_files_exist(clean_diffsage_env):
     mock_loader.assert_not_called()
 
 
-def test_resolver_uses_global_config_values(clean_diffsage_env):
+@pytest.mark.usefixtures("clean_diffsage_env")
+def test_resolver_uses_global_config_values():
     mock_global_path = Mock(spec=Path)
     mock_global_path.exists.return_value = True
 
@@ -64,7 +68,8 @@ def test_resolver_uses_global_config_values(clean_diffsage_env):
     mock_loader.assert_called_once()
 
 
-def test_resolver_uses_local_config_values(clean_diffsage_env):
+@pytest.mark.usefixtures("clean_diffsage_env")
+def test_resolver_uses_local_config_values():
     mock_global_path = Mock(spec=Path)
     mock_global_path.exists.return_value = True
 
@@ -110,7 +115,8 @@ def test_resolver_uses_local_config_values(clean_diffsage_env):
     assert mock_loader.call_count == 2
 
 
-def test_resolver_uses_env_config_values(clean_diffsage_env, monkeypatch):
+@pytest.mark.usefixtures("clean_diffsage_env")
+def test_resolver_uses_env_config_values(monkeypatch):
     mock_global_path = Mock(spec=Path)
     mock_global_path.exists.return_value = True
 

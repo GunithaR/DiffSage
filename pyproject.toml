@@ -53,6 +53,7 @@ dev = [
     "pre-commit>=4,<5",
     "build>=1,<2",
     "pip-audit>=2,<3",
+    "mypy>=1.18,<2",
 ]
 
 [project.scripts]
@@ -80,4 +81,30 @@ line-length = 100
 target-version = "py312"
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B"]
+select = ["E", "F", "I", "UP", "B", "ARG"]
+
+[tool.mypy]
+python_version = "3.12"
+files = ["src"]
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+
+# Temporary baseline: these modules have known type errors that are fixed by
+# later remediation branches. Each branch removes its modules from this list.
+[[tool.mypy.overrides]]
+module = [
+    # fix/configuration
+    "diffsage.config.resolver",
+    "diffsage.commands.config",
+    "diffsage.services.config_service",
+    # fix/security-hardening
+    "diffsage.storage.credentials_repository",
+    # feature/ai-provider-hardening
+    "diffsage.providers.gemini_provider",
+    "diffsage.services.ai_service",
+    # chore/cleanup
+    "diffsage.ui.auth_view",
+    "diffsage.ui.config_view",
+]
+ignore_errors = true
