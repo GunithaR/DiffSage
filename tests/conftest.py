@@ -56,12 +56,25 @@ def isolated_env(tmp_path, monkeypatch, clean_diffsage_env) -> IsolatedEnv:
     )
     monkeypatch.setattr("diffsage.logging.logger._CONFIGURED", True)
 
+    # Rich wraps at the terminal width; a wide fixed width keeps asserted
+    # messages on one line on every CI runner.
+    monkeypatch.setenv("COLUMNS", "200")
+
     return IsolatedEnv(config_dir=config_dir, log_dir=log_dir)
 
 
 @pytest.fixture
 def git_repo(tmp_path, monkeypatch) -> Path:
-    """A Git repository with one commit on main, used as the working directory."""
+    """A Git repository with one commit on main, used as the working directory.
+
+    The developer's global and system Git config (signing, hooks, aliases) is
+    hidden so commits made by DiffSage behave the same on every machine.
+    """
+
+    global_config = tmp_path / "gitconfig"
+    global_config.touch()
+    monkeypatch.setenv("GIT_CONFIG_GLOBAL", str(global_config))
+    monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
 
     repo = tmp_path / "repo"
     repo.mkdir()
