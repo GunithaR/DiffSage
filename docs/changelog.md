@@ -1,5 +1,25 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- End-to-end test harness: isolated config and logs, a fake AI provider, a fake GitHub CLI, and real temporary Git repositories with an origin remote.
+- End-to-end tests for the `commit` and `pr` workflows through the real CLI.
+- Strict expected-failure tests for known bugs, to be converted into regression tests as each bug is fixed.
+- mypy type checking in CI, with a temporary baseline for modules with known type errors.
+
+### Changed
+
+- CI runs the test suite on Ubuntu, macOS and Windows.
+- The release workflow verifies that the tag matches the package version and runs lint and tests before building and publishing.
+- Ruff now reports unused arguments.
+
+### Fixed
+
+- Dependabot configuration was invalid; it now also updates GitHub Actions.
+
+
 ## [1.3.1] - 2026-08-23
 
 ### Added

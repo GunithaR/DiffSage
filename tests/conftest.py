@@ -8,7 +8,7 @@ from diffsage.github.client import GitHubClient
 from diffsage.models.credentials import Credential
 from diffsage.storage.credentials_repository import CredentialsRepository
 from tests.fakes import FakeGitHubCLI, FakeProvider
-from tests.helpers import init_git_repo_with_initial_commit, run_git
+from tests.helpers import init_git_repo, init_git_repo_with_initial_commit, run_git
 
 DIFFSAGE_ENV_VARIABLES = [
     "DIFFSAGE_PROVIDER",
@@ -69,22 +69,40 @@ def isolated_env(tmp_path, monkeypatch) -> IsolatedEnv:
     return IsolatedEnv(config_dir=config_dir, log_dir=log_dir)
 
 
-@pytest.fixture
-def git_repo(tmp_path, monkeypatch) -> Path:
-    """A Git repository with one commit on main, used as the working directory.
-
-    The developer's global and system Git config (signing, hooks, aliases) is
-    hidden so commits made by DiffSage behave the same on every machine.
-    """
+def isolate_git_config(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Hide the developer's global and system Git config (signing, hooks, aliases)
+    so Git commands behave the same on every machine."""
 
     global_config = tmp_path / "gitconfig"
     global_config.touch()
     monkeypatch.setenv("GIT_CONFIG_GLOBAL", str(global_config))
     monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
 
+
+@pytest.fixture
+def git_repo(tmp_path, monkeypatch) -> Path:
+    """A Git repository with one commit on main, used as the working directory."""
+
+    isolate_git_config(tmp_path, monkeypatch)
+
     repo = tmp_path / "repo"
     repo.mkdir()
     init_git_repo_with_initial_commit(repo)
+
+    monkeypatch.chdir(repo)
+
+    return repo
+
+
+@pytest.fixture
+def empty_git_repo(tmp_path, monkeypatch) -> Path:
+    """A Git repository with no commits yet, used as the working directory."""
+
+    isolate_git_config(tmp_path, monkeypatch)
+
+    repo = tmp_path / "empty-repo"
+    repo.mkdir()
+    init_git_repo(repo)
 
     monkeypatch.chdir(repo)
 
