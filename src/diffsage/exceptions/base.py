@@ -44,6 +44,10 @@ class SameBranchError(DiffSageError):
     default_message = "Current branch and base branch are the same."
 
 
+class EditorError(DiffSageError):
+    """Raised when the user's text editor cannot be launched."""
+
+
 class ConfigError(DiffSageError):
     """Raised when configuration is invalid."""
 

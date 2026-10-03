@@ -2,6 +2,7 @@ from .base import (
     ConfigError,
     DetachedHeadError,
     DiffSageError,
+    EditorError,
     GitError,
     InvalidCommitMessageError,
     InvalidConfigurationValueError,
@@ -21,6 +22,7 @@ from .git import (
 from .github import (
     GitHubAuthenticationError,
     GitHubCLIUnavailableError,
+    GitHubError,
 )
 from .provider import (
     AuthenticationError,
@@ -33,6 +35,7 @@ __all__ = [
     "ConfigError",
     "DetachedHeadError",
     "DiffSageError",
+    "EditorError",
     "GitError",
     "InvalidCommitMessageError",
     "InvalidConfigurationValueError",
@@ -49,6 +52,7 @@ __all__ = [
     "UnpushedChangesError",
     "GitHubAuthenticationError",
     "GitHubCLIUnavailableError",
+    "GitHubError",
     "AuthenticationError",
     "ModelNotFoundError",
     "ProviderUnavailableError",

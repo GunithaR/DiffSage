@@ -1,6 +1,9 @@
+import subprocess
+
 from diffsage.exceptions import (
     GitHubAuthenticationError,
     GitHubCLIUnavailableError,
+    GitHubError,
 )
 from diffsage.github.client import GitHubClient
 from diffsage.models.pull_request import PullRequestDraft
@@ -67,9 +70,17 @@ class GitHubService:
 
         body = self._build_pull_request_body(draft)
 
-        return self._github_client.create_pull_request(
-            title=draft.title,
-            body=body,
-            base_branch=base_branch,
-            head_branch=head_branch,
-        )
+        try:
+            return self._github_client.create_pull_request(
+                title=draft.title,
+                body=body,
+                base_branch=base_branch,
+                head_branch=head_branch,
+            )
+        except subprocess.CalledProcessError as error:
+            details = (error.stderr or "").strip()
+
+            if not details:
+                details = f"gh exited with status {error.returncode}."
+
+            raise GitHubError(f"GitHub CLI could not create the pull request: {details}") from error
