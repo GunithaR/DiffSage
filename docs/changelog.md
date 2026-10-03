@@ -8,12 +8,17 @@
 - End-to-end tests for the `commit` and `pr` workflows through the real CLI.
 - Strict expected-failure tests for known bugs, to be converted into regression tests as each bug is fixed.
 - mypy type checking in CI, with a temporary baseline for modules with known type errors.
+- Dependabot support for GitHub Actions.
+- Mypy as a development dependency and configured static analysis rules.
+- New test fixtures and environment variable management utilities.
 
 ### Changed
 
+- Split CI into quality checks and cross-platform tests, and added Mypy type checking.
 - CI runs the test suite on Ubuntu, macOS and Windows.
 - The release workflow verifies that the tag matches the package version and runs lint and tests before building and publishing.
 - Ruff now reports unused arguments.
+- Renamed the version option variable to avoid shadowing.
 
 ### Fixed
 

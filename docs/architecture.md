@@ -14,6 +14,10 @@ DiffSage uses Git as the primary source of truth for Git workflow operations.
 AI-generated content is derived from structured Git evidence and remains
 subject to user review before workflow actions are performed.
 
+The codebase enforces high reliability through static type checking with Mypy,
+automated cross-platform testing, and a release verification workflow that
+ensures version consistency and quality checks before builds.
+
 ---
 
 # Architecture

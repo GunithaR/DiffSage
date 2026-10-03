@@ -26,6 +26,8 @@ Variables:
 
 All public functions should include type hints.
 
+Static type checking is enforced using Mypy.
+
 Example
 
 ```python
