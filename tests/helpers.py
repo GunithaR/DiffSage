@@ -60,3 +60,19 @@ def create_settings(**overrides) -> Settings:
 
     defaults.update(overrides)
     return Settings(**defaults)
+
+
+def assert_error_shown(source, message: str | None = None) -> None:
+    """Assert the shared command error handler printed an error (optionally this one).
+
+    `source` is pytest's capsys fixture, or the output string of a CliRunner result.
+    Whitespace is normalised because Rich may wrap long messages across lines.
+    """
+
+    text = source if isinstance(source, str) else source.readouterr().out
+    output = " ".join(text.split())
+
+    if message is None:
+        assert "✗ " in output, output
+    else:
+        assert f"✗ {' '.join(message.split())}" in output, output

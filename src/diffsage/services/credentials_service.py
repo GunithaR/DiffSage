@@ -1,3 +1,4 @@
+from diffsage.exceptions import InvalidCredentialError
 from diffsage.models.credentials import Credential
 from diffsage.storage.credentials_repository import CredentialsRepository
 
@@ -17,13 +18,13 @@ class CredentialService:
         api_key = api_key.strip()
 
         if not provider:
-            raise ValueError("Provider cannot be empty.")
+            raise InvalidCredentialError("Provider cannot be empty.")
 
         if not name:
-            raise ValueError("Credential profile name cannot be empty.")
+            raise InvalidCredentialError("Credential profile name cannot be empty.")
 
         if not api_key:
-            raise ValueError("API key cannot be empty.")
+            raise InvalidCredentialError("API key cannot be empty.")
 
         credential = Credential(
             provider=provider,
@@ -38,10 +39,10 @@ class CredentialService:
         name = self._NORMALIZERS["name"](name.strip())
 
         if not provider:
-            raise ValueError("Provider cannot be empty.")
+            raise InvalidCredentialError("Provider cannot be empty.")
 
         if not name:
-            raise ValueError("Credential profile name cannot be empty.")
+            raise InvalidCredentialError("Credential profile name cannot be empty.")
 
         return self._repository.get(provider, name)
 
@@ -53,9 +54,9 @@ class CredentialService:
         name = self._NORMALIZERS["name"](name.strip())
 
         if not provider:
-            raise ValueError("Provider cannot be empty.")
+            raise InvalidCredentialError("Provider cannot be empty.")
 
         if not name:
-            raise ValueError("Credential profile cannot be empty.")
+            raise InvalidCredentialError("Credential profile cannot be empty.")
 
         return self._repository.delete(provider, name)

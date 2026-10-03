@@ -8,7 +8,9 @@ from diffsage.commands.auth import (
     set_credential,
     unset_credential,
 )
+from diffsage.exceptions import InvalidCredentialError
 from diffsage.models.credentials import Credential
+from tests.helpers import assert_error_shown
 
 
 def test_set_credential_command_orchestrates() -> None:
@@ -42,7 +44,7 @@ def test_set_credential_command_orchestrates() -> None:
     service.get_credential.assert_not_called()
 
 
-def test_set_credential_command_handles_value_error() -> None:
+def test_set_credential_command_handles_value_error(capsys) -> None:
     with (
         patch("diffsage.commands.auth.get_credentials_path") as mock_get_path,
         patch("diffsage.commands.auth.CredentialsRepository") as mock_repository,
@@ -53,7 +55,7 @@ def test_set_credential_command_handles_value_error() -> None:
         service = mock_service.return_value
         view = mock_view.return_value
 
-        service.set_credential.side_effect = ValueError("API cannot be empty.")
+        service.set_credential.side_effect = InvalidCredentialError("API cannot be empty.")
 
         with pytest.raises(SystemExit) as exception_info:
             set_credential(
@@ -73,7 +75,7 @@ def test_set_credential_command_handles_value_error() -> None:
         "test-api-key",
         "default",
     )
-    view.show_error.assert_called_once_with("API cannot be empty.")
+    assert_error_shown(capsys, "API cannot be empty.")
     view.show_success.assert_not_called()
 
 
@@ -146,7 +148,7 @@ def test_get_credential_command_uses_named_profile() -> None:
     view.show_credential.assert_called_once_with(credential)
 
 
-def test_get_credential_command_handles_missing_credential() -> None:
+def test_get_credential_command_handles_missing_credential(capsys) -> None:
     with (
         patch("diffsage.commands.auth.get_credentials_path") as mock_get_path,
         patch("diffsage.commands.auth.CredentialsRepository") as mock_repository,
@@ -176,13 +178,11 @@ def test_get_credential_command_handles_missing_credential() -> None:
         "default",
     )
 
-    view.show_error.assert_called_once_with(
-        "Credential not found for provider 'gemini' and profile 'default'."
-    )
+    assert_error_shown(capsys, "Credential not found for provider 'gemini' and profile 'default'.")
     view.show_credential.assert_not_called()
 
 
-def test_get_credential_command_handles_value_error() -> None:
+def test_get_credential_command_handles_value_error(capsys) -> None:
     with (
         patch("diffsage.commands.auth.get_credentials_path") as mock_get_path,
         patch("diffsage.commands.auth.CredentialsRepository") as mock_repository,
@@ -193,7 +193,7 @@ def test_get_credential_command_handles_value_error() -> None:
         service = mock_service.return_value
         view = mock_view.return_value
 
-        service.get_credential.side_effect = ValueError("Provider cannot be empty.")
+        service.get_credential.side_effect = InvalidCredentialError("Provider cannot be empty.")
 
         with pytest.raises(SystemExit) as exception_info:
             get_credential(
@@ -212,11 +212,11 @@ def test_get_credential_command_handles_value_error() -> None:
         "default",
     )
 
-    view.show_error.assert_called_once_with("Provider cannot be empty.")
+    assert_error_shown(capsys, "Provider cannot be empty.")
     view.show_credential.assert_not_called()
 
 
-def test_get_credential_command_handles_unexpected_error() -> None:
+def test_get_credential_command_handles_unexpected_error(capsys) -> None:
     with (
         patch("diffsage.commands.auth.get_credentials_path") as mock_get_path,
         patch("diffsage.commands.auth.CredentialsRepository") as mock_repository,
@@ -246,8 +246,8 @@ def test_get_credential_command_handles_unexpected_error() -> None:
         "default",
     )
 
-    view.show_error.assert_called_once_with(
-        "An unexpected error occurred. Please check the log file for more details."
+    assert_error_shown(
+        capsys, "An unexpected error occurred. Please check the log file for more details."
     )
     view.show_credential.assert_not_called()
 
@@ -365,7 +365,7 @@ def test_unset_credential_command_uses_named_profile() -> None:
     view.show_success.assert_called_once_with("Credential removed.")
 
 
-def test_unset_credential_command_handles_missing_credential() -> None:
+def test_unset_credential_command_handles_missing_credential(capsys) -> None:
     with (
         patch("diffsage.commands.auth.get_credentials_path") as mock_get_path,
         patch("diffsage.commands.auth.CredentialsRepository") as mock_repository,
@@ -395,13 +395,11 @@ def test_unset_credential_command_handles_missing_credential() -> None:
         "default",
     )
 
-    view.show_error.assert_called_once_with(
-        "Credential not found for provider 'gemini' and profile 'default'."
-    )
+    assert_error_shown(capsys, "Credential not found for provider 'gemini' and profile 'default'.")
     view.show_success.assert_not_called()
 
 
-def test_unset_credential_command_handles_value_error() -> None:
+def test_unset_credential_command_handles_value_error(capsys) -> None:
     with (
         patch("diffsage.commands.auth.get_credentials_path") as mock_get_path,
         patch("diffsage.commands.auth.CredentialsRepository") as mock_repository,
@@ -412,7 +410,7 @@ def test_unset_credential_command_handles_value_error() -> None:
         service = mock_service.return_value
         view = mock_view.return_value
 
-        service.delete_credential.side_effect = ValueError(
+        service.delete_credential.side_effect = InvalidCredentialError(
             "Credential profile name cannot be empty."
         )
 
@@ -433,11 +431,11 @@ def test_unset_credential_command_handles_value_error() -> None:
         "",
     )
 
-    view.show_error.assert_called_once_with("Credential profile name cannot be empty.")
+    assert_error_shown(capsys, "Credential profile name cannot be empty.")
     view.show_success.assert_not_called()
 
 
-def test_unset_credential_command_handles_unexpected_error() -> None:
+def test_unset_credential_command_handles_unexpected_error(capsys) -> None:
     with (
         patch("diffsage.commands.auth.get_credentials_path") as mock_get_path,
         patch("diffsage.commands.auth.CredentialsRepository") as mock_repository,
@@ -467,7 +465,7 @@ def test_unset_credential_command_handles_unexpected_error() -> None:
         "default",
     )
 
-    view.show_error.assert_called_once_with(
-        "An unexpected error occurred. Please check the log file for more details."
+    assert_error_shown(
+        capsys, "An unexpected error occurred. Please check the log file for more details."
     )
     view.show_success.assert_not_called()

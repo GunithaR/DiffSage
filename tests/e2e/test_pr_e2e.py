@@ -148,7 +148,7 @@ def test_pr_with_unpushed_branch_exits(git_repo) -> None:
     result = runner.invoke(app, ["pr"])
 
     assert result.exit_code == 1
-    assert "Remote branch does not exist on origin" in result.output
+    assert "Remote branch 'feature/local-only' does not exist on origin." in result.output
 
 
 @pytest.mark.usefixtures("git_remote", "fake_provider", "fake_gh")

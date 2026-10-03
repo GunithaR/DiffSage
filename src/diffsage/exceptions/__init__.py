@@ -10,7 +10,7 @@ from .base import (
     SameBranchError,
     UnknownConfigurationKeyError,
 )
-from .credentials import CredentialNotFoundError
+from .credentials import CredentialNotFoundError, InvalidCredentialError
 from .git import (
     BaseBranchNotFoundError,
     NoStagedChangesError,
@@ -41,6 +41,7 @@ __all__ = [
     "SameBranchError",
     "UnknownConfigurationKeyError",
     "CredentialNotFoundError",
+    "InvalidCredentialError",
     "BaseBranchNotFoundError",
     "NoStagedChangesError",
     "NotGitRepositoryError",

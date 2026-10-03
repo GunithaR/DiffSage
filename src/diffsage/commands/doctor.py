@@ -1,3 +1,4 @@
+from diffsage.commands.error_handler import handle_command_errors
 from diffsage.logging.logger import get_logger
 from diffsage.services.doctor_service import DoctorService
 from diffsage.ui.doctor_view import DoctorView
@@ -5,6 +6,7 @@ from diffsage.ui.doctor_view import DoctorView
 logger = get_logger(__name__)
 
 
+@handle_command_errors("doctor")
 def doctor() -> None:
     """Run environment diagnostics"""
 
