@@ -2,7 +2,11 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from diffsage.exceptions import InvalidConfigurationValueError, UnknownConfigurationKeyError
+from diffsage.exceptions import (
+    ConfigError,
+    InvalidConfigurationValueError,
+    UnknownConfigurationKeyError,
+)
 from diffsage.services.config_service import ConfigService
 from diffsage.storage.config_repository import ConfigRepository
 from tests.helpers import create_settings
@@ -304,3 +308,39 @@ def test_unset_value_unknown_key_raises_error() -> None:
 
     repository.unset.assert_not_called()
     assert "invalid_key" in str(exception_info.value)
+
+
+def test_set_value_reports_config_that_is_still_invalid_after_write() -> None:
+    repository = Mock(spec=ConfigRepository)
+    service = ConfigService(create_settings(), repository)
+
+    with (
+        patch(
+            "diffsage.services.config_service.load_settings",
+            side_effect=ConfigError("Invalid configuration in config.toml: network.max_retries"),
+        ),
+        pytest.raises(ConfigError) as error,
+    ):
+        service.set_value("timeout", "45")
+
+    repository.set.assert_called_once_with("timeout", 45)
+    assert str(error.value) == (
+        "Configuration updated, but it is still invalid: "
+        "Invalid configuration in config.toml: network.max_retries"
+    )
+
+
+def test_unset_value_reports_config_that_is_still_invalid_after_write() -> None:
+    repository = Mock(spec=ConfigRepository)
+    service = ConfigService(create_settings(), repository)
+
+    with (
+        patch(
+            "diffsage.services.config_service.load_settings",
+            side_effect=ConfigError("still broken"),
+        ),
+        pytest.raises(ConfigError, match="^Configuration updated, but it is still invalid: "),
+    ):
+        service.unset_value("timeout")
+
+    repository.unset.assert_called_once_with("timeout")

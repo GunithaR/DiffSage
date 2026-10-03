@@ -121,3 +121,8 @@ def test_git_remote_tracks_main() -> None:
 
     assert client.remote_branch_commit("main") == client.current_commit()
     assert client.default_branch() == "main"
+
+
+def test_isolated_env_ignores_local_config_where_pytest_started(isolated_env) -> None:
+    assert Path.cwd() == isolated_env.workdir
+    assert not (Path.cwd() / ".diffsage.toml").exists()

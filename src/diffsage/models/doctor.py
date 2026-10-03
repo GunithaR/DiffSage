@@ -11,3 +11,4 @@ class DoctorReport(BaseModel):
     log_level: str
     virtual_environment: bool
     configuration_loaded: bool
+    configuration_error: str | None = None

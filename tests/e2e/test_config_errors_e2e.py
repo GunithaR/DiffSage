@@ -55,13 +55,75 @@ def test_version_works_with_broken_config() -> None:
     assert result.exit_code == 0
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="Bug: the startup callback loads settings before every command, so `config "
-    "unset` cannot repair a broken config. Fixed by the next item on this branch.",
-)
 def test_config_unset_can_repair_broken_config(broken_global_config) -> None:
+    """Regression: the startup callback blocked `config unset` from fixing the file."""
+
     result = runner.invoke(app, ["config", "unset", "timeout", "--global"])
 
     assert result.exit_code == 0, result.output
     assert "timeout" not in broken_global_config.read_text()
+
+
+def test_config_set_repairs_broken_value(broken_global_config) -> None:
+    result = runner.invoke(app, ["config", "set", "timeout", "45", "--global"])
+
+    assert result.exit_code == 0, result.output
+    assert "timeout = 45" in broken_global_config.read_text()
+
+    resolved = runner.invoke(app, ["config", "get", "timeout"])
+    assert resolved.exit_code == 0, resolved.output
+    assert "45" in resolved.output
+
+
+def test_partial_repair_saves_change_and_reports_remaining_problem(broken_global_config) -> None:
+    broken_global_config.write_text('[network]\ntimeout = "abc"\nmax_retries = "x"\n')
+
+    result = runner.invoke(app, ["config", "unset", "timeout", "--global"])
+
+    assert result.exit_code == 1
+    assert "✗ Configuration updated, but it is still invalid:" in flat(result.output)
+    assert "network.max_retries" in flat(result.output)
+    assert "timeout" not in broken_global_config.read_text()
+
+
+@pytest.mark.usefixtures("broken_global_config")
+def test_config_list_global_shows_raw_file_values() -> None:
+    result = runner.invoke(app, ["config", "list", "--global"])
+
+    assert result.exit_code == 0, result.output
+    assert "abc" in result.output
+
+
+@pytest.mark.usefixtures("broken_global_config")
+def test_resolved_config_view_still_reports_the_error() -> None:
+    result = runner.invoke(app, ["config", "list"])
+
+    assert result.exit_code == 1
+    assert "✗ Invalid configuration in" in flat(result.output)
+
+
+@pytest.mark.usefixtures("broken_global_config")
+def test_doctor_reports_broken_config_instead_of_crashing() -> None:
+    result = runner.invoke(app, ["doctor"])
+
+    assert result.exit_code == 0, result.output
+    assert "✗ Configuration : Invalid configuration in" in flat(result.output)
+    assert "Built-in defaults are shown below" in result.output
+    assert "Timeout : 30" in flat(result.output)
+
+
+@pytest.mark.usefixtures("isolated_env")
+def test_doctor_reports_loaded_config() -> None:
+    result = runner.invoke(app, ["doctor"])
+
+    assert result.exit_code == 0, result.output
+    assert "✓ Configuration : Loaded" in flat(result.output)
+    assert "Built-in defaults are shown below" not in result.output
+
+
+@pytest.mark.usefixtures("broken_global_config", "git_repo")
+def test_other_commands_still_stop_on_broken_config() -> None:
+    result = runner.invoke(app, ["commit"])
+
+    assert result.exit_code == 1
+    assert "✗ Invalid configuration in" in flat(result.output)

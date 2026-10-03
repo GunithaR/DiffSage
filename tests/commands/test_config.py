@@ -125,7 +125,7 @@ def test_list_config_command_uses_local_scope() -> None:
 
     with (
         patch(
-            "diffsage.commands.config.load_settings", return_value=settings
+            "diffsage.commands.config.load_settings_or_defaults", return_value=settings
         ) as mock_load_settings,
         patch("diffsage.commands.config.resolve_config_path") as mock_resolve_path,
         patch("diffsage.commands.config.ConfigRepository") as mock_repository,
@@ -171,7 +171,7 @@ def test_list_config_command_uses_global_scope() -> None:
 
     with (
         patch(
-            "diffsage.commands.config.load_settings", return_value=settings
+            "diffsage.commands.config.load_settings_or_defaults", return_value=settings
         ) as mock_load_settings,
         patch("diffsage.commands.config.resolve_config_path") as mock_resolve_path,
         patch("diffsage.commands.config.ConfigRepository") as mock_repository,
@@ -259,7 +259,7 @@ def test_get_config_command_uses_local_scope() -> None:
 
     with (
         patch(
-            "diffsage.commands.config.load_settings",
+            "diffsage.commands.config.load_settings_or_defaults",
             return_value=settings,
         ) as mock_load_settings,
         patch("diffsage.commands.config.resolve_config_path") as mock_resolve_path,
@@ -304,7 +304,7 @@ def test_get_config_command_uses_global_scope() -> None:
 
     with (
         patch(
-            "diffsage.commands.config.load_settings",
+            "diffsage.commands.config.load_settings_or_defaults",
             return_value=settings,
         ) as mock_load_settings,
         patch("diffsage.commands.config.resolve_config_path") as mock_resolve_path,
@@ -357,7 +357,7 @@ def test_set_config_command_defaults_to_global() -> None:
 
     with (
         patch(
-            "diffsage.commands.config.load_settings",
+            "diffsage.commands.config.load_settings_or_defaults",
             return_value=settings,
         ) as mock_load_settings,
         patch("diffsage.commands.config.resolve_config_path") as mock_resolve_path,
@@ -411,7 +411,7 @@ def test_set_config_command_uses_local_scope() -> None:
 
     with (
         patch(
-            "diffsage.commands.config.load_settings",
+            "diffsage.commands.config.load_settings_or_defaults",
             return_value=settings,
         ) as mock_load_settings,
         patch("diffsage.commands.config.resolve_config_path") as mock_resolve_path,
@@ -465,7 +465,7 @@ def test_set_config_command_uses_global_scope() -> None:
 
     with (
         patch(
-            "diffsage.commands.config.load_settings",
+            "diffsage.commands.config.load_settings_or_defaults",
             return_value=settings,
         ) as mock_load_settings,
         patch("diffsage.commands.config.resolve_config_path") as mock_resolve_path,
@@ -511,7 +511,7 @@ def test_set_config_command_handles_unknown_key(capsys) -> None:
 
     with (
         patch(
-            "diffsage.commands.config.load_settings",
+            "diffsage.commands.config.load_settings_or_defaults",
             return_value=settings,
         ) as mock_load_settings,
         patch("diffsage.commands.config.resolve_config_path") as mock_resolve_path,
@@ -553,7 +553,7 @@ def test_set_config_command_handles_invalid_integer(capsys) -> None:
 
     with (
         patch(
-            "diffsage.commands.config.load_settings",
+            "diffsage.commands.config.load_settings_or_defaults",
             return_value=settings,
         ) as mock_load_settings,
         patch("diffsage.commands.config.resolve_config_path") as mock_resolve_path,
@@ -600,7 +600,7 @@ def test_set_config_command_handles_unexpected_error(capsys) -> None:
 
     with (
         patch(
-            "diffsage.commands.config.load_settings",
+            "diffsage.commands.config.load_settings_or_defaults",
             return_value=settings,
         ) as mock_load_settings,
         patch("diffsage.commands.config.resolve_config_path") as mock_resolve_path,
@@ -660,7 +660,7 @@ def test_unset_config_command_defaults_to_global() -> None:
 
     with (
         patch(
-            "diffsage.commands.config.load_settings",
+            "diffsage.commands.config.load_settings_or_defaults",
             return_value=settings,
         ) as mock_load_settings,
         patch("diffsage.commands.config.resolve_config_path") as mock_resolve_path,
@@ -712,7 +712,7 @@ def test_unset_config_command_uses_local_scope() -> None:
 
     with (
         patch(
-            "diffsage.commands.config.load_settings",
+            "diffsage.commands.config.load_settings_or_defaults",
             return_value=settings,
         ) as mock_load_settings,
         patch("diffsage.commands.config.resolve_config_path") as mock_resolve_path,
@@ -764,7 +764,7 @@ def test_unset_config_command_uses_global_scope() -> None:
 
     with (
         patch(
-            "diffsage.commands.config.load_settings",
+            "diffsage.commands.config.load_settings_or_defaults",
             return_value=settings,
         ) as mock_load_settings,
         patch("diffsage.commands.config.resolve_config_path") as mock_resolve_path,
@@ -808,7 +808,7 @@ def test_unset_config_command_handles_unknown_key(capsys) -> None:
 
     with (
         patch(
-            "diffsage.commands.config.load_settings",
+            "diffsage.commands.config.load_settings_or_defaults",
             return_value=settings,
         ) as mock_load_settings,
         patch("diffsage.commands.config.resolve_config_path") as mock_resolve_path,
@@ -853,7 +853,7 @@ def test_unset_config_command_handles_unexpected_error(capsys) -> None:
 
     with (
         patch(
-            "diffsage.commands.config.load_settings",
+            "diffsage.commands.config.load_settings_or_defaults",
             return_value=settings,
         ) as mock_load_settings,
         patch("diffsage.commands.config.resolve_config_path") as mock_resolve_path,

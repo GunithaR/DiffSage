@@ -1,7 +1,7 @@
 import typer
 
 from diffsage.commands.error_handler import handle_command_errors
-from diffsage.config.loader import load_settings
+from diffsage.config.loader import load_settings, load_settings_or_defaults
 from diffsage.config.resolver import get_local_config_path, resolve_config_path
 from diffsage.config.scope import ConfigScope
 from diffsage.exceptions import ConfigError
@@ -34,7 +34,8 @@ def list_config(
 
     view = ConfigView()
 
-    settings = load_settings()
+    # Reading a file directly must work even when the configuration is broken.
+    settings = load_settings_or_defaults() if local or global_ else load_settings()
     scope = _resolve_scope(
         local=local,
         global_=global_,
@@ -71,7 +72,8 @@ def get_config(
 
     view = ConfigView()
 
-    settings = load_settings()
+    # Reading a file directly must work even when the configuration is broken.
+    settings = load_settings_or_defaults() if local or global_ else load_settings()
 
     if local or global_:
         scope = _resolve_scope(
@@ -112,7 +114,8 @@ def set_config(
 
     view = ConfigView()
 
-    settings = load_settings()
+    # Writing must work even when the configuration is broken, so it can be repaired.
+    settings = load_settings_or_defaults()
 
     scope = _resolve_scope(local=local, global_=global_)
     path = resolve_config_path(scope)
@@ -142,7 +145,8 @@ def unset_config(
 
     view = ConfigView()
 
-    settings = load_settings()
+    # Writing must work even when the configuration is broken, so it can be repaired.
+    settings = load_settings_or_defaults()
 
     scope = _resolve_scope(local=local, global_=global_)
     path = resolve_config_path(scope)
