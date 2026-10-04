@@ -16,6 +16,7 @@ class ConfigService:
     _ATTRIBUTE_MAP = {
         "provider": "provider",
         "model": "ai_model",
+        "credential_profile": "credential_profile",
         "timeout": "timeout",
         "max_retries": "max_retries",
         "log_level": "log_level",
@@ -53,6 +54,7 @@ class ConfigService:
         return ConfigReport(
             provider=settings.provider,
             model=settings.ai_model,
+            credential_profile=settings.credential_profile,
             timeout=settings.timeout,
             max_retries=settings.max_retries,
             log_level=settings.log_level,
@@ -64,6 +66,7 @@ class ConfigService:
         return RawConfigReport(
             provider=config.get("provider"),
             model=config.get("model"),
+            credential_profile=config.get("credential_profile"),
             timeout=config.get("timeout"),
             max_retries=config.get("max_retries"),
             log_level=config.get("log_level"),

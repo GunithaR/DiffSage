@@ -4,6 +4,10 @@
 
 ### Added
 
+- Diffs are sanitized before they are sent to the AI provider: secret-bearing files and lockfiles are omitted, credential-like values are redacted, and the diff is capped at 100,000 characters. DiffSage prints a notice for everything it removes and tells the AI not to describe the placeholders.
+- `credential_profile` setting (and `DIFFSAGE_CREDENTIAL_PROFILE`) to choose which stored credential profile AI commands use. Profiles created with `auth set --name` were previously never used.
+- `DIFFSAGE_API_KEY` environment variable as a credential source for CI and containers. It overrides stored credentials, and `auth list`/`auth get` warn when it is set.
+- `diffsage auth set` prompts for the API key with hidden input, or reads it from standard input when piped.
 - Shared command error handler: every DiffSage error is shown as one `✗` message with a consistent exit code; unexpected errors are logged with a traceback.
 - `diffsage doctor` reports an invalid configuration instead of crashing.
 - End-to-end test harness: isolated config and logs, a fake AI provider, a fake GitHub CLI, and real temporary Git repositories with an origin remote.
@@ -22,11 +26,15 @@
 
 ### Removed
 
+- `diffsage auth set` no longer accepts the API key as an argument, because it stayed in shell history and was visible to other processes. Enter it at the hidden prompt (`diffsage auth set gemini`), or pipe it in from a script.
 - `.env` files are no longer loaded. In practice only DiffSage's own development checkout was ever found, and loading one copied every variable in it, including unrelated secrets, into DiffSage's environment and its git/gh subprocesses. Use `DIFFSAGE_*` environment variables or the global and repository config files instead.
 - The `python-dotenv` dependency and `.env.example`.
 
 ### Fixed
 
+- A credentials file with a value of the wrong type (for example `gemini = "key"` instead of a table) crashed every command with an unexpected error; it is now reported with the exact location to fix.
+- The credentials file was created readable by every local user; it is now owner-only (`0600`) on macOS and Linux, existing files are tightened when read, and writes are atomic so a crash cannot leave it half-written.
+- An unparseable credentials file was reported as an unexpected error.
 - `--local` outside a Git repository crashed with an unexpected error; it now explains that local configuration needs a repository.
 - Local configuration was ignored in git worktrees, and a submodule used its parent repository's configuration; the repository root is now found with git.
 - Misspelled keys or sections in a config file were silently ignored.

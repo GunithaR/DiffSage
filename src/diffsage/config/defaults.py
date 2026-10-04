@@ -9,6 +9,7 @@ DEFAULT_CONFIG = DiffSageConfig(
     ai=AIConfig(
         provider="gemini",
         model="gemini-3.5-flash-lite",
+        credential_profile="default",
     ),
     network=NetworkConfig(
         timeout=30,

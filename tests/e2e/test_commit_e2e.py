@@ -153,3 +153,36 @@ def test_commit_reports_missing_editor(git_repo, fake_provider, monkeypatch) -> 
     assert '✗ Unable to launch "diffsage-missing-editor".' in result.output
     assert UNEXPECTED_ERROR_MESSAGE not in result.output
     assert commit_count(git_repo) == 1
+
+
+GOOGLE_KEY = "AIzaSyA1234567890abcdefghijklmnopqrstuv"
+
+
+def test_commit_never_sends_secrets_to_the_ai(git_repo, fake_provider) -> None:
+    stage_file(git_repo, "settings.py", f'GEMINI_KEY = "{GOOGLE_KEY}"\n')
+    stage_file(git_repo, ".env", "STRIPE_SECRET=sk_live_abcdefgh\n")
+    stage_file(git_repo, "package-lock.json", '{"lockfileVersion": 3}\n')
+    fake_provider.queue("chore: add settings")
+
+    result = runner.invoke(app, ["commit"], input="y\n")
+
+    assert result.exit_code == 0, result.output
+    prompt = fake_provider.prompts[0]
+    assert GOOGLE_KEY not in prompt
+    assert "sk_live_abcdefgh" not in prompt
+    assert "lockfileVersion" not in prompt
+    assert "Diff Notes:" in prompt
+    assert "! 1 value(s) that looked like secrets were replaced with [REDACTED]." in result.output
+    assert "! Contents of files that may hold secrets were not sent: .env" in result.output
+    assert "! Lockfile contents were not sent: package-lock.json" in result.output
+
+
+def test_commit_with_a_clean_diff_has_no_notes_or_warnings(git_repo, fake_provider) -> None:
+    stage_file(git_repo, "greeting.py", "print('hello')\n")
+    fake_provider.queue("feat: add greeting script")
+
+    result = runner.invoke(app, ["commit"], input="y\n")
+
+    assert result.exit_code == 0, result.output
+    assert "Diff Notes:" not in fake_provider.prompts[0]
+    assert "!" not in result.output

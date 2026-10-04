@@ -2,6 +2,7 @@ from unittest.mock import Mock
 
 import pytest
 
+from diffsage.exceptions import CredentialNotFoundError, InvalidCredentialError
 from diffsage.models.credentials import Credential
 from diffsage.services.credentials_service import CredentialService
 from diffsage.storage.credentials_repository import CredentialsRepository
@@ -301,3 +302,49 @@ def test_delete_credential_returns_false_when_not_found() -> None:
     result = service.delete_credential("gemini", "default")
 
     assert result is False
+
+
+def make_service(tmp_path) -> CredentialService:
+    return CredentialService(CredentialsRepository(tmp_path / "credentials.toml"))
+
+
+def test_resolve_credential_prefers_environment_key(tmp_path, monkeypatch) -> None:
+    service = make_service(tmp_path)
+    service.set_credential("gemini", "stored-key")
+    monkeypatch.setenv("DIFFSAGE_API_KEY", "  env-key  ")
+
+    credential = service.resolve_credential(" Gemini ")
+
+    assert credential.api_key == "env-key"
+    assert credential.provider == "gemini"
+    assert credential.name == "DIFFSAGE_API_KEY"
+
+
+def test_resolve_credential_uses_stored_key_without_environment(tmp_path, monkeypatch) -> None:
+    service = make_service(tmp_path)
+    service.set_credential("gemini", "stored-key")
+    monkeypatch.delenv("DIFFSAGE_API_KEY", raising=False)
+
+    assert service.resolve_credential("gemini").api_key == "stored-key"
+
+
+@pytest.mark.parametrize("value", ["", "   "])
+def test_resolve_credential_rejects_empty_environment_key(tmp_path, monkeypatch, value) -> None:
+    service = make_service(tmp_path)
+    service.set_credential("gemini", "stored-key")
+    monkeypatch.setenv("DIFFSAGE_API_KEY", value)
+
+    with pytest.raises(InvalidCredentialError, match="DIFFSAGE_API_KEY is set but empty"):
+        service.resolve_credential("gemini")
+
+
+def test_resolve_credential_without_any_key_explains_both_options(tmp_path, monkeypatch) -> None:
+    monkeypatch.delenv("DIFFSAGE_API_KEY", raising=False)
+
+    with pytest.raises(CredentialNotFoundError) as error:
+        make_service(tmp_path).resolve_credential("gemini")
+
+    assert str(error.value) == (
+        "Credential not found for provider 'gemini' and profile 'default'. "
+        "Run 'diffsage auth set gemini', or set DIFFSAGE_API_KEY."
+    )

@@ -1,5 +1,6 @@
 from unittest.mock import Mock
 
+from diffsage.models.git import CommitContext
 from diffsage.models.provider import ProviderResponse
 from diffsage.services.commit_service import CommitService
 
@@ -10,7 +11,9 @@ def test_generate_commit_message_forwards_attempt_callback() -> None:
     prompt_service = Mock()
     ai_service = Mock()
 
-    git_service.build_commit_context.return_value = Mock()
+    git_service.build_commit_context.return_value = CommitContext(
+        branch="main", staged_diff="", unstaged_diff="", recent_commits=[]
+    )
     prompt_service.build_commit_prompt.return_value = "prompt"
 
     ai_service.ask.return_value = ProviderResponse(
@@ -50,7 +53,9 @@ def test_generate_commit_message_without_attempt_callback() -> None:
     prompt_service = Mock()
     ai_service = Mock()
 
-    git_service.build_commit_context.return_value = Mock()
+    git_service.build_commit_context.return_value = CommitContext(
+        branch="main", staged_diff="", unstaged_diff="", recent_commits=[]
+    )
     prompt_service.build_commit_prompt.return_value = "prompt"
 
     ai_service.ask.return_value = ProviderResponse(

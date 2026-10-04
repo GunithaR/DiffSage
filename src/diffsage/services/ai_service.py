@@ -2,7 +2,7 @@ import time
 from collections.abc import Callable
 
 from diffsage.config.settings import Settings
-from diffsage.exceptions import CredentialNotFoundError, ProviderUnavailableError
+from diffsage.exceptions import ProviderUnavailableError
 from diffsage.models.provider import ProviderRequest, ProviderResponse
 from diffsage.providers.base import BaseProvider
 from diffsage.providers.factory import create_provider
@@ -23,16 +23,9 @@ class AIService:
         if provider is not None:
             self._provider = provider
         else:
-            credential = credential_service.get_credential(
-                settings.provider,
-                "default",
+            credential = credential_service.resolve_credential(
+                settings.provider, settings.credential_profile
             )
-
-            if credential is None:
-                raise CredentialNotFoundError(
-                    settings.provider,
-                    "default",
-                )
 
             self._provider = create_provider(settings, credential)
 

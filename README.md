@@ -231,12 +231,45 @@ diffsage config unset provider
 
 ---
 
+# What Is Sent to the AI Provider
+
+`diffsage commit` and `diffsage pr` send your Git diff to the configured AI provider. Before
+anything is sent, DiffSage:
+
+- omits the contents of files that usually hold secrets (`.env`, `.env.*`, `*.pem`, `*.key`,
+  SSH keys, `.npmrc`, ...); `.env.example`-style templates are sent with their values redacted
+- omits lockfile contents (`package-lock.json`, `poetry.lock`, `uv.lock`, ...)
+- replaces values that look like credentials with `[REDACTED]`: Google, GitHub, AWS, Slack,
+  OpenAI and Anthropic keys, private key blocks, and `key = "value"` style secret assignments
+- limits the diff to 100,000 characters, keeping whole files and listing any that are left out
+
+Whenever something is removed, DiffSage prints a `!` notice, so nothing is hidden silently.
+This is a safety net, not a guarantee: review what you stage, and keep secrets out of
+your repository.
+
+---
+
 # Quick Start
 
-Set up your provider credential:
+Set up your provider credential. DiffSage asks for the API key at a hidden prompt, so it
+never appears on screen, in your shell history or in the process list:
 
 ```bash
-diffsage auth set gemini YOUR_API_KEY
+diffsage auth set gemini
+```
+
+In scripts, pipe the key in instead of typing it:
+
+```bash
+printf '%s\n' "$GEMINI_API_KEY" | diffsage auth set gemini
+```
+
+In CI or containers you can skip the credentials file entirely and provide the key through
+the `DIFFSAGE_API_KEY` environment variable. When it is set, it is used instead of any
+stored credential, and `diffsage auth list` says so:
+
+```bash
+DIFFSAGE_API_KEY="$GEMINI_API_KEY" diffsage pr
 ```
 
 Verify your environment:
@@ -310,7 +343,15 @@ Display PR URL
 Named credential profiles are also supported:
 
 ```bash
-diffsage auth set gemini YOUR_API_KEY --name paid
+diffsage auth set gemini --name paid
+```
+
+Choose which profile AI commands use with the `credential_profile` setting, per repository
+or globally, or for a single run with `DIFFSAGE_CREDENTIAL_PROFILE`:
+
+```bash
+diffsage config set credential_profile paid --local
+DIFFSAGE_CREDENTIAL_PROFILE=paid diffsage pr
 ```
 
 View configured credentials:

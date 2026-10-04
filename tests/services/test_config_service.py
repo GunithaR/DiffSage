@@ -411,3 +411,23 @@ def test_get_configuration_raw_returns_file_values_as_written() -> None:
     assert report.timeout == "abc"
     assert report.log_level == "loud"
     assert report.provider is None
+
+
+def test_set_value_normalises_credential_profile() -> None:
+    repository = Mock(spec=ConfigRepository)
+    service = ConfigService(create_settings(), repository)
+
+    with patch("diffsage.services.config_service.load_settings", return_value=create_settings()):
+        service.set_value("credential_profile", "  Paid ")
+
+    repository.set.assert_called_once_with("credential_profile", "paid")
+
+
+def test_set_value_rejects_empty_credential_profile() -> None:
+    repository = Mock(spec=ConfigRepository)
+    service = ConfigService(create_settings(), repository)
+
+    with pytest.raises(InvalidConfigurationValueError, match="for credential_profile"):
+        service.set_value("credential_profile", "   ")
+
+    repository.set.assert_not_called()
