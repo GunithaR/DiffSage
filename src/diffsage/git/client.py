@@ -3,7 +3,7 @@ from datetime import datetime
 from pathlib import Path
 
 from diffsage.exceptions import CommitFailedError
-from diffsage.models.git import GitCommit, GitStatus
+from diffsage.models.git import GitCommit
 
 # hash, author, ISO date, subject. The subject goes last because it is the only field
 # that may contain a tab, so each line is split at most three times.
@@ -80,53 +80,11 @@ class GitClient:
         )
         return result.stdout.strip()
 
-    def status(self) -> GitStatus:
-        """Return the current repository status."""
-
-        result = self._run_git_command(
-            ["status", "--porcelain"],
-        )
-
-        untracked = []
-        modified = []
-        added = []
-        deleted = []
-
-        # Parse Git porcelain status codes.
-        for line in result.stdout.splitlines():
-            status = line[:2]
-            path = line[3:]
-
-            match status:
-                case "??":
-                    untracked.append(path)
-                case " M":
-                    modified.append(path)
-                case "A ":
-                    added.append(path)
-                case " D":
-                    deleted.append(path)
-
-        return GitStatus(
-            modified=modified,
-            added=added,
-            deleted=deleted,
-            untracked=untracked,
-        )
-
     def staged_diff(self) -> str:
         """Returns the staged diff"""
 
         result = self._run_git_command(
             ["diff", "--staged"],
-        )
-        return result.stdout.strip()
-
-    def unstaged_diff(self) -> str:
-        """Returns the unstaged diff"""
-
-        result = self._run_git_command(
-            ["diff"],
         )
         return result.stdout.strip()
 

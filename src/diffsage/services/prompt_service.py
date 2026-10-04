@@ -17,9 +17,6 @@ class PromptService:
                 "Staged Diff:",
                 context.staged_diff,
                 "",
-                "Unstaged Diff:",
-                context.unstaged_diff,
-                "",
                 "Recent Commits:",
             ]
         )

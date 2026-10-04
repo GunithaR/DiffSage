@@ -39,10 +39,8 @@ class CommitService:
         context = self._git_service.build_commit_context()
 
         staged = sanitize(context.staged_diff)
-        unstaged = sanitize(context.unstaged_diff)
-        context = replace(context, staged_diff=staged.text, unstaged_diff=unstaged.text)
-
-        notes = staged.notices() + [f"Unstaged changes: {note}" for note in unstaged.notices()]
+        context = replace(context, staged_diff=staged.text)
+        notes = staged.notices()
 
         for note in notes:
             logger.info("Diff sanitized: %s", note)

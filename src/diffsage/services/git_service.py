@@ -20,7 +20,6 @@ class GitService:
         return CommitContext(
             branch=self._git_client.current_branch(),
             staged_diff=self._git_client.staged_diff(),
-            unstaged_diff=self._git_client.unstaged_diff(),
             recent_commits=self._git_client.recent_commits(
                 limit=recent_commit_limit,
             ),

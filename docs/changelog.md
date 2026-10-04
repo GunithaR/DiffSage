@@ -28,12 +28,14 @@
 
 ### Removed
 
+- Unused `GitClient.status()`, `GitClient.unstaged_diff()` and the `GitStatus` model.
 - `diffsage auth set` no longer accepts the API key as an argument, because it stayed in shell history and was visible to other processes. Enter it at the hidden prompt (`diffsage auth set gemini`), or pipe it in from a script.
 - `.env` files are no longer loaded. In practice only DiffSage's own development checkout was ever found, and loading one copied every variable in it, including unrelated secrets, into DiffSage's environment and its git/gh subprocesses. Use `DIFFSAGE_*` environment variables or the global and repository config files instead.
 - The `python-dotenv` dependency and `.env.example`.
 
 ### Fixed
 
+- `diffsage commit` also sent unstaged changes to the AI, so suggested messages could describe work that was not being committed, and code left out of the commit still reached the provider. Only staged changes are sent now.
 - An edited commit message that did not parse ended `diffsage commit` and lost the edit; the edit is now kept and reopened with the next E, and Y still commits the last valid message. An unusable suggestion on regenerate no longer ends the command either.
 - When `git commit` failed (for example a pre-commit hook rejected the commit), `diffsage commit` reported an unexpected error; it now shows Git's or the hook's own output and confirms that nothing was committed.
 - The commit message parser read `feat(api)!:` as scope `api)!`, accepted any word before a colon as the type (for example `Here is your commit message:`), and rejected replies wrapped in code fences. It now follows Conventional Commits: known types only, `!` for breaking changes, and code fences or a leading sentence from the AI are removed. The cleaned message is what gets committed and edited.

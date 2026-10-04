@@ -11,7 +11,6 @@ def make_context() -> CommitContext:
 diff --git a/README.md b/README.md
 +New Content
 """,
-        unstaged_diff="",
         recent_commits=[
             GitCommit(
                 hash="1234567",

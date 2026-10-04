@@ -346,3 +346,22 @@ def test_valid_edit_clears_the_kept_edit(git_repo, fake_provider, tmp_path, monk
     assert result.exit_code == 0, result.output
     assert (received / "2.txt").read_text() == "fix: first fix"
     assert head_message(git_repo) == "fix: second"
+
+
+def test_only_staged_changes_are_sent_to_the_ai(git_repo, fake_provider) -> None:
+    """Regression: unstaged work was sent too, so messages described changes that were not
+    being committed, and code left out of the commit still reached the provider."""
+
+    stage_file(git_repo, "feature.py", "print('staged feature')\n")
+    (git_repo / "README.md").write_text("# DiffSage\n\nunstaged draft notes\n")
+    (git_repo / "scratch.py").write_text("print('untracked experiment')\n")
+    fake_provider.queue("feat: add feature")
+
+    result = runner.invoke(app, ["commit"], input="y\n")
+
+    assert result.exit_code == 0, result.output
+    prompt = fake_provider.prompts[0]
+    assert "staged feature" in prompt
+    assert "unstaged draft notes" not in prompt
+    assert "untracked experiment" not in prompt
+    assert "Unstaged" not in prompt

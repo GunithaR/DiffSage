@@ -56,56 +56,6 @@ def test_current_commit_returns_current_commit_hash(tmp_path: Path) -> None:
     assert client.current_commit() == expected
 
 
-def test_status_returns_untracked_files(tmp_path: Path) -> None:
-    init_git_repo(tmp_path)
-
-    readme = tmp_path / "README.md"
-    readme.write_text("# DiffSage\n")
-
-    client = GitClient(tmp_path)
-    status = client.status()
-
-    assert status.untracked == ["README.md"]
-
-
-def test_status_returns_modified_files(tmp_path: Path) -> None:
-    init_git_repo_with_initial_commit(tmp_path)
-
-    readme = tmp_path / "README.md"
-    readme.write_text("# DiffSage\n\nModified")
-
-    client = GitClient(tmp_path)
-    status = client.status()
-
-    assert status.modified == ["README.md"]
-
-
-def test_status_returns_added_files(tmp_path: Path) -> None:
-    init_git_repo(tmp_path)
-
-    readme = tmp_path / "README.md"
-    readme.write_text("# DiffSage\n")
-
-    run_git(["add", "README.md"], tmp_path)
-
-    client = GitClient(tmp_path)
-    status = client.status()
-
-    assert status.added == ["README.md"]
-
-
-def test_status_returns_deleted_files(tmp_path: Path) -> None:
-    init_git_repo_with_initial_commit(tmp_path)
-
-    readme = tmp_path / "README.md"
-    readme.unlink()
-
-    client = GitClient(tmp_path)
-    status = client.status()
-
-    assert status.deleted == ["README.md"]
-
-
 def test_staged_diff_returns_git_diff(tmp_path: Path) -> None:
     init_git_repo(tmp_path)
 
@@ -120,20 +70,6 @@ def test_staged_diff_returns_git_diff(tmp_path: Path) -> None:
     assert "diff --git" in diff
     assert "README.md" in diff
     assert "+# DiffSage" in diff
-
-
-def test_unstaged_diff_returns_git_diff(tmp_path: Path) -> None:
-    init_git_repo_with_initial_commit(tmp_path)
-
-    readme = tmp_path / "README.md"
-    readme.write_text("# DiffSage\n\nModified")
-
-    client = GitClient(tmp_path)
-    diff = client.unstaged_diff()
-
-    assert "diff --git" in diff
-    assert "README.md" in diff
-    assert "+Modified" in diff
 
 
 def test_recent_commits_return_commit_history(tmp_path: Path) -> None:

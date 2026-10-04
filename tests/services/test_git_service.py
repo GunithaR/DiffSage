@@ -16,11 +16,13 @@ from diffsage.services.git_service import GitService
 from tests.helpers import init_git_repo_with_initial_commit, run_git
 
 
-def test_build_commit_context_returns_commit_context(tmp_path: Path) -> None:
-    init_git_repo_with_initial_commit(tmp_path)
+def test_build_commit_context_contains_only_staged_changes(tmp_path: Path) -> None:
+    """Regression: unstaged changes were sent too, although they are not part of the commit."""
 
-    readme = tmp_path / "README.md"
-    readme.write_text("# DiffSage\n\nHello!")
+    init_git_repo_with_initial_commit(tmp_path)
+    (tmp_path / "staged.py").write_text("print('staged')\n")
+    run_git(["add", "staged.py"], tmp_path)
+    (tmp_path / "README.md").write_text("# DiffSage\n\nUnstaged edit!")
 
     client = GitClient(tmp_path)
     service = GitService(client)
@@ -30,8 +32,9 @@ def test_build_commit_context_returns_commit_context(tmp_path: Path) -> None:
     assert isinstance(context, CommitContext)
 
     assert context.branch == "main"
-    assert context.staged_diff == ""
-    assert "Hello!" in context.unstaged_diff
+    assert "print('staged')" in context.staged_diff
+    assert "Unstaged edit!" not in context.staged_diff
+    assert not hasattr(context, "unstaged_diff")
 
     assert len(context.recent_commits) == 1
     assert context.recent_commits[0].message == "Initial Commit"
