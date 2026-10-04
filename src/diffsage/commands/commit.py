@@ -75,13 +75,15 @@ def commit() -> None:
 
         if choice in ("", "y"):
             logger.info("User selected commit.")
-            git_client.commit(raw_message)
-            view.show_success(raw_message)
+            # Commit the cleaned message: no code fences or preamble from the AI reply.
+            message_text = commit_message.to_text()
+            git_client.commit(message_text)
+            view.show_success(message_text)
             break
 
         if choice == "e":
             logger.info("User selected edit.")
-            raw_message = editor.edit(raw_message)
+            raw_message = editor.edit(commit_message.to_text())
             commit_message = CommitMessageParser.parse(raw_message)
             view.show_commit(commit_message)
             continue

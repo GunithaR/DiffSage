@@ -38,6 +38,9 @@ class CommitView(BaseView):
         if message.scope:
             grid.add_row("Scope", message.scope)
 
+        if message.breaking:
+            grid.add_row("Breaking", "[bold yellow]yes[/bold yellow]")
+
         grid.add_row("Subject", message.subject)
 
         body = Text()

@@ -32,6 +32,7 @@
 
 ### Fixed
 
+- The commit message parser read `feat(api)!:` as scope `api)!`, accepted any word before a colon as the type (for example `Here is your commit message:`), and rejected replies wrapped in code fences. It now follows Conventional Commits: known types only, `!` for breaking changes, and code fences or a leading sentence from the AI are removed. The cleaned message is what gets committed and edited.
 - `diffsage commit` failed with an unexpected error for the first commit in a new repository, because `git log` fails before any commit exists.
 - A commit subject containing a tab character broke reading the commit history for `commit` and `pr`.
 - A credentials file with a value of the wrong type (for example `gemini = "key"` instead of a table) crashed every command with an unexpected error; it is now reported with the exact location to fix.

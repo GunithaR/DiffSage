@@ -1,5 +1,6 @@
 """End-to-end tests for `diffsage commit`: real CLI, real Git repository, fake AI provider."""
 
+import sys
 from pathlib import Path
 
 import pytest
@@ -135,7 +136,8 @@ def test_commit_reports_unparseable_ai_message(git_repo, fake_provider) -> None:
     result = runner.invoke(app, ["commit"])
 
     assert result.exit_code == 1
-    assert "✗ Commit message header must use '<type>: <subject>' format." in result.output
+    assert "✗ The first line must look like '<type>[(scope)][!]: <subject>'" in result.output
+    assert "Got: 'Here is a summary of your change'" in result.output
     assert UNEXPECTED_ERROR_MESSAGE not in result.output
     assert commit_count(git_repo) == 1
 
@@ -199,3 +201,50 @@ def test_commit_works_for_first_commit_in_empty_repository(empty_git_repo, fake_
     assert result.exit_code == 0, result.output
     assert head_message(empty_git_repo) == "chore: initial commit"
     assert "Recent Commits:" in fake_provider.prompts[0]
+
+
+def test_commit_strips_code_fences_and_preamble_from_the_ai_reply(git_repo, fake_provider) -> None:
+    """Regression: fenced replies were rejected; once accepted, the raw text (fences and
+    all) would have been committed."""
+
+    stage_file(git_repo, "banner.py", "print('banner')\n")
+    fake_provider.queue(
+        "Here is a commit message for your changes:\n\n```text\nfeat(ui): add banner\n\n"
+        "- Add banner script.\n```\n"
+    )
+
+    result = runner.invoke(app, ["commit"], input="y\n")
+
+    assert result.exit_code == 0, result.output
+    assert head_message(git_repo) == "feat(ui): add banner\n\n- Add banner script."
+
+
+def test_commit_keeps_the_breaking_change_marker(git_repo, fake_provider) -> None:
+    stage_file(git_repo, "api.py", "def v2(): ...\n")
+    fake_provider.queue("feat(api)!: drop v1 endpoints\n\nBREAKING CHANGE: v1 is removed.")
+
+    result = runner.invoke(app, ["commit"], input="y\n")
+
+    assert result.exit_code == 0, result.output
+    assert "Breaking" in result.output
+    assert (
+        head_message(git_repo) == "feat(api)!: drop v1 endpoints\n\nBREAKING CHANGE: v1 is removed."
+    )
+
+
+def test_edit_starts_from_the_cleaned_message(
+    git_repo, fake_provider, tmp_path, monkeypatch
+) -> None:
+    seen = tmp_path / "seen.txt"
+    editor = tmp_path / "editor.py"
+    editor.write_text(f"import shutil, sys\nshutil.copy(sys.argv[1], {str(seen)!r})\n")
+    python = sys.executable.replace("\\", "/")
+    monkeypatch.setenv("VISUAL", f'"{python}" "{editor.as_posix()}"')
+    stage_file(git_repo, "banner.py", "print('banner')\n")
+    fake_provider.queue("```\nfeat(ui): add banner\n```")
+
+    result = runner.invoke(app, ["commit"], input="e\ny\n")
+
+    assert result.exit_code == 0, result.output
+    assert seen.read_text() == "feat(ui): add banner"
+    assert head_message(git_repo) == "feat(ui): add banner"
