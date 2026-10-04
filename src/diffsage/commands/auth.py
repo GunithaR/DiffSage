@@ -6,7 +6,7 @@ from diffsage.commands.error_handler import handle_command_errors
 from diffsage.config.paths import get_credentials_path
 from diffsage.exceptions import CredentialNotFoundError, InvalidCredentialError
 from diffsage.logging.logger import get_logger
-from diffsage.services.credentials_service import CredentialService
+from diffsage.services.credentials_service import API_KEY_ENVIRONMENT_VARIABLE, CredentialService
 from diffsage.storage.credentials_repository import CredentialsRepository
 from diffsage.ui.auth_view import AuthView
 
@@ -36,6 +36,14 @@ def _read_api_key(provider: str) -> str:
         raise InvalidCredentialError("No API key was received on standard input.")
 
     return api_key
+
+
+def _warn_if_environment_key_is_set(view: AuthView) -> None:
+    if CredentialService.environment_api_key() is not None:
+        view.show_warning(
+            f"{API_KEY_ENVIRONMENT_VARIABLE} is set, so AI commands use it instead of "
+            "stored credentials."
+        )
 
 
 def _credential_service() -> CredentialService:
@@ -93,6 +101,8 @@ def get_credential(
         name,
     )
 
+    _warn_if_environment_key_is_set(view)
+
     if credential is None:
         raise CredentialNotFoundError(provider, name)
 
@@ -108,6 +118,7 @@ def list_credentials() -> None:
 
     credentials = _credential_service().list_credentials()
 
+    _warn_if_environment_key_is_set(view)
     view.show_credentials(credentials)
 
 

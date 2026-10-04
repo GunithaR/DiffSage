@@ -211,7 +211,7 @@ def test_ai_service_resolves_default_credential():
         api_key="test-api-key",
     )
 
-    credential_service.get_credential.return_value = credential
+    credential_service.resolve_credential.return_value = credential
 
     settings = create_settings()
 
@@ -226,7 +226,7 @@ def test_ai_service_resolves_default_credential():
             credential_service=credential_service,
         )
 
-    credential_service.get_credential.assert_called_once_with(
+    credential_service.resolve_credential.assert_called_once_with(
         "gemini",
         "default",
     )
@@ -241,7 +241,7 @@ def test_ai_service_resolves_default_credential():
 
 def test_ai_service_raises_when_credential_is_missing():
     credential_service = Mock(spec=CredentialService)
-    credential_service.get_credential.return_value = None
+    credential_service.resolve_credential.side_effect = CredentialNotFoundError("gemini")
 
     settings = create_settings()
 
@@ -254,7 +254,7 @@ def test_ai_service_raises_when_credential_is_missing():
             credential_service=credential_service,
         )
 
-    credential_service.get_credential.assert_called_once_with(
+    credential_service.resolve_credential.assert_called_once_with(
         "gemini",
         "default",
     )

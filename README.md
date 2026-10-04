@@ -246,6 +246,14 @@ In scripts, pipe the key in instead of typing it:
 printf '%s\n' "$GEMINI_API_KEY" | diffsage auth set gemini
 ```
 
+In CI or containers you can skip the credentials file entirely and provide the key through
+the `DIFFSAGE_API_KEY` environment variable. When it is set, it is used instead of any
+stored credential, and `diffsage auth list` says so:
+
+```bash
+DIFFSAGE_API_KEY="$GEMINI_API_KEY" diffsage pr
+```
+
 Verify your environment:
 
 ```bash

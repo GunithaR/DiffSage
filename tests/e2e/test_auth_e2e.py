@@ -6,6 +6,7 @@ import pytest
 from typer.testing import CliRunner
 
 from diffsage.cli import app
+from tests.fakes import FakeProvider
 
 runner = CliRunner()
 
@@ -120,3 +121,81 @@ def test_auth_set_with_empty_pipe_saves_nothing(isolated_env) -> None:
     assert result.exit_code == 1
     assert "✗ No API key was received on standard input." in result.output
     assert stored_key(isolated_env) is None
+
+
+@pytest.fixture
+def captured_credentials(monkeypatch) -> list:
+    """Record the credential each AIService builds its provider with."""
+
+    used: list = []
+    provider = FakeProvider()
+    provider.queue("answer")
+
+    def create(_settings, credential):
+        used.append(credential)
+        return provider
+
+    monkeypatch.setattr("diffsage.services.ai_service.create_provider", create)
+    return used
+
+
+def test_ask_uses_environment_key_without_any_stored_credential(
+    captured_credentials, monkeypatch
+) -> None:
+    monkeypatch.setenv("DIFFSAGE_API_KEY", "env-key")
+
+    result = runner.invoke(app, ["ask", "hello"])
+
+    assert result.exit_code == 0, result.output
+    assert [credential.api_key for credential in captured_credentials] == ["env-key"]
+
+
+def test_environment_key_overrides_stored_key(captured_credentials, monkeypatch) -> None:
+    runner.invoke(app, ["auth", "set", "gemini"], input="stored-key\n")
+    monkeypatch.setenv("DIFFSAGE_API_KEY", "env-key")
+
+    result = runner.invoke(app, ["ask", "hello"])
+
+    assert result.exit_code == 0, result.output
+    assert captured_credentials[0].api_key == "env-key"
+
+
+def test_empty_environment_key_is_reported(monkeypatch) -> None:
+    runner.invoke(app, ["auth", "set", "gemini"], input="stored-key\n")
+    monkeypatch.setenv("DIFFSAGE_API_KEY", "")
+
+    result = runner.invoke(app, ["ask", "hello"])
+
+    assert result.exit_code == 1
+    assert "✗ DIFFSAGE_API_KEY is set but empty." in flat(result.output)
+
+
+def test_missing_key_suggests_auth_set_or_environment_variable() -> None:
+    result = runner.invoke(app, ["ask", "hello"])
+
+    assert result.exit_code == 1
+    assert "Run 'diffsage auth set gemini', or set DIFFSAGE_API_KEY." in flat(result.output)
+
+
+@pytest.mark.parametrize("command", [["auth", "list"], ["auth", "get", "gemini"]])
+def test_auth_commands_warn_when_environment_key_overrides(command, monkeypatch) -> None:
+    runner.invoke(app, ["auth", "set", "gemini"], input="stored-key\n")
+    monkeypatch.setenv("DIFFSAGE_API_KEY", "env-key")
+
+    result = runner.invoke(app, command)
+
+    assert result.exit_code == 0, result.output
+    assert "! DIFFSAGE_API_KEY is set, so AI commands use it instead of stored" in flat(
+        result.output
+    )
+    assert "env-key" not in result.output
+
+
+@pytest.mark.parametrize("command", [["auth", "list"], ["auth", "get", "gemini"]])
+def test_auth_commands_do_not_warn_without_environment_key(command) -> None:
+    runner.invoke(app, ["auth", "set", "gemini"], input="stored-key\n")
+
+    result = runner.invoke(app, command)
+
+    assert result.exit_code == 0, result.output
+    assert "DIFFSAGE_API_KEY" not in result.output
