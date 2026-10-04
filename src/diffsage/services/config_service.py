@@ -8,7 +8,7 @@ from diffsage.exceptions import (
     InvalidConfigurationValueError,
     UnknownConfigurationKeyError,
 )
-from diffsage.models.config import ConfigReport, ConfigValueReport
+from diffsage.models.config import ConfigReport, ConfigValueReport, RawConfigReport
 from diffsage.storage.config_repository import ConfigRepository
 
 
@@ -58,10 +58,10 @@ class ConfigService:
             log_level=settings.log_level,
         )
 
-    def get_configuration_raw(self) -> ConfigReport:
+    def get_configuration_raw(self) -> RawConfigReport:
         config = self._file.list()
 
-        return ConfigReport(
+        return RawConfigReport(
             provider=config.get("provider"),
             model=config.get("model"),
             timeout=config.get("timeout"),

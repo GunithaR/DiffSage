@@ -7,6 +7,7 @@ from diffsage.exceptions import (
     InvalidConfigurationValueError,
     UnknownConfigurationKeyError,
 )
+from diffsage.models.config import RawConfigReport
 from diffsage.services.config_service import ConfigService
 from diffsage.storage.config_repository import ConfigRepository
 from tests.helpers import create_settings
@@ -394,3 +395,19 @@ def test_set_value_keeps_model_case() -> None:
         service.set_value("model", "  Gemini-2.5-PRO  ")
 
     repository.set.assert_called_once_with("model", "Gemini-2.5-PRO")
+
+
+def test_get_configuration_raw_returns_file_values_as_written() -> None:
+    """Raw values may be invalid settings; they are reported unchanged so a broken file
+    can be inspected and repaired."""
+
+    repository = Mock(spec=ConfigRepository)
+    repository.list.return_value = {"timeout": "abc", "log_level": "loud"}
+    service = ConfigService(create_settings(), repository)
+
+    report = service.get_configuration_raw()
+
+    assert isinstance(report, RawConfigReport)
+    assert report.timeout == "abc"
+    assert report.log_level == "loud"
+    assert report.provider is None

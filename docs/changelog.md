@@ -13,6 +13,9 @@
 
 ### Changed
 
+- `config list` and `config get` show where the resolved values come from (built-in defaults, global file, repository file, environment variables) instead of a single, often wrong, "Location".
+- `config set` keeps the case of model names.
+- Config files, `DIFFSAGE_*` environment variables and `config set` are validated against one schema: supported provider, non-empty model, timeout 1–600 seconds, max_retries 0–10, a standard log level, and no unknown keys or sections.
 - CI runs the test suite on Ubuntu, macOS and Windows.
 - The release workflow verifies that the tag matches the package version and runs lint and tests before building and publishing.
 - Ruff now reports unused arguments.
@@ -24,6 +27,11 @@
 
 ### Fixed
 
+- `--local` outside a Git repository crashed with an unexpected error; it now explains that local configuration needs a repository.
+- Local configuration was ignored in git worktrees, and a submodule used its parent repository's configuration; the repository root is now found with git.
+- Misspelled keys or sections in a config file were silently ignored.
+- Invalid values such as `max_retries 999`, `log_level LOUD` or an unsupported provider were accepted by `config set` and environment variables.
+- The `--local`/`--global` help text was wrong for `config set` and `config unset`, and missing for `config list` and `config get`.
 - Rate-limit and other provider errors in `ask`, unparseable AI commit messages, editor launch failures and `gh pr create` failures were reported as "unexpected error".
 - An invalid configuration file crashed every command with a traceback; it is now reported with the file, setting and value at fault.
 - `config set` and `config unset` can repair a broken configuration file, and `config list`/`get --global`/`--local` can still read it.

@@ -1,6 +1,7 @@
 import os
 from collections.abc import Mapping
 from pathlib import Path
+from typing import Any
 
 from pydantic import ValidationError
 
@@ -50,12 +51,12 @@ def _environment_overrides() -> PartialDiffSageConfig:
 
 
 def _merge_dict(
-    base: dict,
-    override: dict,
-) -> dict:
-    """Recursively merge two dictionaries."""
+    base: Mapping[str, Any],
+    override: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Recursively merge two mappings into a new dictionary."""
 
-    merged = base.copy()
+    merged = dict(base)
 
     for key, value in override.items():
         if key in merged and isinstance(merged[key], Mapping) and isinstance(value, Mapping):

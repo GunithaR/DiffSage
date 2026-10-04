@@ -4,7 +4,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 from diffsage.config.paths import display_path
-from diffsage.models.config import ConfigReport, ConfigSources, ConfigValueReport
+from diffsage.models.config import ConfigReport, ConfigSources, ConfigValueReport, RawConfigReport
 from diffsage.ui.base import BaseView
 
 
@@ -17,7 +17,7 @@ class ConfigView(BaseView):
 
         return str(value)
 
-    def show_configuration(self, report: ConfigReport) -> None:
+    def show_configuration(self, report: ConfigReport | RawConfigReport) -> None:
         table = Table(show_header=False, box=False, expand=False)
 
         table.add_row("Provider", self._display_value(report.provider))

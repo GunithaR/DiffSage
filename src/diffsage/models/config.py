@@ -12,6 +12,20 @@ class ConfigReport:
 
 
 @dataclass(slots=True)
+class RawConfigReport:
+    """Values exactly as written in one config file, which may not be valid settings.
+
+    Shown by `config list --global/--local`, so a broken file can be inspected.
+    """
+
+    provider: str | int | None
+    model: str | int | None
+    timeout: str | int | None
+    max_retries: str | int | None
+    log_level: str | int | None
+
+
+@dataclass(slots=True)
 class ConfigSources:
     """Where resolved settings came from, in override order (later wins)."""
 
