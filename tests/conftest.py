@@ -39,7 +39,7 @@ class IsolatedEnv:
 
 @pytest.fixture(autouse=True)
 def isolated_env(tmp_path, monkeypatch) -> IsolatedEnv:
-    """Keep DiffSage away from the developer's real config, credentials, logs, .env and
+    """Keep DiffSage away from the developer's real config, credentials, logs and
     repository-local .diffsage.toml.
 
     Applied to every test automatically, so no test result depends on the machine it
@@ -65,10 +65,6 @@ def isolated_env(tmp_path, monkeypatch) -> IsolatedEnv:
     monkeypatch.setattr(
         "diffsage.config.paths.user_log_path",
         lambda *_args, **_kwargs: log_dir,
-    )
-    monkeypatch.setattr(
-        "diffsage.config.resolver.load_dotenv",
-        lambda *_args, **_kwargs: False,
     )
     monkeypatch.setattr("diffsage.logging.logger._CONFIGURED", True)
 

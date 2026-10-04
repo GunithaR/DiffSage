@@ -18,10 +18,6 @@ from diffsage.exceptions import LocalConfigUnavailableError
 def test_resolver_uses_defaults_when_no_config_files_exist():
     with (
         patch(
-            "diffsage.config.resolver.load_dotenv",
-            return_value=None,
-        ),
-        patch(
             "diffsage.config.resolver.get_global_config_path",
             return_value=Path("/does/not/exist/config.toml"),
         ),
@@ -45,10 +41,6 @@ def test_resolver_uses_global_config_values():
     mock_global_path.exists.return_value = True
 
     with (
-        patch(
-            "diffsage.config.resolver.load_dotenv",
-            return_value=None,
-        ),
         patch(
             "diffsage.config.resolver.get_global_config_path",
             return_value=mock_global_path,
@@ -96,10 +88,6 @@ def test_resolver_uses_local_config_values():
 
     with (
         patch(
-            "diffsage.config.resolver.load_dotenv",
-            return_value=None,
-        ),
-        patch(
             "diffsage.config.resolver.get_global_config_path",
             return_value=mock_global_path,
         ),
@@ -142,10 +130,6 @@ def test_resolver_uses_env_config_values(monkeypatch):
     )
 
     with (
-        patch(
-            "diffsage.config.resolver.load_dotenv",
-            return_value=None,
-        ),
         patch(
             "diffsage.config.resolver.get_global_config_path",
             return_value=mock_global_path,

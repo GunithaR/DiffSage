@@ -17,6 +17,11 @@
 - The release workflow verifies that the tag matches the package version and runs lint and tests before building and publishing.
 - Ruff now reports unused arguments.
 
+### Removed
+
+- `.env` files are no longer loaded. In practice only DiffSage's own development checkout was ever found, and loading one copied every variable in it, including unrelated secrets, into DiffSage's environment and its git/gh subprocesses. Use `DIFFSAGE_*` environment variables or the global and repository config files instead.
+- The `python-dotenv` dependency and `.env.example`.
+
 ### Fixed
 
 - Rate-limit and other provider errors in `ask`, unparseable AI commit messages, editor launch failures and `gh pr create` failures were reported as "unexpected error".

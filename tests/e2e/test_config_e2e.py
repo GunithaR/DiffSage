@@ -1,5 +1,8 @@
 """End-to-end tests for `diffsage config`: real CLI, isolated config files."""
 
+import os
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -144,3 +147,30 @@ def test_local_config_is_found_from_a_subdirectory(git_repo, monkeypatch) -> Non
 
     assert result.exit_code == 0, result.output
     assert "root-model" in result.output
+
+
+def test_dotenv_files_are_not_loaded(git_repo, monkeypatch) -> None:
+    """A .env file must never change settings or leak into DiffSage's environment."""
+
+    (git_repo / ".env").write_text("DIFFSAGE_TIMEOUT=99\nUNRELATED_SECRET=hunter2\n")
+    monkeypatch.delenv("UNRELATED_SECRET", raising=False)
+
+    result = runner.invoke(app, ["config", "get", "timeout"])
+
+    assert result.exit_code == 0, result.output
+    assert "30" in result.output
+    assert "99" not in result.output
+    assert "environment" not in result.output
+    assert "UNRELATED_SECRET" not in os.environ
+
+
+def test_diffsage_does_not_import_dotenv() -> None:
+    """Guards against .env loading coming back in any form, including a bare
+    load_dotenv() that searches from DiffSage's install folder rather than the project."""
+
+    code = "import sys, diffsage.cli; print('dotenv' in sys.modules)"
+    result = subprocess.run(
+        [sys.executable, "-c", code], capture_output=True, text=True, check=True
+    )
+
+    assert result.stdout.strip() == "False"

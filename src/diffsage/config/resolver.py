@@ -2,8 +2,6 @@ import os
 from collections.abc import Mapping
 from pathlib import Path
 
-from dotenv import load_dotenv
-
 from diffsage.config.defaults import DEFAULT_CONFIG
 from diffsage.config.file_loader import load_config
 from diffsage.config.paths import get_global_config_path, get_local_config_path
@@ -72,9 +70,13 @@ def default_settings() -> Settings:
 
 
 def resolve_settings() -> Settings:
-    """Resolve application settings from all configuration sources."""
+    """Resolve application settings from all configuration sources.
 
-    load_dotenv()
+    Sources, later overriding earlier: built-in defaults, the global config file, the
+    repository's .diffsage.toml, then DIFFSAGE_* environment variables. `.env` files are
+    deliberately not read: loading one copies every variable in it, including unrelated
+    secrets, into DiffSage's environment and every git/gh subprocess it starts.
+    """
 
     config = DEFAULT_CONFIG
     global_config_path = get_global_config_path()
