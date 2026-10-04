@@ -89,6 +89,11 @@ def commit() -> None:
             logger.info("User selected edit.")
             edited = editor.edit(pending_edit or commit_message.to_text())
 
+            if edited is None:
+                view.show_warning("Edit cancelled. The message below is unchanged.")
+                view.show_commit(commit_message)
+                continue
+
             try:
                 commit_message = CommitMessageParser.parse(edited)
             except InvalidCommitMessageError as error:

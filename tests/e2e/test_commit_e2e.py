@@ -152,7 +152,7 @@ def test_commit_reports_unparseable_ai_message(git_repo, fake_provider) -> None:
 def test_commit_reports_missing_editor(git_repo, fake_provider, monkeypatch) -> None:
     """Regression: a missing editor raised RuntimeError, reported as unexpected."""
 
-    monkeypatch.setenv("VISUAL", "diffsage-missing-editor")
+    monkeypatch.setenv("GIT_EDITOR", "diffsage-missing-editor")
     stage_file(git_repo, "greeting.py", "print('hello')\n")
     fake_provider.queue("feat: add greeting script")
 
@@ -246,7 +246,7 @@ def test_edit_starts_from_the_cleaned_message(
     editor = tmp_path / "editor.py"
     editor.write_text(f"import shutil, sys\nshutil.copy(sys.argv[1], {str(seen)!r})\n")
     python = sys.executable.replace("\\", "/")
-    monkeypatch.setenv("VISUAL", f'"{python}" "{editor.as_posix()}"')
+    monkeypatch.setenv("GIT_EDITOR", f'"{python}" "{editor.as_posix()}"')
     stage_file(git_repo, "banner.py", "print('banner')\n")
     fake_provider.queue("```\nfeat(ui): add banner\n```")
 
@@ -272,7 +272,7 @@ def test_commit_rejected_by_a_hook_shows_why(git_repo, fake_provider) -> None:
 
 
 def scripted_editor(tmp_path: Path, monkeypatch, outputs: list[str]) -> Path:
-    """Set VISUAL to an editor that writes outputs[n] on its n-th run and saves what it was
+    """Set GIT_EDITOR to an editor that writes outputs[n] on its n-th run and saves what it was
     opened with to received/<n>.txt."""
 
     received = tmp_path / "received"
@@ -288,7 +288,7 @@ def scripted_editor(tmp_path: Path, monkeypatch, outputs: list[str]) -> Path:
         "Path(sys.argv[1]).write_text(outputs[run], encoding='utf-8')\n"
     )
     python = sys.executable.replace("\\", "/")
-    monkeypatch.setenv("VISUAL", f'"{python}" "{script.as_posix()}"')
+    monkeypatch.setenv("GIT_EDITOR", f'"{python}" "{script.as_posix()}"')
     return received
 
 
@@ -365,3 +365,18 @@ def test_only_staged_changes_are_sent_to_the_ai(git_repo, fake_provider) -> None
     assert "unstaged draft notes" not in prompt
     assert "untracked experiment" not in prompt
     assert "Unstaged" not in prompt
+
+
+def test_cancelled_edit_keeps_the_message(git_repo, fake_provider, monkeypatch) -> None:
+    """Quitting the editor with an error (for example :cq in vim) cancels the edit."""
+
+    python = sys.executable.replace("\\", "/")
+    monkeypatch.setenv("GIT_EDITOR", f'"{python}" -c "import sys; sys.exit(1)"')
+    stage_file(git_repo, "app.py", "x = 1\n")
+    fake_provider.queue("feat: add app")
+
+    result = runner.invoke(app, ["commit"], input="e\ny\n")
+
+    assert result.exit_code == 0, result.output
+    assert "! Edit cancelled. The message below is unchanged." in result.output
+    assert head_message(git_repo) == "feat: add app"

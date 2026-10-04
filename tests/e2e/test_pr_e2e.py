@@ -2,6 +2,7 @@
 remote, fake AI provider and fake GitHub CLI."""
 
 import json
+import sys
 from pathlib import Path
 
 import pytest
@@ -230,3 +231,16 @@ def test_pr_never_sends_secrets_to_the_ai(git_repo, fake_provider, fake_gh) -> N
     assert "[REDACTED]" in fake_provider.prompts[0]
     assert "! 1 value(s) that looked like secrets were replaced" in result.output
     assert pr_create_call(fake_gh.calls) is None
+
+
+@pytest.mark.usefixtures("feature_branch")
+def test_cancelled_pr_edit_keeps_the_draft(fake_provider, fake_gh, monkeypatch) -> None:
+    python = sys.executable.replace("\\", "/")
+    monkeypatch.setenv("GIT_EDITOR", f'"{python}" -c "import sys; sys.exit(1)"')
+    fake_provider.queue(draft_json())
+
+    result = runner.invoke(app, ["pr"], input="e\ny\n")
+
+    assert result.exit_code == 0, result.output
+    assert "! Edit cancelled. The draft is unchanged." in result.output
+    assert pr_create_call(fake_gh.calls)[7] == "Add greeting script"

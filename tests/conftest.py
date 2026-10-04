@@ -21,8 +21,12 @@ DIFFSAGE_ENV_VARIABLES = [
 ]
 
 
+# The developer's editor settings must never open a real editor during tests.
+EDITOR_ENV_VARIABLES = ["GIT_EDITOR", "VISUAL", "EDITOR"]
+
+
 def remove_diffsage_env(monkeypatch: pytest.MonkeyPatch) -> None:
-    for variable in DIFFSAGE_ENV_VARIABLES:
+    for variable in DIFFSAGE_ENV_VARIABLES + EDITOR_ENV_VARIABLES:
         monkeypatch.delenv(variable, raising=False)
 
 

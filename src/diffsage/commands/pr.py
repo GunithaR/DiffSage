@@ -113,6 +113,11 @@ def pr(
                     indent=2,
                 )
             )
+
+            if edited_content is None:
+                view.show_warning("Edit cancelled. The draft is unchanged.")
+                continue
+
             try:
                 draft = parser.parse(edited_content)
             except InvalidPullRequestDraftError as e:
