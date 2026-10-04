@@ -9,12 +9,15 @@ def run_git(
     args: list[str],
     cwd: Path,
 ) -> subprocess.CompletedProcess[str]:
+    # Git's output is UTF-8; without this, Windows decodes it with its code page (cp1252)
+    # and non-ASCII text comes back garbled.
     return subprocess.run(
         ["git", *args],
         cwd=cwd,
         check=True,
         capture_output=True,
         text=True,
+        encoding="utf-8",
     )
 
 

@@ -102,3 +102,11 @@ def test_without_git_the_environment_and_a_platform_default_are_used(
         monkeypatch.setenv(name, value)
 
     assert EditorService()._resolve_editor() == expected
+
+
+def test_editor_path_with_non_ascii_characters_is_read_correctly(git_repo) -> None:
+    """Git prints UTF-8; on Windows the default code page would garble this path."""
+
+    run_git(["config", "core.editor", "C:/Users/José/editor --wait"], git_repo)
+
+    assert EditorService()._resolve_editor() == "C:/Users/José/editor --wait"

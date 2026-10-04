@@ -54,6 +54,7 @@ class EditorService:
                 ["git", "var", "GIT_EDITOR"],
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
                 check=True,
             )
             editor = result.stdout.strip()
