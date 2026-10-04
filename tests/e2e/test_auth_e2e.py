@@ -259,3 +259,15 @@ def test_config_list_shows_the_credential_profile() -> None:
     assert result.exit_code == 0, result.output
     assert "Credential Profile" in result.output
     assert "default" in result.output
+
+
+@pytest.mark.parametrize("command", [["auth", "list"], ["auth", "get", "gemini"], ["ask", "hi"]])
+def test_malformed_credentials_file_is_reported_by_every_command(isolated_env, command) -> None:
+    isolated_env.config_dir.mkdir(parents=True, exist_ok=True)
+    (isolated_env.config_dir / "credentials.toml").write_text('[credentials]\ngemini = "my-key"\n')
+
+    result = runner.invoke(app, command)
+
+    assert result.exit_code == 1
+    assert "'credentials.gemini' should be a table, not string" in flat(result.output)
+    assert "unexpected error" not in result.output.lower()

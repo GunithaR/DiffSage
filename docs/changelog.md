@@ -32,6 +32,7 @@
 
 ### Fixed
 
+- A credentials file with a value of the wrong type (for example `gemini = "key"` instead of a table) crashed every command with an unexpected error; it is now reported with the exact location to fix.
 - The credentials file was created readable by every local user; it is now owner-only (`0600`) on macOS and Linux, existing files are tightened when read, and writes are atomic so a crash cannot leave it half-written.
 - An unparseable credentials file was reported as an unexpected error.
 - `--local` outside a Git repository crashed with an unexpected error; it now explains that local configuration needs a repository.
