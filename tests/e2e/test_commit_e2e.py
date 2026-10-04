@@ -1,5 +1,6 @@
 """End-to-end tests for `diffsage commit`: real CLI, real Git repository, fake AI provider."""
 
+import json
 import sys
 from pathlib import Path
 
@@ -11,6 +12,12 @@ from diffsage.commands.error_handler import UNEXPECTED_ERROR_MESSAGE
 from tests.helpers import install_failing_pre_commit_hook, run_git
 
 runner = CliRunner()
+
+
+def flat(output: str) -> str:
+    """Join lines, because Rich wraps long messages."""
+
+    return " ".join(output.split())
 
 
 def stage_file(repo: Path, name: str, content: str) -> None:
@@ -262,3 +269,80 @@ def test_commit_rejected_by_a_hook_shows_why(git_repo, fake_provider) -> None:
     assert "lint: trailing whitespace in app.py line 1" in result.output
     assert UNEXPECTED_ERROR_MESSAGE not in result.output
     assert commit_count(git_repo) == 1
+
+
+def scripted_editor(tmp_path: Path, monkeypatch, outputs: list[str]) -> Path:
+    """Set VISUAL to an editor that writes outputs[n] on its n-th run and saves what it was
+    opened with to received/<n>.txt."""
+
+    received = tmp_path / "received"
+    received.mkdir()
+    script = tmp_path / "editor.py"
+    script.write_text(
+        "import json, shutil, sys\n"
+        "from pathlib import Path\n"
+        f"received = Path({str(received)!r})\n"
+        "run = len(list(received.iterdir()))\n"
+        "shutil.copy(sys.argv[1], received / f'{run}.txt')\n"
+        f"outputs = json.loads({json.dumps(json.dumps(outputs))})\n"
+        "Path(sys.argv[1]).write_text(outputs[run], encoding='utf-8')\n"
+    )
+    python = sys.executable.replace("\\", "/")
+    monkeypatch.setenv("VISUAL", f'"{python}" "{script.as_posix()}"')
+    return received
+
+
+def test_invalid_edit_is_kept_and_reopened(git_repo, fake_provider, tmp_path, monkeypatch) -> None:
+    """Regression: an edit that did not parse ended the command and was lost."""
+
+    received = scripted_editor(tmp_path, monkeypatch, ["wip: half done", "feat: done properly"])
+    stage_file(git_repo, "app.py", "x = 1\n")
+    fake_provider.queue("feat: add app")
+
+    result = runner.invoke(app, ["commit"], input="e\ne\ny\n")
+
+    assert result.exit_code == 0, result.output
+    assert "✗ 'wip' is not a Conventional Commit type" in result.output
+    assert "! Your edit was kept. Press E to continue editing it." in flat(result.output)
+    assert (received / "0.txt").read_text() == "feat: add app"
+    assert (received / "1.txt").read_text() == "wip: half done"
+    assert head_message(git_repo) == "feat: done properly"
+    assert len(fake_provider.prompts) == 1
+
+
+def test_y_after_an_invalid_edit_commits_the_unchanged_message(
+    git_repo, fake_provider, tmp_path, monkeypatch
+) -> None:
+    scripted_editor(tmp_path, monkeypatch, ["not a commit message"])
+    stage_file(git_repo, "app.py", "x = 1\n")
+    fake_provider.queue("feat: add app")
+
+    result = runner.invoke(app, ["commit"], input="e\ny\n")
+
+    assert result.exit_code == 0, result.output
+    assert head_message(git_repo) == "feat: add app"
+
+
+def test_unusable_regeneration_keeps_the_previous_message(git_repo, fake_provider) -> None:
+    """Regression: an unparseable reply on regenerate ended the command."""
+
+    stage_file(git_repo, "app.py", "x = 1\n")
+    fake_provider.queue("feat: add app", "Sorry, I cannot help with that.")
+
+    result = runner.invoke(app, ["commit"], input="r\ny\n")
+
+    assert result.exit_code == 0, result.output
+    assert "! The new suggestion could not be used." in flat(result.output)
+    assert head_message(git_repo) == "feat: add app"
+
+
+def test_valid_edit_clears_the_kept_edit(git_repo, fake_provider, tmp_path, monkeypatch) -> None:
+    received = scripted_editor(tmp_path, monkeypatch, ["wip: x", "fix: first fix", "fix: second"])
+    stage_file(git_repo, "app.py", "x = 1\n")
+    fake_provider.queue("feat: add app")
+
+    result = runner.invoke(app, ["commit"], input="e\ne\ne\ny\n")
+
+    assert result.exit_code == 0, result.output
+    assert (received / "2.txt").read_text() == "fix: first fix"
+    assert head_message(git_repo) == "fix: second"

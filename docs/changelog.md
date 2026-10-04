@@ -34,6 +34,7 @@
 
 ### Fixed
 
+- An edited commit message that did not parse ended `diffsage commit` and lost the edit; the edit is now kept and reopened with the next E, and Y still commits the last valid message. An unusable suggestion on regenerate no longer ends the command either.
 - When `git commit` failed (for example a pre-commit hook rejected the commit), `diffsage commit` reported an unexpected error; it now shows Git's or the hook's own output and confirms that nothing was committed.
 - The commit message parser read `feat(api)!:` as scope `api)!`, accepted any word before a colon as the type (for example `Here is your commit message:`), and rejected replies wrapped in code fences. It now follows Conventional Commits: known types only, `!` for breaking changes, and code fences or a leading sentence from the AI are removed. The cleaned message is what gets committed and edited.
 - `diffsage commit` failed with an unexpected error for the first commit in a new repository, because `git log` fails before any commit exists.
