@@ -17,6 +17,8 @@
 
 ### Changed
 
+- Commit messages are passed to `git commit` through stdin instead of `-m` arguments, so long messages work on Windows (32,767-character command-line limit) and Git stores exactly the previewed text.
+- Git output and input are always treated as UTF-8, so non-ASCII text is not garbled on Windows.
 - `config list` and `config get` show where the resolved values come from (built-in defaults, global file, repository file, environment variables) instead of a single, often wrong, "Location".
 - `config set` keeps the case of model names.
 - Config files, `DIFFSAGE_*` environment variables and `config set` are validated against one schema: supported provider, non-empty model, timeout 1–600 seconds, max_retries 0–10, a standard log level, and no unknown keys or sections.

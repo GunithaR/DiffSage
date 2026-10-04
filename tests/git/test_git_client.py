@@ -1,5 +1,7 @@
+import subprocess
 from datetime import datetime
 from pathlib import Path
+from unittest.mock import patch
 
 from diffsage.git.client import GitClient
 from diffsage.models.git import GitCommit
@@ -565,3 +567,66 @@ def test_commit_subjects_containing_a_tab_are_parsed(tmp_path: Path) -> None:
     assert [c.message for c in client.commits_between("main", "feature")] == [
         "fix:\tsubject with a tab"
     ]
+
+
+def staged_repo(tmp_path: Path) -> GitClient:
+    init_git_repo_with_initial_commit(tmp_path)
+    (tmp_path / "change.txt").write_text("change\n")
+    run_git(["add", "change.txt"], tmp_path)
+    return GitClient(tmp_path)
+
+
+def head_message(path: Path) -> str:
+    return run_git(["log", "-1", "--format=%B"], path).stdout.rstrip("\n")
+
+
+def test_commit_stores_the_message_exactly(tmp_path: Path) -> None:
+    message = (
+        "feat(api)!: drop v1 endpoints\n\n"
+        "- Remove the v1 router.\n"
+        "- Update clients.\n\n"
+        "BREAKING CHANGE: v1 is gone.\n"
+        "Refs: #12"
+    )
+
+    staged_repo(tmp_path).commit(message)
+
+    assert head_message(tmp_path) == message
+
+
+def test_commit_passes_the_message_through_stdin_not_arguments(tmp_path: Path) -> None:
+    client = staged_repo(tmp_path)
+    calls: list[dict] = []
+    real_run = subprocess.run
+
+    def recording_run(command, **kwargs):
+        calls.append({"command": command, "input": kwargs.get("input")})
+        return real_run(command, **kwargs)
+
+    with patch("diffsage.git.client.subprocess.run", side_effect=recording_run):
+        client.commit("fix: secret-looking subject")
+
+    assert calls[-1]["command"] == ["git", "commit", "-F", "-"]
+    assert calls[-1]["input"] == "fix: secret-looking subject"
+
+
+def test_commit_keeps_non_ascii_text(tmp_path: Path) -> None:
+    """Git uses UTF-8; without an explicit encoding, Windows would use its code page."""
+
+    message = "docs: résumé → naïve café ✓"
+
+    staged_repo(tmp_path).commit(message)
+
+    assert head_message(tmp_path) == message
+
+
+def test_commit_accepts_a_message_longer_than_the_windows_command_line(tmp_path: Path) -> None:
+    """Windows limits a command line to 32,767 characters; -m arguments hit that limit."""
+
+    body = "\n".join(f"- Change number {index}." for index in range(3_000))
+    message = f"chore: large change\n\n{body}"
+    assert len(message) > 40_000
+
+    staged_repo(tmp_path).commit(message)
+
+    assert head_message(tmp_path) == message

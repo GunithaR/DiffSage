@@ -27,14 +27,24 @@ class GitClient:
     def __init__(self, repo_path: Path | str | None = None) -> None:
         self._repo_path = Path(repo_path) if repo_path else Path.cwd()
 
-    def _run_git_command(self, args: list[str]) -> subprocess.CompletedProcess[str]:
-        """Execute a Git command and return the completed process."""
+    def _run_git_command(
+        self, args: list[str], input_text: str | None = None
+    ) -> subprocess.CompletedProcess[str]:
+        """Execute a Git command and return the completed process.
+
+        Git reads and writes UTF-8 by default. Setting it explicitly avoids the system code
+        page (cp1252 on many Windows machines) garbling non-ASCII text; invalid bytes, such
+        as from a binary-ish file in a diff, are replaced instead of raising.
+        """
 
         return subprocess.run(
             ["git", *args],
             cwd=self._repo_path,
+            input=input_text,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             check=True,
         )
 
@@ -156,19 +166,13 @@ class GitClient:
         return result.stdout.splitlines()
 
     def commit(self, message: str) -> None:
-        """Create a git commit with the provided commit message."""
+        """Create a commit with exactly this message.
 
-        lines = message.split("\n", 1)
+        The message goes through stdin (`-F -`) rather than `-m` arguments: no command-line
+        length limit (32,767 characters on Windows), and nothing visible in `ps`.
+        """
 
-        subject = lines[0]
-        body = lines[1].strip() if len(lines) > 1 else ""
-
-        command = ["commit", "-m", subject]
-
-        if body:
-            command.extend(["-m", body])
-
-        self._run_git_command(command)
+        self._run_git_command(["commit", "-F", "-"], input_text=message)
 
     def merge_base(self, base_branch: str, head_branch: str) -> str:
         """Return the common ancestor commit hash of two branches."""
