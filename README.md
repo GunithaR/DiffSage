@@ -195,7 +195,7 @@ pipx install diffsage
 A specific version can be installed with:
 
 ```bash
-pipx install diffsage==1.2.0
+pipx install diffsage==1.4.0
 ```
 
 Release builds and PyPI publishing are automated through GitHub Actions.
