@@ -1,4 +1,7 @@
+from pydantic import ValidationError
+
 from diffsage.config.loader import load_settings
+from diffsage.config.schema import CONFIG_KEYS, PartialDiffSageConfig
 from diffsage.config.settings import Settings
 from diffsage.exceptions import (
     ConfigError,
@@ -97,9 +100,7 @@ class ConfigService:
         return ConfigValueReport(key=key, value=str(value))
 
     def set_value(self, key: str, value: str) -> ConfigReport:
-        attribute_name = self._ATTRIBUTE_MAP.get(key)
-
-        if attribute_name is None:
+        if key not in CONFIG_KEYS:
             raise UnknownConfigurationKeyError(key)
 
         value = value.strip()
@@ -108,19 +109,25 @@ class ConfigService:
         if normalizer is not None:
             value = normalizer(value)
 
-        expected_value = getattr(self._settings, attribute_name)
+        validated = self._validate(key, value)
 
-        try:
-            if isinstance(expected_value, int):
-                converted_value = int(value)
-            else:
-                converted_value = value
-        except ValueError:
-            raise InvalidConfigurationValueError(value) from None
-
-        self._file.set(key, converted_value)
+        self._file.set(key, validated)
 
         return self._reload_report()
+
+    @staticmethod
+    def _validate(key: str, value: str) -> str | int:
+        """Check a value against the configuration schema and return it converted."""
+
+        section, option = CONFIG_KEYS[key]
+
+        try:
+            partial = PartialDiffSageConfig.model_validate({section: {option: value}})
+        except ValidationError as error:
+            reason = "; ".join(detail["msg"] for detail in error.errors())
+            raise InvalidConfigurationValueError(value, key=key, reason=reason) from None
+
+        return getattr(getattr(partial, section), option)
 
     def unset_value(self, key: str) -> ConfigReport:
         attribute_name = self._ATTRIBUTE_MAP.get(key)

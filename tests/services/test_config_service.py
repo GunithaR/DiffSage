@@ -167,8 +167,8 @@ def test_set_value_returns_updated_configuration() -> None:
     )
 
     updated_settings = create_settings(
-        provider="openai",
-        ai_model="gpt-5",
+        provider="gemini",
+        ai_model="gemini-2.5-pro",
     )
 
     repository = Mock(spec=ConfigRepository)
@@ -178,13 +178,13 @@ def test_set_value_returns_updated_configuration() -> None:
         "diffsage.services.config_service.load_settings", return_value=updated_settings
     ) as mock_load_settings:
         report = service.set_value(
-            "provider",
-            "openai",
+            "model",
+            "gemini-2.5-pro",
         )
 
     repository.set.assert_called_once_with(
-        "provider",
-        "openai",
+        "model",
+        "gemini-2.5-pro",
     )
     mock_load_settings.assert_called_once()
     assert report.provider == updated_settings.provider
@@ -231,22 +231,17 @@ def test_set_value_invalid_integer_raises_error() -> None:
 def test_set_value_normalizes_input() -> None:
     settings = create_settings(provider="gemini")
 
-    updated_settings = create_settings(provider="openai")
-
     repository = Mock(spec=ConfigRepository)
     service = ConfigService(settings, repository)
 
-    with patch("diffsage.services.config_service.load_settings", return_value=updated_settings):
-        report = service.set_value(
-            "provider",
-            " OPENAI ",
-        )
+    with patch("diffsage.services.config_service.load_settings", return_value=settings):
+        service.set_value("provider", " GEMINI ")
+        service.set_value("log_level", " debug ")
 
-    repository.set.assert_called_once_with(
-        "provider",
-        "openai",
-    )
-    assert report.provider == updated_settings.provider
+    assert repository.set.call_args_list == [
+        (("provider", "gemini"),),
+        (("log_level", "DEBUG"),),
+    ]
 
 
 def test_set_value_unknown_key_raises_error() -> None:
@@ -344,3 +339,46 @@ def test_unset_value_reports_config_that_is_still_invalid_after_write() -> None:
         service.unset_value("timeout")
 
     repository.unset.assert_called_once_with("timeout")
+
+
+@pytest.mark.parametrize(
+    ("key", "value", "reason"),
+    [
+        ("timeout", "0", "greater than or equal to 1"),
+        ("timeout", "601", "less than or equal to 600"),
+        ("max_retries", "-1", "greater than or equal to 0"),
+        ("max_retries", "11", "less than or equal to 10"),
+        ("log_level", "LOUD", "'DEBUG', 'INFO', 'WARNING', 'ERROR' or 'CRITICAL'"),
+        ("provider", "openai", "Input should be 'gemini'"),
+        ("model", "   ", "String should have at least 1 character"),
+    ],
+)
+def test_set_value_rejects_values_outside_the_schema(key, value, reason) -> None:
+    repository = Mock(spec=ConfigRepository)
+    service = ConfigService(create_settings(), repository)
+
+    with pytest.raises(InvalidConfigurationValueError) as error:
+        service.set_value(key, value)
+
+    assert str(error.value).startswith(f"Invalid value '{value.strip()}' for {key}: ")
+    assert reason in str(error.value)
+    repository.set.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("key", "value", "stored"),
+    [
+        ("timeout", "1", 1),
+        ("timeout", "600", 600),
+        ("max_retries", "0", 0),
+        ("max_retries", "10", 10),
+    ],
+)
+def test_set_value_accepts_range_boundaries(key, value, stored) -> None:
+    repository = Mock(spec=ConfigRepository)
+    service = ConfigService(create_settings(), repository)
+
+    with patch("diffsage.services.config_service.load_settings", return_value=create_settings()):
+        service.set_value(key, value)
+
+    repository.set.assert_called_once_with(key, stored)

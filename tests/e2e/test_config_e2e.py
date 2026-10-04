@@ -174,3 +174,60 @@ def test_diffsage_does_not_import_dotenv() -> None:
     )
 
     assert result.stdout.strip() == "False"
+
+
+@pytest.mark.parametrize(
+    ("args", "expected"),
+    [
+        (["timeout", "--", "-5"], "Invalid value '-5' for timeout: Input should be greater than"),
+        (["max_retries", "999"], "Invalid value '999' for max_retries: Input should be less than"),
+        (["log_level", "LOUD"], "Invalid value 'LOUD' for log_level: Input should be 'DEBUG'"),
+        (["provider", "openai"], "Invalid value 'openai' for provider: Input should be 'gemini'"),
+    ],
+)
+def test_config_set_rejects_invalid_values_and_writes_nothing(isolated_env, args, expected) -> None:
+    # --global goes first: a negative number needs "--", which ends option parsing.
+    result = runner.invoke(app, ["config", "set", "--global", *args])
+
+    assert result.exit_code == 1
+    assert f"✗ {expected}" in flat(result.output)
+    assert not (isolated_env.config_dir / "config.toml").exists()
+
+
+def test_misspelled_keys_in_config_file_are_reported(isolated_env) -> None:
+    isolated_env.config_dir.mkdir(parents=True, exist_ok=True)
+    (isolated_env.config_dir / "config.toml").write_text(
+        '[ai]\nmodle = "typo"\n\n[netwrok]\ntimeout = 5\n'
+    )
+
+    result = runner.invoke(app, ["config", "get", "model"])
+
+    assert result.exit_code == 1
+    assert "ai.modle: Extra inputs are not permitted" in flat(result.output)
+    assert "netwrok: Extra inputs are not permitted" in flat(result.output)
+
+
+def test_invalid_environment_variable_is_named(monkeypatch) -> None:
+    monkeypatch.setenv("DIFFSAGE_TIMEOUT", "0")
+
+    result = runner.invoke(app, ["config", "get", "timeout"])
+
+    assert result.exit_code == 1
+    assert (
+        "✗ Invalid environment variable DIFFSAGE_TIMEOUT: Input should be greater than or "
+        "equal to 1 (got '0')" in flat(result.output)
+    )
+
+
+def test_environment_and_file_values_are_normalised(isolated_env, monkeypatch) -> None:
+    isolated_env.config_dir.mkdir(parents=True, exist_ok=True)
+    (isolated_env.config_dir / "config.toml").write_text('[ai]\nprovider = "Gemini"\n')
+    monkeypatch.setenv("DIFFSAGE_LOG_LEVEL", "debug")
+
+    provider = runner.invoke(app, ["config", "get", "provider"])
+    log_level = runner.invoke(app, ["config", "get", "log_level"])
+
+    assert provider.exit_code == 0, provider.output
+    assert "gemini" in provider.output
+    assert log_level.exit_code == 0, log_level.output
+    assert "DEBUG" in log_level.output

@@ -2,6 +2,8 @@ import os
 from collections.abc import Mapping
 from pathlib import Path
 
+from pydantic import ValidationError
+
 from diffsage.config.defaults import DEFAULT_CONFIG
 from diffsage.config.file_loader import load_config
 from diffsage.config.paths import get_global_config_path, get_local_config_path
@@ -11,13 +13,40 @@ from diffsage.config.settings import Settings
 from diffsage.exceptions import ConfigError, LocalConfigUnavailableError
 from diffsage.models.config import ConfigSources
 
-ENVIRONMENT_VARIABLES = (
-    "DIFFSAGE_PROVIDER",
-    "DIFFSAGE_AI_MODEL",
-    "DIFFSAGE_TIMEOUT",
-    "DIFFSAGE_MAX_RETRIES",
-    "DIFFSAGE_LOG_LEVEL",
-)
+# Environment variable -> (config section, option)
+ENVIRONMENT_VARIABLES: dict[str, tuple[str, str]] = {
+    "DIFFSAGE_PROVIDER": ("ai", "provider"),
+    "DIFFSAGE_AI_MODEL": ("ai", "model"),
+    "DIFFSAGE_TIMEOUT": ("network", "timeout"),
+    "DIFFSAGE_MAX_RETRIES": ("network", "max_retries"),
+    "DIFFSAGE_LOG_LEVEL": ("logging", "level"),
+}
+
+
+def _environment_overrides() -> PartialDiffSageConfig:
+    """Validate DIFFSAGE_* variables against the same schema as the config files."""
+
+    data: dict[str, dict[str, str]] = {}
+
+    for name, (section, option) in ENVIRONMENT_VARIABLES.items():
+        value = os.environ.get(name)
+
+        if value is not None:
+            data.setdefault(section, {})[option] = value
+
+    try:
+        return PartialDiffSageConfig.model_validate(data)
+
+    except ValidationError as error:
+        variable_for = {location: name for name, location in ENVIRONMENT_VARIABLES.items()}
+        problems = []
+
+        for detail in error.errors():
+            location = tuple(str(part) for part in detail["loc"])
+            name = variable_for.get((location[0], location[-1]), ".".join(location))
+            problems.append(f"{name}: {detail['msg']} (got {detail['input']!r})")
+
+        raise ConfigError(f"Invalid environment variable {'; '.join(problems)}") from error
 
 
 def _merge_dict(
@@ -92,38 +121,9 @@ def resolve_settings() -> Settings:
     if local_config_path is not None and local_config_path.exists():
         config = _merge_config(config, load_config(local_config_path))
 
-    settings = _to_settings(config)
+    config = _merge_config(config, _environment_overrides())
 
-    try:
-        return Settings(
-            provider=os.getenv(
-                "DIFFSAGE_PROVIDER",
-                settings.provider,
-            ),
-            ai_model=os.getenv(
-                "DIFFSAGE_AI_MODEL",
-                settings.ai_model,
-            ),
-            timeout=int(
-                os.getenv(
-                    "DIFFSAGE_TIMEOUT",
-                    str(settings.timeout),
-                )
-            ),
-            max_retries=int(
-                os.getenv(
-                    "DIFFSAGE_MAX_RETRIES",
-                    str(settings.max_retries),
-                )
-            ),
-            log_level=os.getenv(
-                "DIFFSAGE_LOG_LEVEL",
-                settings.log_level,
-            ),
-        )
-
-    except ValueError as error:
-        raise ConfigError("Invalid configuration value.") from error
+    return _to_settings(config)
 
 
 def resolve_config_path(scope: ConfigScope) -> Path:
