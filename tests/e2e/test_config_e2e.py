@@ -6,6 +6,7 @@ import pytest
 from typer.testing import CliRunner
 
 from diffsage.cli import app
+from tests.helpers import init_git_repo_with_initial_commit, run_git
 
 runner = CliRunner()
 
@@ -93,3 +94,53 @@ def test_resolved_view_shows_long_paths_in_full(git_repo, monkeypatch) -> None:
     assert str(git_repo / ".diffsage.toml").replace(" ", "") in result.output.replace(
         "\n", ""
     ).replace(" ", "")
+
+
+def test_local_config_is_read_inside_git_worktree(git_repo, tmp_path, monkeypatch) -> None:
+    """Regression: in a worktree .git is a file, so the repo root was not found."""
+
+    worktree = tmp_path / "worktree"
+    run_git(["worktree", "add", "-b", "feature/worktree", str(worktree)], git_repo)
+    (worktree / ".diffsage.toml").write_text('[ai]\nmodel = "worktree-model"\n')
+    monkeypatch.chdir(worktree)
+
+    result = runner.invoke(app, ["config", "get", "model"])
+
+    assert result.exit_code == 0, result.output
+    assert "worktree-model" in result.output
+
+
+def test_local_config_inside_submodule_is_the_submodules_own(
+    git_repo, tmp_path, monkeypatch
+) -> None:
+    """Regression: in a submodule .git is a file, so the PARENT repo's config was used."""
+
+    library = tmp_path / "library"
+    library.mkdir()
+    init_git_repo_with_initial_commit(library)
+    run_git(
+        ["-c", "protocol.file.allow=always", "submodule", "add", str(library), "libs/library"],
+        git_repo,
+    )
+    (git_repo / ".diffsage.toml").write_text('[ai]\nmodel = "parent-model"\n')
+    submodule = git_repo / "libs" / "library"
+    (submodule / ".diffsage.toml").write_text('[ai]\nmodel = "submodule-model"\n')
+    monkeypatch.chdir(submodule)
+
+    result = runner.invoke(app, ["config", "get", "model"])
+
+    assert result.exit_code == 0, result.output
+    assert "submodule-model" in result.output
+    assert "parent-model" not in result.output
+
+
+def test_local_config_is_found_from_a_subdirectory(git_repo, monkeypatch) -> None:
+    (git_repo / ".diffsage.toml").write_text('[ai]\nmodel = "root-model"\n')
+    nested = git_repo / "src" / "package"
+    nested.mkdir(parents=True)
+    monkeypatch.chdir(nested)
+
+    result = runner.invoke(app, ["config", "get", "model"])
+
+    assert result.exit_code == 0, result.output
+    assert "root-model" in result.output

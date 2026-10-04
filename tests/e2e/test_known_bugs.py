@@ -36,24 +36,6 @@ def test_commit_works_for_first_commit_in_empty_repository(empty_git_repo, fake_
     assert log == "chore: initial commit"
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="Bug: repo root is found by checking that .git is a directory, which is a "
-    "file in worktrees. Fixed by fix/configuration.",
-)
-@pytest.mark.usefixtures("isolated_env")
-def test_local_config_is_read_inside_git_worktree(git_repo, tmp_path, monkeypatch) -> None:
-    worktree = tmp_path / "worktree"
-    run_git(["worktree", "add", "-b", "feature/worktree", str(worktree)], git_repo)
-    (worktree / ".diffsage.toml").write_text('[ai]\nmodel = "worktree-model"\n')
-    monkeypatch.chdir(worktree)
-
-    result = runner.invoke(app, ["config", "get", "model"])
-
-    assert result.exit_code == 0, result.output
-    assert "worktree-model" in result.output
-
-
 class RecordingStatus:
     """Stands in for a Rich status spinner and records every message shown."""
 
