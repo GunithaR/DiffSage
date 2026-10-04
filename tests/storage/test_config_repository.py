@@ -1,7 +1,9 @@
 from pathlib import Path
 
+import pytest
 from tomlkit import document, parse, table
 
+from diffsage.exceptions import ConfigError
 from diffsage.storage.config_repository import ConfigRepository
 
 
@@ -274,3 +276,27 @@ def test_unset_missing_key_is_noop(tmp_path: Path) -> None:
     assert updated["ai"]["provider"] == "gemini"
     assert "model" not in updated["ai"]
     assert before == after
+
+
+@pytest.mark.parametrize(
+    "operation",
+    [
+        lambda repository: repository.list(),
+        lambda repository: repository.get("timeout"),
+        lambda repository: repository.set("timeout", 60),
+        lambda repository: repository.unset("timeout"),
+    ],
+)
+def test_unparseable_file_raises_config_error_and_is_left_unchanged(tmp_path, operation) -> None:
+    path = tmp_path / ".diffsage.toml"
+    content = "[network]\nmax_retries = 3\ntimeout = abc\n"
+    path.write_text(content)
+
+    with pytest.raises(ConfigError) as error:
+        operation(ConfigRepository(path))
+
+    message = str(error.value)
+    assert message.startswith(f"Invalid TOML syntax in {path}: ")
+    assert "line 3" in message
+    assert message.endswith("fix that line in a text editor.")
+    assert path.read_text() == content

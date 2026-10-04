@@ -3,19 +3,9 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
+from diffsage.config.paths import display_path
 from diffsage.config.schema import PartialDiffSageConfig
 from diffsage.exceptions import ConfigError
-
-
-def _display(path: Path) -> str:
-    """Show a path with the home directory shortened to '~'."""
-
-    home = Path.home()
-
-    if path.is_relative_to(home):
-        return str(Path("~") / path.relative_to(home))
-
-    return str(path)
 
 
 def _describe_validation_error(error: ValidationError) -> str:
@@ -43,14 +33,14 @@ def load_config(path: Path) -> PartialDiffSageConfig:
             data = tomllib.load(file)
 
     except FileNotFoundError as error:
-        raise ConfigError(f"Configuration file not found: {_display(path)}") from error
+        raise ConfigError(f"Configuration file not found: {display_path(path)}") from error
 
     except tomllib.TOMLDecodeError as error:
-        raise ConfigError(f"Invalid TOML syntax in {_display(path)}: {error}") from error
+        raise ConfigError(f"Invalid TOML syntax in {display_path(path)}: {error}") from error
 
     except OSError as error:
         raise ConfigError(
-            f"Cannot read configuration file {_display(path)}: {error.strerror}"
+            f"Cannot read configuration file {display_path(path)}: {error.strerror}"
         ) from error
 
     try:
@@ -58,5 +48,5 @@ def load_config(path: Path) -> PartialDiffSageConfig:
 
     except ValidationError as error:
         raise ConfigError(
-            f"Invalid configuration in {_display(path)}: {_describe_validation_error(error)}"
+            f"Invalid configuration in {display_path(path)}: {_describe_validation_error(error)}"
         ) from error

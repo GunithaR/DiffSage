@@ -127,3 +127,40 @@ def test_other_commands_still_stop_on_broken_config() -> None:
 
     assert result.exit_code == 1
     assert "✗ Invalid configuration in" in flat(result.output)
+
+
+UNQUOTED_VALUE = "[network]\nmax_retries = 3\ntimeout = abc\n"
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        ["config", "set", "timeout", "60", "--local"],
+        ["config", "unset", "timeout", "--local"],
+        ["config", "list", "--local"],
+    ],
+)
+def test_local_toml_syntax_error_is_reported_not_unexpected(git_repo, command) -> None:
+    """Regression: an unquoted value in .diffsage.toml made `config set --local` report an
+    unexpected error, because the write path's TOML parser error was not caught."""
+
+    local_config = git_repo / ".diffsage.toml"
+    local_config.write_text(UNQUOTED_VALUE)
+
+    result = runner.invoke(app, command)
+
+    assert result.exit_code == 1
+    assert "✗ Invalid TOML syntax in" in flat(result.output)
+    assert "line 3" in flat(result.output)
+    assert "fix that line in a text editor" in flat(result.output)
+    assert "unexpected error" not in result.output.lower()
+    assert local_config.read_text() == UNQUOTED_VALUE
+
+
+def test_doctor_reports_local_toml_syntax_error(git_repo) -> None:
+    (git_repo / ".diffsage.toml").write_text(UNQUOTED_VALUE)
+
+    result = runner.invoke(app, ["doctor"])
+
+    assert result.exit_code == 0, result.output
+    assert "✗ Configuration : Invalid TOML syntax in" in flat(result.output)

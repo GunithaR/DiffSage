@@ -37,10 +37,13 @@ class IsolatedEnv:
     workdir: Path
 
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def isolated_env(tmp_path, monkeypatch) -> IsolatedEnv:
     """Keep DiffSage away from the developer's real config, credentials, logs, .env and
     repository-local .diffsage.toml.
+
+    Applied to every test automatically, so no test result depends on the machine it
+    runs on. Tests that need the paths request it by name and get the same instance.
 
     platformdirs is patched directly because on Windows it ignores HOME-style
     environment variables. The working directory moves to an empty temporary folder,
