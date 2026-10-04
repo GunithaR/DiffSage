@@ -9,6 +9,7 @@ import pytest
 from typer.testing import CliRunner
 
 from diffsage.cli import app
+from diffsage.config.paths import display_path, get_local_config_path
 from tests.helpers import init_git_repo_with_initial_commit, run_git
 
 runner = CliRunner()
@@ -94,9 +95,11 @@ def test_resolved_view_shows_long_paths_in_full(git_repo, monkeypatch) -> None:
 
     assert result.exit_code == 0, result.output
     assert "…" not in result.output
-    assert str(git_repo / ".diffsage.toml").replace(" ", "") in result.output.replace(
-        "\n", ""
-    ).replace(" ", "")
+
+    # Expect exactly what DiffSage prints: its own path, home-shortened on every OS
+    # (on Windows the temp folder is inside the home folder, so it starts with "~").
+    shown = display_path(get_local_config_path())
+    assert shown.replace(" ", "") in result.output.replace("\n", "").replace(" ", "")
 
 
 def test_local_config_is_read_inside_git_worktree(git_repo, tmp_path, monkeypatch) -> None:
