@@ -76,6 +76,8 @@ Examples include:
 - `GitError`
 - `CredentialNotFoundError`
 
+CLI commands must use the centralized error handling decorator to manage exceptions and eliminate redundant try-except blocks. The global error handler also permits specific commands to execute when configuration is invalid.
+
 ---
 
 ## Configuration

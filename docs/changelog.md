@@ -5,6 +5,8 @@
 ### Added
 
 - Shared command error handler: every DiffSage error is shown as one `✗` message with a consistent exit code; unexpected errors are logged with a traceback.
+- Global error handler with logic to allow specific commands to run even when the configuration is invalid.
+- Application of the error handling decorator to the `auth` command and simplified credential service initialization.
 - `diffsage doctor` reports an invalid configuration instead of crashing.
 - End-to-end test harness: isolated config and logs, a fake AI provider, a fake GitHub CLI, and real temporary Git repositories with an origin remote.
 - End-to-end tests for the `commit` and `pr` workflows through the real CLI.
@@ -23,6 +25,7 @@
 - An invalid configuration file crashed every command with a traceback; it is now reported with the file, setting and value at fault.
 - `config set` and `config unset` can repair a broken configuration file, and `config list`/`get --global`/`--local` can still read it.
 - Dependabot configuration was invalid; it now also updates GitHub Actions.
+- Redundant try-except blocks across CLI commands removed in favor of the centralized error handling decorator.
 
 
 ## [1.3.1] - 2026-08-23
