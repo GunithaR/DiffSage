@@ -9,12 +9,15 @@ def run_git(
     args: list[str],
     cwd: Path,
 ) -> subprocess.CompletedProcess[str]:
+    # Git's output is UTF-8; without this, Windows decodes it with its code page (cp1252)
+    # and non-ASCII text comes back garbled.
     return subprocess.run(
         ["git", *args],
         cwd=cwd,
         check=True,
         capture_output=True,
         text=True,
+        encoding="utf-8",
     )
 
 
@@ -77,3 +80,14 @@ def assert_error_shown(source, message: str | None = None) -> None:
         assert "✗ " in output, output
     else:
         assert f"✗ {' '.join(message.split())}" in output, output
+
+
+def install_failing_pre_commit_hook(repo: Path, *lines: str) -> None:
+    """A pre-commit hook that prints `lines` and rejects the commit (Git for Windows runs
+    hooks through its bundled sh, so this works on every OS)."""
+
+    hook = repo / ".git" / "hooks" / "pre-commit"
+    hook.parent.mkdir(parents=True, exist_ok=True)
+    echoes = "".join(f"echo '{line}'\n" for line in lines)
+    hook.write_text(f"#!/bin/sh\n{echoes}exit 1\n", newline="\n")
+    hook.chmod(0o755)

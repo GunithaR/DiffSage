@@ -1,9 +1,19 @@
+import subprocess
 from datetime import datetime
 from pathlib import Path
+from unittest.mock import patch
 
+import pytest
+
+from diffsage.exceptions import CommitFailedError
 from diffsage.git.client import GitClient
 from diffsage.models.git import GitCommit
-from tests.helpers import init_git_repo, init_git_repo_with_initial_commit, run_git
+from tests.helpers import (
+    init_git_repo,
+    init_git_repo_with_initial_commit,
+    install_failing_pre_commit_hook,
+    run_git,
+)
 
 
 def test_is_git_repository_returns_false_for_non_git_directory(tmp_path: Path) -> None:
@@ -46,56 +56,6 @@ def test_current_commit_returns_current_commit_hash(tmp_path: Path) -> None:
     assert client.current_commit() == expected
 
 
-def test_status_returns_untracked_files(tmp_path: Path) -> None:
-    init_git_repo(tmp_path)
-
-    readme = tmp_path / "README.md"
-    readme.write_text("# DiffSage\n")
-
-    client = GitClient(tmp_path)
-    status = client.status()
-
-    assert status.untracked == ["README.md"]
-
-
-def test_status_returns_modified_files(tmp_path: Path) -> None:
-    init_git_repo_with_initial_commit(tmp_path)
-
-    readme = tmp_path / "README.md"
-    readme.write_text("# DiffSage\n\nModified")
-
-    client = GitClient(tmp_path)
-    status = client.status()
-
-    assert status.modified == ["README.md"]
-
-
-def test_status_returns_added_files(tmp_path: Path) -> None:
-    init_git_repo(tmp_path)
-
-    readme = tmp_path / "README.md"
-    readme.write_text("# DiffSage\n")
-
-    run_git(["add", "README.md"], tmp_path)
-
-    client = GitClient(tmp_path)
-    status = client.status()
-
-    assert status.added == ["README.md"]
-
-
-def test_status_returns_deleted_files(tmp_path: Path) -> None:
-    init_git_repo_with_initial_commit(tmp_path)
-
-    readme = tmp_path / "README.md"
-    readme.unlink()
-
-    client = GitClient(tmp_path)
-    status = client.status()
-
-    assert status.deleted == ["README.md"]
-
-
 def test_staged_diff_returns_git_diff(tmp_path: Path) -> None:
     init_git_repo(tmp_path)
 
@@ -110,20 +70,6 @@ def test_staged_diff_returns_git_diff(tmp_path: Path) -> None:
     assert "diff --git" in diff
     assert "README.md" in diff
     assert "+# DiffSage" in diff
-
-
-def test_unstaged_diff_returns_git_diff(tmp_path: Path) -> None:
-    init_git_repo_with_initial_commit(tmp_path)
-
-    readme = tmp_path / "README.md"
-    readme.write_text("# DiffSage\n\nModified")
-
-    client = GitClient(tmp_path)
-    diff = client.unstaged_diff()
-
-    assert "diff --git" in diff
-    assert "README.md" in diff
-    assert "+Modified" in diff
 
 
 def test_recent_commits_return_commit_history(tmp_path: Path) -> None:
@@ -529,3 +475,142 @@ def test_remote_branch_commit_returns_none_for_missing_branch(
     client = GitClient(repo)
 
     assert client.remote_branch_commit("feature/missing") is None
+
+
+def test_has_commits_is_false_in_a_new_repository(tmp_path: Path) -> None:
+    init_git_repo(tmp_path)
+
+    assert GitClient(tmp_path).has_commits() is False
+
+
+def test_has_commits_is_true_after_the_first_commit(tmp_path: Path) -> None:
+    init_git_repo_with_initial_commit(tmp_path)
+
+    assert GitClient(tmp_path).has_commits() is True
+
+
+def test_recent_commits_is_empty_in_a_new_repository(tmp_path: Path) -> None:
+    """Regression: `git log` exits 128 when there are no commits yet."""
+
+    init_git_repo(tmp_path)
+
+    assert GitClient(tmp_path).recent_commits() == []
+
+
+def test_commit_subjects_containing_a_tab_are_parsed(tmp_path: Path) -> None:
+    """Regression: a tab in a subject broke the tab-separated git log parsing."""
+
+    init_git_repo_with_initial_commit(tmp_path)
+    run_git(["switch", "-c", "feature"], tmp_path)
+    (tmp_path / "a.txt").write_text("a")
+    run_git(["add", "a.txt"], tmp_path)
+    run_git(["commit", "-m", "fix:\tsubject with a tab"], tmp_path)
+    client = GitClient(tmp_path)
+
+    assert client.recent_commits(limit=1)[0].message == "fix:\tsubject with a tab"
+    assert [c.message for c in client.commits_between("main", "feature")] == [
+        "fix:\tsubject with a tab"
+    ]
+
+
+def staged_repo(tmp_path: Path) -> GitClient:
+    init_git_repo_with_initial_commit(tmp_path)
+    (tmp_path / "change.txt").write_text("change\n")
+    run_git(["add", "change.txt"], tmp_path)
+    return GitClient(tmp_path)
+
+
+def head_message(path: Path) -> str:
+    return run_git(["log", "-1", "--format=%B"], path).stdout.rstrip("\n")
+
+
+def test_commit_stores_the_message_exactly(tmp_path: Path) -> None:
+    message = (
+        "feat(api)!: drop v1 endpoints\n\n"
+        "- Remove the v1 router.\n"
+        "- Update clients.\n\n"
+        "BREAKING CHANGE: v1 is gone.\n"
+        "Refs: #12"
+    )
+
+    staged_repo(tmp_path).commit(message)
+
+    assert head_message(tmp_path) == message
+
+
+def test_commit_passes_the_message_through_stdin_not_arguments(tmp_path: Path) -> None:
+    client = staged_repo(tmp_path)
+    calls: list[dict] = []
+    real_run = subprocess.run
+
+    def recording_run(command, **kwargs):
+        calls.append({"command": command, "input": kwargs.get("input")})
+        return real_run(command, **kwargs)
+
+    with patch("diffsage.git.client.subprocess.run", side_effect=recording_run):
+        client.commit("fix: secret-looking subject")
+
+    assert calls[-1]["command"] == ["git", "commit", "-F", "-"]
+    assert calls[-1]["input"] == "fix: secret-looking subject"
+
+
+def test_commit_keeps_non_ascii_text(tmp_path: Path) -> None:
+    """Git uses UTF-8; without an explicit encoding, Windows would use its code page."""
+
+    message = "docs: résumé → naïve café ✓"
+
+    staged_repo(tmp_path).commit(message)
+
+    assert head_message(tmp_path) == message
+
+
+def test_commit_accepts_a_message_longer_than_the_windows_command_line(tmp_path: Path) -> None:
+    """Windows limits a command line to 32,767 characters; -m arguments hit that limit."""
+
+    body = "\n".join(f"- Change number {index}." for index in range(3_000))
+    message = f"chore: large change\n\n{body}"
+    assert len(message) > 40_000
+
+    staged_repo(tmp_path).commit(message)
+
+    assert head_message(tmp_path) == message
+
+
+def commit_count(path: Path) -> int:
+    return int(run_git(["rev-list", "--count", "HEAD"], path).stdout.strip())
+
+
+def test_commit_rejected_by_a_hook_reports_the_hook_output(tmp_path: Path) -> None:
+    """Regression: the hook's explanation was dropped and users saw an unexpected error."""
+
+    client = staged_repo(tmp_path)
+    install_failing_pre_commit_hook(tmp_path, "lint: trailing whitespace in app.py line 3")
+
+    with pytest.raises(CommitFailedError) as error:
+        client.commit("feat: add app")
+
+    assert str(error.value) == (
+        "git commit failed. Nothing was committed; the message is shown above.\n"
+        "lint: trailing whitespace in app.py line 3"
+    )
+    assert commit_count(tmp_path) == 1
+
+
+def test_commit_failure_reported_on_stdout_is_shown(tmp_path: Path) -> None:
+    """Some git failures, such as "nothing to commit", are printed to stdout."""
+
+    init_git_repo_with_initial_commit(tmp_path)
+
+    with pytest.raises(CommitFailedError, match="nothing to commit"):
+        GitClient(tmp_path).commit("chore: nothing staged")
+
+
+def test_silent_commit_failure_reports_the_exit_status(tmp_path: Path) -> None:
+    client = staged_repo(tmp_path)
+    failure = subprocess.CalledProcessError(128, ["git", "commit"], output="", stderr="")
+
+    with (
+        patch("diffsage.git.client.subprocess.run", side_effect=failure),
+        pytest.raises(CommitFailedError, match="git exited with status 128."),
+    ):
+        client.commit("feat: add app")

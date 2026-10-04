@@ -17,6 +17,9 @@
 
 ### Changed
 
+- The editor for `commit` and `pr` edits is chosen exactly like `git commit` chooses it (`git var GIT_EDITOR`: GIT_EDITOR, core.editor, VISUAL, EDITOR), so both open the same editor.
+- Commit messages are passed to `git commit` through stdin instead of `-m` arguments, so long messages work on Windows (32,767-character command-line limit) and Git stores exactly the previewed text.
+- Git output and input are always treated as UTF-8, so non-ASCII text is not garbled on Windows.
 - `config list` and `config get` show where the resolved values come from (built-in defaults, global file, repository file, environment variables) instead of a single, often wrong, "Location".
 - `config set` keeps the case of model names.
 - Config files, `DIFFSAGE_*` environment variables and `config set` are validated against one schema: supported provider, non-empty model, timeout 1–600 seconds, max_retries 0–10, a standard log level, and no unknown keys or sections.
@@ -26,12 +29,20 @@
 
 ### Removed
 
+- Unused `GitClient.status()`, `GitClient.unstaged_diff()` and the `GitStatus` model.
 - `diffsage auth set` no longer accepts the API key as an argument, because it stayed in shell history and was visible to other processes. Enter it at the hidden prompt (`diffsage auth set gemini`), or pipe it in from a script.
 - `.env` files are no longer loaded. In practice only DiffSage's own development checkout was ever found, and loading one copied every variable in it, including unrelated secrets, into DiffSage's environment and its git/gh subprocesses. Use `DIFFSAGE_*` environment variables or the global and repository config files instead.
 - The `python-dotenv` dependency and `.env.example`.
 
 ### Fixed
 
+- Quitting the editor with an error (for example `:cq` in vim) or saving an empty message now cancels the edit and keeps the current message or draft; previously the exit status was ignored and whatever was in the file was used.
+- `diffsage commit` also sent unstaged changes to the AI, so suggested messages could describe work that was not being committed, and code left out of the commit still reached the provider. Only staged changes are sent now.
+- An edited commit message that did not parse ended `diffsage commit` and lost the edit; the edit is now kept and reopened with the next E, and Y still commits the last valid message. An unusable suggestion on regenerate no longer ends the command either.
+- When `git commit` failed (for example a pre-commit hook rejected the commit), `diffsage commit` reported an unexpected error; it now shows Git's or the hook's own output and confirms that nothing was committed.
+- The commit message parser read `feat(api)!:` as scope `api)!`, accepted any word before a colon as the type (for example `Here is your commit message:`), and rejected replies wrapped in code fences. It now follows Conventional Commits: known types only, `!` for breaking changes, and code fences or a leading sentence from the AI are removed. The cleaned message is what gets committed and edited.
+- `diffsage commit` failed with an unexpected error for the first commit in a new repository, because `git log` fails before any commit exists.
+- A commit subject containing a tab character broke reading the commit history for `commit` and `pr`.
 - A credentials file with a value of the wrong type (for example `gemini = "key"` instead of a table) crashed every command with an unexpected error; it is now reported with the exact location to fix.
 - The credentials file was created readable by every local user; it is now owner-only (`0600`) on macOS and Linux, existing files are tightened when read, and writes are atomic so a crash cannot leave it half-written.
 - An unparseable credentials file was reported as an unexpected error.

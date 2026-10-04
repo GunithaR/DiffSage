@@ -2,7 +2,24 @@ import subprocess
 from datetime import datetime
 from pathlib import Path
 
-from diffsage.models.git import GitCommit, GitStatus
+from diffsage.exceptions import CommitFailedError
+from diffsage.models.git import GitCommit
+
+# hash, author, ISO date, subject. The subject goes last because it is the only field
+# that may contain a tab, so each line is split at most three times.
+_LOG_FORMAT = "%H%x09%an%x09%aI%x09%s"
+
+
+def _parse_log(output: str) -> list[GitCommit]:
+    commits: list[GitCommit] = []
+
+    for line in output.splitlines():
+        hash_, author, date, message = line.split("\t", 3)
+        commits.append(
+            GitCommit(hash=hash_, author=author, message=message, date=datetime.fromisoformat(date))
+        )
+
+    return commits
 
 
 class GitClient:
@@ -11,14 +28,24 @@ class GitClient:
     def __init__(self, repo_path: Path | str | None = None) -> None:
         self._repo_path = Path(repo_path) if repo_path else Path.cwd()
 
-    def _run_git_command(self, args: list[str]) -> subprocess.CompletedProcess[str]:
-        """Execute a Git command and return the completed process."""
+    def _run_git_command(
+        self, args: list[str], input_text: str | None = None
+    ) -> subprocess.CompletedProcess[str]:
+        """Execute a Git command and return the completed process.
+
+        Git reads and writes UTF-8 by default. Setting it explicitly avoids the system code
+        page (cp1252 on many Windows machines) garbling non-ASCII text; invalid bytes, such
+        as from a binary-ish file in a diff, are replaced instead of raising.
+        """
 
         return subprocess.run(
             ["git", *args],
             cwd=self._repo_path,
+            input=input_text,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             check=True,
         )
 
@@ -53,40 +80,6 @@ class GitClient:
         )
         return result.stdout.strip()
 
-    def status(self) -> GitStatus:
-        """Return the current repository status."""
-
-        result = self._run_git_command(
-            ["status", "--porcelain"],
-        )
-
-        untracked = []
-        modified = []
-        added = []
-        deleted = []
-
-        # Parse Git porcelain status codes.
-        for line in result.stdout.splitlines():
-            status = line[:2]
-            path = line[3:]
-
-            match status:
-                case "??":
-                    untracked.append(path)
-                case " M":
-                    modified.append(path)
-                case "A ":
-                    added.append(path)
-                case " D":
-                    deleted.append(path)
-
-        return GitStatus(
-            modified=modified,
-            added=added,
-            deleted=deleted,
-            untracked=untracked,
-        )
-
     def staged_diff(self) -> str:
         """Returns the staged diff"""
 
@@ -95,32 +88,24 @@ class GitClient:
         )
         return result.stdout.strip()
 
-    def unstaged_diff(self) -> str:
-        """Returns the unstaged diff"""
+    def has_commits(self) -> bool:
+        """Return True if HEAD points at a commit (False in a brand-new repository)."""
 
-        result = self._run_git_command(
-            ["diff"],
-        )
-        return result.stdout.strip()
+        try:
+            self._run_git_command(["rev-parse", "--verify", "--quiet", "HEAD"])
+            return True
+        except subprocess.CalledProcessError:
+            return False
 
     def recent_commits(self, limit: int = 10) -> list[GitCommit]:
-        """Return the most recent commits."""
+        """Return the most recent commits, or none if the repository has no commits yet."""
 
-        result = self._run_git_command(
-            ["log", f"-{limit}", "--pretty=format:%H%x09%an%x09%s%x09%aI"],
-        )
+        if not self.has_commits():
+            return []
 
-        commits: list[GitCommit] = []
+        result = self._run_git_command(["log", f"-{limit}", f"--format={_LOG_FORMAT}"])
 
-        for line in result.stdout.splitlines():
-            hash_, author, message, date = line.split("\t")
-
-            commit = GitCommit(
-                hash=hash_, author=author, message=message, date=datetime.fromisoformat(date)
-            )
-            commits.append(commit)
-
-        return commits
+        return _parse_log(result.stdout)
 
     def branches(self) -> list[str]:
         """Return local branch names."""
@@ -140,19 +125,28 @@ class GitClient:
         return result.stdout.splitlines()
 
     def commit(self, message: str) -> None:
-        """Create a git commit with the provided commit message."""
+        """Create a commit with exactly this message.
 
-        lines = message.split("\n", 1)
+        The message goes through stdin (`-F -`) rather than `-m` arguments: no command-line
+        length limit (32,767 characters on Windows), and nothing visible in `ps`.
+        """
 
-        subject = lines[0]
-        body = lines[1].strip() if len(lines) > 1 else ""
+        try:
+            self._run_git_command(["commit", "-F", "-"], input_text=message)
 
-        command = ["commit", "-m", subject]
+        except subprocess.CalledProcessError as error:
+            # Hooks print to stderr, but some git failures (e.g. "nothing to commit") go
+            # to stdout, so both are shown.
+            output = "\n".join(
+                part.strip() for part in (error.stdout, error.stderr) if part and part.strip()
+            )
 
-        if body:
-            command.extend(["-m", body])
+            if not output:
+                output = f"git exited with status {error.returncode}."
 
-        self._run_git_command(command)
+            raise CommitFailedError(
+                "git commit failed. Nothing was committed; the message is shown above.\n" + output
+            ) from error
 
     def merge_base(self, base_branch: str, head_branch: str) -> str:
         """Return the common ancestor commit hash of two branches."""
@@ -167,24 +161,10 @@ class GitClient:
         """Return commits reachable from the head branch but not the base branch."""
 
         result = self._run_git_command(
-            [
-                "log",
-                "--format=%H%x09%an%x09%s%x09%aI",
-                f"{base_branch}..{head_branch}",
-            ],
+            ["log", f"--format={_LOG_FORMAT}", f"{base_branch}..{head_branch}"],
         )
 
-        commits: list[GitCommit] = []
-
-        for line in result.stdout.splitlines():
-            hash_, author, message, date = line.split("\t")
-
-            commit = GitCommit(
-                hash=hash_, author=author, message=message, date=datetime.fromisoformat(date)
-            )
-            commits.append(commit)
-
-        return commits
+        return _parse_log(result.stdout)
 
     def changed_files(self, base_branch: str, head_branch: str) -> list[str]:
         """Return file paths changed between the base and head branches."""

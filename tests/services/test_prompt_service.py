@@ -15,10 +15,6 @@ def test_build_commit_prompt() -> None:
         staged_diff="""diff --git a/file.py b/file.py
         +print("Hello")
         """,
-        unstaged_diff="""diff --git a/app.py b/app.py
-        -def old()
-        +def new()
-        """,
         recent_commits=[
             GitCommit(
                 hash="abc1234",
@@ -34,7 +30,7 @@ def test_build_commit_prompt() -> None:
 
     assert commit_context.branch in prompt
     assert commit_context.staged_diff in prompt
-    assert commit_context.unstaged_diff in prompt
+    assert "Unstaged" not in prompt
     assert commit_context.recent_commits[0].message in prompt
 
 
@@ -186,7 +182,7 @@ def test_build_pull_request_prompt_includes_risk_signals() -> None:
 
 def test_diff_notes_are_appended_and_tell_the_ai_to_ignore_placeholders() -> None:
     service = PromptService()
-    context = CommitContext(branch="main", staged_diff="diff", unstaged_diff="", recent_commits=[])
+    context = CommitContext(branch="main", staged_diff="diff", recent_commits=[])
 
     prompt = service.build_commit_prompt(context, ["Lockfile contents were not sent: uv.lock"])
 
@@ -200,7 +196,7 @@ def test_diff_notes_are_appended_and_tell_the_ai_to_ignore_placeholders() -> Non
 
 def test_prompt_without_notes_has_no_notes_section() -> None:
     service = PromptService()
-    context = CommitContext(branch="main", staged_diff="diff", unstaged_diff="", recent_commits=[])
+    context = CommitContext(branch="main", staged_diff="diff", recent_commits=[])
 
     assert "Diff Notes" not in service.build_commit_prompt(context)
     assert "Diff Notes" not in service.build_commit_prompt(context, [])

@@ -12,7 +12,7 @@ def test_generate_commit_message_forwards_attempt_callback() -> None:
     ai_service = Mock()
 
     git_service.build_commit_context.return_value = CommitContext(
-        branch="main", staged_diff="", unstaged_diff="", recent_commits=[]
+        branch="main", staged_diff="", recent_commits=[]
     )
     prompt_service.build_commit_prompt.return_value = "prompt"
 
@@ -54,7 +54,7 @@ def test_generate_commit_message_without_attempt_callback() -> None:
     ai_service = Mock()
 
     git_service.build_commit_context.return_value = CommitContext(
-        branch="main", staged_diff="", unstaged_diff="", recent_commits=[]
+        branch="main", staged_diff="", recent_commits=[]
     )
     prompt_service.build_commit_prompt.return_value = "prompt"
 
