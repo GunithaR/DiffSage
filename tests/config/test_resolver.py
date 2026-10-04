@@ -4,8 +4,14 @@ from unittest.mock import Mock, patch
 import pytest
 
 from diffsage.config.defaults import DEFAULT_CONFIG
-from diffsage.config.resolver import resolve_settings
+from diffsage.config.resolver import (
+    configuration_sources,
+    resolve_config_path,
+    resolve_settings,
+)
 from diffsage.config.schema import PartialDiffSageConfig, PartialNetworkConfig
+from diffsage.config.scope import ConfigScope
+from diffsage.exceptions import LocalConfigUnavailableError
 
 
 @pytest.mark.usefixtures("clean_diffsage_env")
@@ -164,3 +170,41 @@ def test_resolver_uses_env_config_values(monkeypatch):
 
         assert settings.timeout == 200
         assert mock_loader.call_count == 2
+
+
+@pytest.mark.usefixtures("isolated_env")
+def test_resolve_config_path_local_outside_repository_raises() -> None:
+    with pytest.raises(LocalConfigUnavailableError, match="needs a Git repository"):
+        resolve_config_path(ConfigScope.LOCAL)
+
+
+def test_resolve_config_path_local_inside_repository(git_repo) -> None:
+    assert resolve_config_path(ConfigScope.LOCAL) == git_repo / ".diffsage.toml"
+
+
+@pytest.mark.usefixtures("isolated_env")
+def test_configuration_sources_is_empty_without_files_or_variables() -> None:
+    sources = configuration_sources()
+
+    assert sources.global_file is None
+    assert sources.local_file is None
+    assert sources.environment == []
+
+
+def test_configuration_sources_lists_existing_files_and_set_variables(
+    isolated_env, git_repo, monkeypatch
+) -> None:
+    isolated_env.config_dir.mkdir(parents=True, exist_ok=True)
+    global_file = isolated_env.config_dir / "config.toml"
+    global_file.write_text("[network]\ntimeout = 40\n")
+    monkeypatch.setenv("DIFFSAGE_MAX_RETRIES", "7")
+
+    sources = configuration_sources()
+
+    assert sources.global_file == global_file
+    assert sources.local_file is None
+    assert sources.environment == ["DIFFSAGE_MAX_RETRIES"]
+
+    (git_repo / ".diffsage.toml").write_text("[network]\ntimeout = 50\n")
+
+    assert configuration_sources().local_file == git_repo / ".diffsage.toml"

@@ -2,7 +2,7 @@ import typer
 
 from diffsage.commands.error_handler import handle_command_errors
 from diffsage.config.loader import load_settings, load_settings_or_defaults
-from diffsage.config.resolver import get_local_config_path, resolve_config_path
+from diffsage.config.resolver import configuration_sources, resolve_config_path
 from diffsage.config.scope import ConfigScope
 from diffsage.exceptions import ConfigError
 from diffsage.logging.logger import get_logger
@@ -47,18 +47,14 @@ def list_config(
         repository = ConfigRepository(path)
         service = ConfigService(settings, repository)
 
-        report = service.get_configuration_raw()
+        view.show_path(path)
+        view.show_configuration(service.get_configuration_raw())
+        return
 
-    else:
-        path = get_local_config_path()
+    service = ConfigService(settings)
 
-        repository = ConfigRepository(path)
-        service = ConfigService(settings, repository)
-
-        report = service.get_configuration()
-
-    view.show_path(path)
-    view.show_configuration(report)
+    view.show_sources(configuration_sources())
+    view.show_configuration(service.get_configuration())
 
 
 @app.command("get")
@@ -87,14 +83,14 @@ def get_config(
 
         report = service.get_configuration_value_raw(key.strip().lower())
 
-    else:
-        path = get_local_config_path()
-        repository = ConfigRepository(path)
-        service = ConfigService(settings, repository)
+        view.show_path(path)
+        view.show_value(report)
+        return
 
-        report = service.get_value(key.strip().lower())
+    service = ConfigService(settings)
+    report = service.get_value(key.strip().lower())
 
-    view.show_path(path)
+    view.show_sources(configuration_sources())
     view.show_value(report)
 
 

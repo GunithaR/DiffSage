@@ -24,9 +24,21 @@ class ConfigService:
         "log_level": str.upper,
     }
 
-    def __init__(self, settings: Settings, repository: ConfigRepository) -> None:
+    def __init__(self, settings: Settings, repository: ConfigRepository | None = None) -> None:
         self._settings = settings
         self._repository = repository
+
+    @property
+    def _file(self) -> ConfigRepository:
+        """The configuration file this service reads and writes.
+
+        Only file operations need it; the resolved views work from settings alone.
+        """
+
+        if self._repository is None:
+            raise RuntimeError("ConfigService was created without a configuration file.")
+
+        return self._repository
 
     def _reload_report(self) -> ConfigReport:
         """Report the configuration after a write; the write itself has already succeeded."""
@@ -50,7 +62,7 @@ class ConfigService:
         )
 
     def get_configuration_raw(self) -> ConfigReport:
-        config = self._repository.list()
+        config = self._file.list()
 
         return ConfigReport(
             provider=config.get("provider"),
@@ -64,7 +76,7 @@ class ConfigService:
         if key not in self._ATTRIBUTE_MAP:
             raise UnknownConfigurationKeyError(key)
 
-        value = self._repository.get(key)
+        value = self._file.get(key)
 
         return ConfigValueReport(
             key=key,
@@ -106,7 +118,7 @@ class ConfigService:
         except ValueError:
             raise InvalidConfigurationValueError(value) from None
 
-        self._repository.set(key, converted_value)
+        self._file.set(key, converted_value)
 
         return self._reload_report()
 
@@ -116,6 +128,6 @@ class ConfigService:
         if attribute_name is None:
             raise UnknownConfigurationKeyError(key)
 
-        self._repository.unset(key)
+        self._file.unset(key)
 
         return self._reload_report()

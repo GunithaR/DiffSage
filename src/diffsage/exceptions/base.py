@@ -52,6 +52,15 @@ class ConfigError(DiffSageError):
     """Raised when configuration is invalid."""
 
 
+class LocalConfigUnavailableError(ConfigError):
+    """Raised when local configuration is requested outside a Git repository."""
+
+    default_message = (
+        "Local configuration needs a Git repository: it is stored in .diffsage.toml at the "
+        "repository root. Run this inside a repository, or use --global."
+    )
+
+
 class UnknownConfigurationKeyError(ConfigError):
     """Raised when configuration key does not exist."""
 

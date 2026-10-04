@@ -10,7 +10,16 @@ from diffsage.config.paths import get_global_config_path, get_local_config_path
 from diffsage.config.schema import DiffSageConfig, PartialDiffSageConfig
 from diffsage.config.scope import ConfigScope
 from diffsage.config.settings import Settings
-from diffsage.exceptions import ConfigError
+from diffsage.exceptions import ConfigError, LocalConfigUnavailableError
+from diffsage.models.config import ConfigSources
+
+ENVIRONMENT_VARIABLES = (
+    "DIFFSAGE_PROVIDER",
+    "DIFFSAGE_AI_MODEL",
+    "DIFFSAGE_TIMEOUT",
+    "DIFFSAGE_MAX_RETRIES",
+    "DIFFSAGE_LOG_LEVEL",
+)
 
 
 def _merge_dict(
@@ -116,9 +125,27 @@ def resolve_settings() -> Settings:
 
 
 def resolve_config_path(scope: ConfigScope) -> Path:
-    """Return the configuration path for the given scope"""
+    """Return the configuration file path for the given scope."""
 
     if scope is ConfigScope.GLOBAL:
         return get_global_config_path()
 
-    return get_local_config_path()
+    local_path = get_local_config_path()
+
+    if local_path is None:
+        raise LocalConfigUnavailableError()
+
+    return local_path
+
+
+def configuration_sources() -> ConfigSources:
+    """Return the configuration files and environment variables that currently apply."""
+
+    global_path = get_global_config_path()
+    local_path = get_local_config_path()
+
+    return ConfigSources(
+        global_file=global_path if global_path.exists() else None,
+        local_file=local_path if local_path is not None and local_path.exists() else None,
+        environment=[name for name in ENVIRONMENT_VARIABLES if name in os.environ],
+    )

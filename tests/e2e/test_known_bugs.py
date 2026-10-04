@@ -36,41 +36,6 @@ def test_commit_works_for_first_commit_in_empty_repository(empty_git_repo, fake_
     assert log == "chore: initial commit"
 
 
-@pytest.fixture
-def outside_repository(tmp_path, monkeypatch) -> Path:
-    directory = tmp_path / "not-a-repo"
-    directory.mkdir()
-    monkeypatch.chdir(directory)
-
-    return directory
-
-
-@pytest.mark.xfail(
-    strict=True,
-    reason="Bug: --local outside a repository uses a None path. Fixed by fix/configuration.",
-)
-@pytest.mark.usefixtures("isolated_env", "outside_repository")
-def test_config_set_local_outside_repository_explains_the_problem() -> None:
-    result = runner.invoke(app, ["config", "set", "model", "some-model", "--local"])
-
-    assert result.exit_code == 1
-    assert "unexpected error" not in result.output.lower()
-    assert "repository" in result.output.lower()
-
-
-@pytest.mark.xfail(
-    strict=True,
-    reason="Bug: config commands print 'Location: None' outside a repository. "
-    "Fixed by fix/configuration.",
-)
-@pytest.mark.usefixtures("isolated_env", "outside_repository")
-def test_config_get_outside_repository_does_not_print_none_location() -> None:
-    result = runner.invoke(app, ["config", "get", "model"])
-
-    assert result.exit_code == 0, result.output
-    assert "None" not in result.output
-
-
 @pytest.mark.xfail(
     strict=True,
     reason="Bug: repo root is found by checking that .git is a directory, which is a "
