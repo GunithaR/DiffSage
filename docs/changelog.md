@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+
+## [1.4.0] - 2026-10-05
+
+A reliability and security release: clear errors instead of crashes, safer credentials,
+secrets kept out of AI requests, stricter configuration, and a commit workflow that keeps
+your edits.
+
+### Upgrade notes
+
+- `diffsage auth set gemini <KEY>` no longer accepts the key as an argument. Run `diffsage auth set gemini` and enter it at the hidden prompt, or pipe it in from a script: `printf '%s\n' "$KEY" | diffsage auth set gemini`. In CI you can use `DIFFSAGE_API_KEY` instead.
+- `.env` files are no longer read. Export `DIFFSAGE_*` variables in your shell, or use the global and repository config files.
+- Configuration is validated strictly. Misspelled keys or sections and out-of-range values (for example `max_retries = 999`) that were silently accepted before now stop commands with an error naming the file, setting and value. Run `diffsage doctor` to see the problem, and `diffsage config set` / `config unset` to fix it.
+- Commit messages must use a Conventional Commits type (`feat`, `fix`, `docs`, `chore`, …). A message edited to something like `wip: …` is rejected, and your edit is kept so you can correct it.
+- On macOS and Linux, an existing credentials file is made readable only by you the first time DiffSage reads it.
+
 ### Added
 
 - Diffs are sanitized before they are sent to the AI provider: secret-bearing files and lockfiles are omitted, credential-like values are redacted, and the diff is capped at 100,000 characters. DiffSage prints a notice for everything it removes and tells the AI not to describe the placeholders.
@@ -10,10 +25,6 @@
 - `diffsage auth set` prompts for the API key with hidden input, or reads it from standard input when piped.
 - Shared command error handler: every DiffSage error is shown as one `✗` message with a consistent exit code; unexpected errors are logged with a traceback.
 - `diffsage doctor` reports an invalid configuration instead of crashing.
-- End-to-end test harness: isolated config and logs, a fake AI provider, a fake GitHub CLI, and real temporary Git repositories with an origin remote.
-- End-to-end tests for the `commit` and `pr` workflows through the real CLI.
-- Strict expected-failure tests for known bugs, to be converted into regression tests as each bug is fixed.
-- mypy type checking in CI, with a temporary baseline for modules with known type errors.
 
 ### Changed
 
@@ -23,13 +34,9 @@
 - `config list` and `config get` show where the resolved values come from (built-in defaults, global file, repository file, environment variables) instead of a single, often wrong, "Location".
 - `config set` keeps the case of model names.
 - Config files, `DIFFSAGE_*` environment variables and `config set` are validated against one schema: supported provider, non-empty model, timeout 1–600 seconds, max_retries 0–10, a standard log level, and no unknown keys or sections.
-- CI runs the test suite on Ubuntu, macOS and Windows.
-- The release workflow verifies that the tag matches the package version and runs lint and tests before building and publishing.
-- Ruff now reports unused arguments.
 
 ### Removed
 
-- Unused `GitClient.status()`, `GitClient.unstaged_diff()` and the `GitStatus` model.
 - `diffsage auth set` no longer accepts the API key as an argument, because it stayed in shell history and was visible to other processes. Enter it at the hidden prompt (`diffsage auth set gemini`), or pipe it in from a script.
 - `.env` files are no longer loaded. In practice only DiffSage's own development checkout was ever found, and loading one copied every variable in it, including unrelated secrets, into DiffSage's environment and its git/gh subprocesses. Use `DIFFSAGE_*` environment variables or the global and repository config files instead.
 - The `python-dotenv` dependency and `.env.example`.
@@ -54,6 +61,17 @@
 - Rate-limit and other provider errors in `ask`, unparseable AI commit messages, editor launch failures and `gh pr create` failures were reported as "unexpected error".
 - An invalid configuration file crashed every command with a traceback; it is now reported with the file, setting and value at fault.
 - `config set` and `config unset` can repair a broken configuration file, and `config list`/`get --global`/`--local` can still read it.
+
+### Development
+
+- End-to-end test harness: isolated config and logs, a fake AI provider, a fake GitHub CLI, and real temporary Git repositories with an origin remote.
+- End-to-end tests for the `commit` and `pr` workflows through the real CLI.
+- Strict expected-failure tests for known bugs, to be converted into regression tests as each bug is fixed.
+- mypy type checking in CI, with a temporary baseline for modules with known type errors.
+- CI runs the test suite on Ubuntu, macOS and Windows.
+- The release workflow verifies that the tag matches the package version and runs lint and tests before building and publishing.
+- Ruff now reports unused arguments.
+- Removed unused `GitClient.status()`, `GitClient.unstaged_diff()` and the `GitStatus` model.
 - Dependabot configuration was invalid; it now also updates GitHub Actions.
 
 
