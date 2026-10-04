@@ -382,3 +382,15 @@ def test_set_value_accepts_range_boundaries(key, value, stored) -> None:
         service.set_value(key, value)
 
     repository.set.assert_called_once_with(key, stored)
+
+
+def test_set_value_keeps_model_case() -> None:
+    """Regression: model IDs were lowercased, but they can be case-sensitive."""
+
+    repository = Mock(spec=ConfigRepository)
+    service = ConfigService(create_settings(), repository)
+
+    with patch("diffsage.services.config_service.load_settings", return_value=create_settings()):
+        service.set_value("model", "  Gemini-2.5-PRO  ")
+
+    repository.set.assert_called_once_with("model", "Gemini-2.5-PRO")

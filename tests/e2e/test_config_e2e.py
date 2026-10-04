@@ -231,3 +231,34 @@ def test_environment_and_file_values_are_normalised(isolated_env, monkeypatch) -
     assert "gemini" in provider.output
     assert log_level.exit_code == 0, log_level.output
     assert "DEBUG" in log_level.output
+
+
+def test_config_set_keeps_model_case(isolated_env) -> None:
+    result = runner.invoke(app, ["config", "set", "model", "Gemini-2.5-PRO", "--global"])
+
+    assert result.exit_code == 0, result.output
+    assert 'model = "Gemini-2.5-PRO"' in (isolated_env.config_dir / "config.toml").read_text()
+
+
+@pytest.mark.parametrize(
+    ("command", "expected"),
+    [
+        ("set", ["Write to the repository's .diffsage.toml.", "Write to your user-wide config"]),
+        (
+            "unset",
+            ["Remove from the repository's .diffsage.toml.", "Remove from your user-wide config"],
+        ),
+        ("list", ["Read the repository's .diffsage.toml directly", "Read your user-wide config"]),
+        ("get", ["Read the repository's .diffsage.toml directly", "Read your user-wide config"]),
+    ],
+)
+def test_scope_option_help_describes_each_file(command, expected) -> None:
+    """Regression: --global said "repository's global configuration", unset said "Write
+    to", and list/get had no help for --local/--global."""
+
+    result = runner.invoke(app, ["config", command, "--help"])
+
+    assert result.exit_code == 0, result.output
+    for text in expected:
+        assert text in flat(result.output)
+    assert "repository's global" not in result.output

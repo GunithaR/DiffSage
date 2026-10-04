@@ -21,12 +21,6 @@ class ConfigService:
         "log_level": "log_level",
     }
 
-    _NORMALIZERS = {
-        "provider": str.lower,
-        "model": str.lower,
-        "log_level": str.upper,
-    }
-
     def __init__(self, settings: Settings, repository: ConfigRepository | None = None) -> None:
         self._settings = settings
         self._repository = repository
@@ -103,12 +97,9 @@ class ConfigService:
         if key not in CONFIG_KEYS:
             raise UnknownConfigurationKeyError(key)
 
+        # Case is left alone: the schema normalises provider and log_level, and model IDs
+        # can be case-sensitive.
         value = value.strip()
-        normalizer = self._NORMALIZERS.get(key)
-
-        if normalizer is not None:
-            value = normalizer(value)
-
         validated = self._validate(key, value)
 
         self._file.set(key, validated)

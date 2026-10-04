@@ -14,6 +14,9 @@ logger = get_logger(__name__)
 
 app = typer.Typer(help="DiffSage configuration", invoke_without_command=False)
 
+READ_LOCAL_HELP = "Read the repository's .diffsage.toml directly, instead of the resolved values."
+READ_GLOBAL_HELP = "Read your user-wide config file directly, instead of the resolved values."
+
 
 def _resolve_scope(*, local: bool, global_: bool) -> ConfigScope:
     if local and global_:
@@ -28,7 +31,8 @@ def _resolve_scope(*, local: bool, global_: bool) -> ConfigScope:
 @app.command("list")
 @handle_command_errors("config list")
 def list_config(
-    local: bool = typer.Option(False, "--local"), global_: bool = typer.Option(False, "--global")
+    local: bool = typer.Option(False, "--local", help=READ_LOCAL_HELP),
+    global_: bool = typer.Option(False, "--global", help=READ_GLOBAL_HELP),
 ) -> None:
     """List the current DiffSage configuration."""
 
@@ -61,8 +65,8 @@ def list_config(
 @handle_command_errors("config get")
 def get_config(
     key: str,
-    local: bool = typer.Option(False, "--local"),
-    global_: bool = typer.Option(False, "--global"),
+    local: bool = typer.Option(False, "--local", help=READ_LOCAL_HELP),
+    global_: bool = typer.Option(False, "--global", help=READ_GLOBAL_HELP),
 ) -> None:
     """Get the value of a DiffSage configuration."""
 
@@ -99,11 +103,9 @@ def get_config(
 def set_config(
     key: str,
     value: str,
-    local: bool = typer.Option(
-        False, "--local", help="Write to the repository's local configuration."
-    ),
+    local: bool = typer.Option(False, "--local", help="Write to the repository's .diffsage.toml."),
     global_: bool = typer.Option(
-        False, "--global", help="Write to the repository's global configuration."
+        False, "--global", help="Write to your user-wide config file (the default)."
     ),
 ) -> None:
     """Set the value of a DiffSage configuration."""
@@ -131,10 +133,10 @@ def set_config(
 def unset_config(
     key: str,
     local: bool = typer.Option(
-        False, "--local", help="Write to the repository's local configuration."
+        False, "--local", help="Remove from the repository's .diffsage.toml."
     ),
     global_: bool = typer.Option(
-        False, "--global", help="Write to the repository's global configuration."
+        False, "--global", help="Remove from your user-wide config file (the default)."
     ),
 ) -> None:
     """Remove a DiffSage configuration value."""
