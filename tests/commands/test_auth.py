@@ -19,6 +19,7 @@ def test_set_credential_command_orchestrates() -> None:
         patch("diffsage.commands.auth.CredentialsRepository") as mock_repository,
         patch("diffsage.commands.auth.CredentialService") as mock_service,
         patch("diffsage.commands.auth.AuthView") as mock_view,
+        patch("diffsage.commands.auth._read_api_key", return_value="test-api-key"),
     ):
         repository = mock_repository.return_value
         service = mock_service.return_value
@@ -26,7 +27,6 @@ def test_set_credential_command_orchestrates() -> None:
 
         set_credential(
             provider=" Gemini ",
-            api_key="test-api-key",
             name="default",
         )
 
@@ -50,6 +50,7 @@ def test_set_credential_command_handles_value_error(capsys) -> None:
         patch("diffsage.commands.auth.CredentialsRepository") as mock_repository,
         patch("diffsage.commands.auth.CredentialService") as mock_service,
         patch("diffsage.commands.auth.AuthView") as mock_view,
+        patch("diffsage.commands.auth._read_api_key", return_value="test-api-key"),
     ):
         repository = mock_repository.return_value
         service = mock_service.return_value
@@ -60,7 +61,6 @@ def test_set_credential_command_handles_value_error(capsys) -> None:
         with pytest.raises(SystemExit) as exception_info:
             set_credential(
                 provider="gemini",
-                api_key="test-api-key",
                 name="default",
             )
 

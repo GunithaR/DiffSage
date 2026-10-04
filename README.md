@@ -233,10 +233,17 @@ diffsage config unset provider
 
 # Quick Start
 
-Set up your provider credential:
+Set up your provider credential. DiffSage asks for the API key at a hidden prompt, so it
+never appears on screen, in your shell history or in the process list:
 
 ```bash
-diffsage auth set gemini YOUR_API_KEY
+diffsage auth set gemini
+```
+
+In scripts, pipe the key in instead of typing it:
+
+```bash
+printf '%s\n' "$GEMINI_API_KEY" | diffsage auth set gemini
 ```
 
 Verify your environment:
@@ -310,7 +317,7 @@ Display PR URL
 Named credential profiles are also supported:
 
 ```bash
-diffsage auth set gemini YOUR_API_KEY --name paid
+diffsage auth set gemini --name paid
 ```
 
 View configured credentials:

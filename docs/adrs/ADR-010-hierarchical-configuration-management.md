@@ -328,13 +328,17 @@ DiffSage provides dedicated authentication commands for managing provider creden
 Examples:
 
 ```bash
-diffsage auth set gemini YOUR_API_KEY
-diffsage auth set gemini YOUR_API_KEY --name paid
+diffsage auth set gemini              # prompts for the key with hidden input
+diffsage auth set gemini --name paid
 
 diffsage auth get gemini
 diffsage auth list
 diffsage auth unset gemini
 ```
+
+API keys are never accepted as command-line arguments, which would leave them in shell
+history and visible to other processes. `auth set` reads the key from a hidden prompt, or
+from standard input when it is piped (for scripts).
 
 Authentication commands allow users to create, retrieve, list, and remove
 provider credential profiles while keeping API keys separate from application

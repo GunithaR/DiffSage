@@ -18,7 +18,7 @@ def flat(output: str) -> str:
 
 @pytest.mark.skipif(os.name != "posix", reason="Unix permission bits only")
 def test_auth_set_stores_key_readable_only_by_owner(isolated_env) -> None:
-    result = runner.invoke(app, ["auth", "set", "gemini", "secret-key"])
+    result = runner.invoke(app, ["auth", "set", "gemini"], input="secret-key\n")
 
     assert result.exit_code == 0, result.output
     path = isolated_env.config_dir / "credentials.toml"
@@ -60,17 +60,18 @@ def test_auth_set_without_key_prompts_with_hidden_input(isolated_env) -> None:
     assert result.exit_code == 0, result.output
     assert "API key for gemini:" in result.output
     assert "secret-key" not in result.output
-    assert "command line" not in result.output
     assert stored_key(isolated_env) == "secret-key"
 
 
-def test_auth_set_with_key_argument_warns_but_still_saves(isolated_env) -> None:
+def test_auth_set_rejects_key_as_argument(isolated_env) -> None:
+    """The key must never be accepted as an argument: it would stay in shell history and
+    be visible to other processes."""
+
     result = runner.invoke(app, ["auth", "set", "gemini", "secret-key"])
 
-    assert result.exit_code == 0, result.output
-    assert "! The API key was passed on the command line" in flat(result.output)
-    assert "run 'diffsage auth set gemini' and enter it when prompted" in flat(result.output)
-    assert stored_key(isolated_env) == "secret-key"
+    assert result.exit_code == 2
+    assert "unexpected extra argument" in flat(result.output)
+    assert stored_key(isolated_env) is None
 
 
 @pytest.mark.usefixtures("terminal")
@@ -91,11 +92,13 @@ def test_auth_set_without_any_input_saves_nothing(isolated_env) -> None:
     assert stored_key(isolated_env) is None
 
 
-def test_auth_set_help_explains_leaving_the_key_out() -> None:
+def test_auth_set_help_explains_how_the_key_is_entered() -> None:
     result = runner.invoke(app, ["auth", "set", "--help"])
 
     assert result.exit_code == 0, result.output
-    assert "Leave it out to enter it at a hidden prompt" in flat(result.output)
+    assert "hidden prompt" in flat(result.output)
+    assert "never as an argument" in flat(result.output)
+    assert "pipe it in" in flat(result.output)
 
 
 def test_auth_set_reads_piped_key_without_prompt_or_warning(isolated_env) -> None:

@@ -48,30 +48,22 @@ def _credential_service() -> CredentialService:
 @handle_command_errors("auth set")
 def set_credential(
     provider: str,
-    api_key: str | None = typer.Argument(
-        None,
-        help="API key. Leave it out to enter it at a hidden prompt, which keeps it out of "
-        "your shell history.",
-        show_default=False,
-    ),
     name: str = typer.Option(
         "default",
         "--name",
         help="Credential profile name.",
     ),
 ) -> None:
-    """Store a DiffSage provider credential."""
+    """Store a DiffSage provider credential.
+
+    The API key is entered at a hidden prompt, never as an argument.
+
+    For scripts, pipe it in: printf '%s\\n' "$KEY" | diffsage auth set gemini
+    """
 
     view = AuthView()
 
-    if api_key is None:
-        api_key = _read_api_key(provider)
-    else:
-        view.show_warning(
-            "The API key was passed on the command line, so it may be saved in your shell "
-            "history and visible to other processes. Next time, run "
-            f"'diffsage auth set {provider}' and enter it when prompted."
-        )
+    api_key = _read_api_key(provider)
 
     _credential_service().set_credential(
         provider,
