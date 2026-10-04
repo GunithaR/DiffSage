@@ -72,6 +72,7 @@ def test_list_config_command_defaults_to_resolved_configuration() -> None:
     report = ConfigReport(
         provider="gemini",
         model="gemini-3.5-flash-lite",
+        credential_profile="default",
         timeout=60,
         max_retries=3,
         log_level="INFO",
@@ -115,6 +116,7 @@ def test_list_config_command_uses_local_scope() -> None:
     report = ConfigReport(
         provider="gemini",
         model="gemini-3.5-flash-lite",
+        credential_profile="default",
         timeout=60,
         max_retries=3,
         log_level="INFO",
@@ -161,6 +163,7 @@ def test_list_config_command_uses_global_scope() -> None:
     report = ConfigReport(
         provider="gemini",
         model="gemini-3.5-flash-lite",
+        credential_profile="default",
         timeout=60,
         max_retries=3,
         log_level="INFO",
@@ -344,6 +347,7 @@ def test_set_config_command_defaults_to_global() -> None:
     report = ConfigReport(
         provider="openai",
         model="gpt-5",
+        credential_profile="default",
         timeout=60,
         max_retries=3,
         log_level="INFO",
@@ -398,6 +402,7 @@ def test_set_config_command_uses_local_scope() -> None:
     report = ConfigReport(
         provider="openai",
         model="gpt-5",
+        credential_profile="default",
         timeout=60,
         max_retries=3,
         log_level="INFO",
@@ -452,6 +457,7 @@ def test_set_config_command_uses_global_scope() -> None:
     report = ConfigReport(
         provider="openai",
         model="gpt-5",
+        credential_profile="default",
         timeout=60,
         max_retries=3,
         log_level="INFO",
@@ -647,6 +653,7 @@ def test_unset_config_command_defaults_to_global() -> None:
     report = ConfigReport(
         provider="gemini",
         model="gemini-3.5-flash-lite",
+        credential_profile="default",
         timeout=60,
         max_retries=3,
         log_level="INFO",
@@ -699,6 +706,7 @@ def test_unset_config_command_uses_local_scope() -> None:
     report = ConfigReport(
         provider="gemini",
         model="gemini-3.5-flash-lite",
+        credential_profile="default",
         timeout=60,
         max_retries=3,
         log_level="INFO",
@@ -751,6 +759,7 @@ def test_unset_config_command_uses_global_scope() -> None:
     report = ConfigReport(
         provider="gemini",
         model="gemini-3.5-flash-lite",
+        credential_profile="default",
         timeout=60,
         max_retries=3,
         log_level="INFO",

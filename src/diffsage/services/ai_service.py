@@ -23,7 +23,9 @@ class AIService:
         if provider is not None:
             self._provider = provider
         else:
-            credential = credential_service.resolve_credential(settings.provider, "default")
+            credential = credential_service.resolve_credential(
+                settings.provider, settings.credential_profile
+            )
 
             self._provider = create_provider(settings, credential)
 

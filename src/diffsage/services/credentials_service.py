@@ -92,10 +92,14 @@ class CredentialService:
         credential = self.get_credential(provider, name)
 
         if credential is None:
+            name_option = "" if name == "default" else f" --name {name}"
             raise CredentialNotFoundError(
                 provider,
                 name,
-                hint=f"Run 'diffsage auth set {provider}', or set {API_KEY_ENVIRONMENT_VARIABLE}.",
+                hint=(
+                    f"Run 'diffsage auth set {provider}{name_option}', "
+                    f"or set {API_KEY_ENVIRONMENT_VARIABLE}."
+                ),
             )
 
         return credential

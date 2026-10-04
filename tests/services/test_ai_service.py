@@ -258,3 +258,16 @@ def test_ai_service_raises_when_credential_is_missing():
         "gemini",
         "default",
     )
+
+
+def test_ai_service_resolves_the_configured_credential_profile():
+    credential_service = Mock(spec=CredentialService)
+    credential_service.resolve_credential.return_value = Credential("gemini", "paid", "paid-key")
+
+    with patch("diffsage.services.ai_service.create_provider"):
+        AIService(
+            settings=create_settings(credential_profile="paid"),
+            credential_service=credential_service,
+        )
+
+    credential_service.resolve_credential.assert_called_once_with("gemini", "paid")

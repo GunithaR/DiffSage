@@ -17,6 +17,7 @@ MAX_RETRIES = 10
 CONFIG_KEYS: dict[str, tuple[str, str]] = {
     "provider": ("ai", "provider"),
     "model": ("ai", "model"),
+    "credential_profile": ("ai", "credential_profile"),
     "timeout": ("network", "timeout"),
     "max_retries": ("network", "max_retries"),
     "log_level": ("logging", "level"),
@@ -33,6 +34,10 @@ def _upper(value: Any) -> Any:
 
 Provider = Annotated[Literal["gemini"], BeforeValidator(_lower)]
 Model = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
+# Profile names are stored lowercased by `diffsage auth set --name`.
+CredentialProfile = Annotated[
+    str, StringConstraints(strip_whitespace=True, to_lower=True, min_length=1)
+]
 Timeout = Annotated[int, Field(ge=MIN_TIMEOUT_SECONDS, le=MAX_TIMEOUT_SECONDS)]
 MaxRetries = Annotated[int, Field(ge=MIN_RETRIES, le=MAX_RETRIES)]
 LogLevel = Annotated[
@@ -48,6 +53,7 @@ class _Section(BaseModel):
 class AIConfig(_Section):
     provider: Provider
     model: Model
+    credential_profile: CredentialProfile
 
 
 class NetworkConfig(_Section):
@@ -68,6 +74,7 @@ class DiffSageConfig(_Section):
 class PartialAIConfig(_Section):
     provider: Provider | None = None
     model: Model | None = None
+    credential_profile: CredentialProfile | None = None
 
 
 class PartialNetworkConfig(_Section):

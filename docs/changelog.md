@@ -4,6 +4,7 @@
 
 ### Added
 
+- `credential_profile` setting (and `DIFFSAGE_CREDENTIAL_PROFILE`) to choose which stored credential profile AI commands use. Profiles created with `auth set --name` were previously never used.
 - `DIFFSAGE_API_KEY` environment variable as a credential source for CI and containers. It overrides stored credentials, and `auth list`/`auth get` warn when it is set.
 - `diffsage auth set` prompts for the API key with hidden input, or reads it from standard input when piped.
 - Shared command error handler: every DiffSage error is shown as one `✗` message with a consistent exit code; unexpected errors are logged with a traceback.

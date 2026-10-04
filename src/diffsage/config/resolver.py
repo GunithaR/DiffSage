@@ -18,6 +18,7 @@ from diffsage.models.config import ConfigSources
 ENVIRONMENT_VARIABLES: dict[str, tuple[str, str]] = {
     "DIFFSAGE_PROVIDER": ("ai", "provider"),
     "DIFFSAGE_AI_MODEL": ("ai", "model"),
+    "DIFFSAGE_CREDENTIAL_PROFILE": ("ai", "credential_profile"),
     "DIFFSAGE_TIMEOUT": ("network", "timeout"),
     "DIFFSAGE_MAX_RETRIES": ("network", "max_retries"),
     "DIFFSAGE_LOG_LEVEL": ("logging", "level"),
@@ -87,6 +88,7 @@ def _to_settings(config: DiffSageConfig) -> Settings:
     return Settings(
         provider=config.ai.provider,
         ai_model=config.ai.model,
+        credential_profile=config.ai.credential_profile,
         timeout=config.network.timeout,
         max_retries=config.network.max_retries,
         log_level=config.logging.level,

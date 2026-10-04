@@ -199,3 +199,63 @@ def test_auth_commands_do_not_warn_without_environment_key(command) -> None:
 
     assert result.exit_code == 0, result.output
     assert "DIFFSAGE_API_KEY" not in result.output
+
+
+def store_profiles() -> None:
+    runner.invoke(app, ["auth", "set", "gemini"], input="default-key\n")
+    runner.invoke(app, ["auth", "set", "gemini", "--name", "paid"], input="paid-key\n")
+
+
+def test_ai_commands_use_the_default_profile_unless_configured(captured_credentials) -> None:
+    store_profiles()
+
+    result = runner.invoke(app, ["ask", "hello"])
+
+    assert result.exit_code == 0, result.output
+    assert captured_credentials[0].api_key == "default-key"
+
+
+@pytest.mark.usefixtures("git_repo")
+def test_configured_credential_profile_selects_the_stored_key(captured_credentials) -> None:
+    """Regression: profiles could be stored with --name but were never used."""
+
+    store_profiles()
+    runner.invoke(app, ["config", "set", "credential_profile", "Paid", "--local"])
+
+    result = runner.invoke(app, ["ask", "hello"])
+
+    assert result.exit_code == 0, result.output
+    assert captured_credentials[0].api_key == "paid-key"
+
+
+def test_environment_variable_selects_a_profile_for_one_run(
+    captured_credentials, monkeypatch
+) -> None:
+    store_profiles()
+    monkeypatch.setenv("DIFFSAGE_CREDENTIAL_PROFILE", "paid")
+
+    result = runner.invoke(app, ["ask", "hello"])
+
+    assert result.exit_code == 0, result.output
+    assert captured_credentials[0].api_key == "paid-key"
+
+
+def test_missing_profile_explains_how_to_create_it(monkeypatch) -> None:
+    store_profiles()
+    monkeypatch.setenv("DIFFSAGE_CREDENTIAL_PROFILE", "work")
+
+    result = runner.invoke(app, ["ask", "hello"])
+
+    assert result.exit_code == 1
+    assert (
+        "✗ Credential not found for provider 'gemini' and profile 'work'. Run 'diffsage auth "
+        "set gemini --name work', or set DIFFSAGE_API_KEY." in flat(result.output)
+    )
+
+
+def test_config_list_shows_the_credential_profile() -> None:
+    result = runner.invoke(app, ["config", "list"])
+
+    assert result.exit_code == 0, result.output
+    assert "Credential Profile" in result.output
+    assert "default" in result.output

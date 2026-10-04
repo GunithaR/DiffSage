@@ -328,6 +328,14 @@ Named credential profiles are also supported:
 diffsage auth set gemini --name paid
 ```
 
+Choose which profile AI commands use with the `credential_profile` setting, per repository
+or globally, or for a single run with `DIFFSAGE_CREDENTIAL_PROFILE`:
+
+```bash
+diffsage config set credential_profile paid --local
+DIFFSAGE_CREDENTIAL_PROFILE=paid diffsage pr
+```
+
 View configured credentials:
 
 ```bash

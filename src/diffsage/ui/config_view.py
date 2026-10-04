@@ -22,6 +22,7 @@ class ConfigView(BaseView):
 
         table.add_row("Provider", self._display_value(report.provider))
         table.add_row("Model", self._display_value(report.model))
+        table.add_row("Credential Profile", self._display_value(report.credential_profile))
         table.add_row("Timeout", self._display_value(report.timeout))
         table.add_row("Max Retries", self._display_value(report.max_retries))
         table.add_row("Log Level", self._display_value(report.log_level))
