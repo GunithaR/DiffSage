@@ -13,3 +13,7 @@ class InvalidCredentialError(DiffSageError, ValueError):
 
     Also a ValueError, as callers caught before the shared error handler existed.
     """
+
+
+class InvalidCredentialsFileError(DiffSageError):
+    """Raised when the credentials file cannot be parsed."""

@@ -1,5 +1,10 @@
+import os
+import stat
 from pathlib import Path
 
+import pytest
+
+from diffsage.exceptions import InvalidCredentialsFileError
 from diffsage.models.credentials import Credential
 from diffsage.storage.credentials_repository import CredentialsRepository
 
@@ -182,3 +187,37 @@ def test_delete_returns_false_when_credential_does_not_exist(tmp_path: Path) -> 
     result = repository.delete("gemini", "default")
 
     assert result is False
+
+
+@pytest.mark.skipif(os.name != "posix", reason="Unix permission bits only")
+def test_save_creates_owner_only_file(tmp_path: Path) -> None:
+    path = tmp_path / "credentials.toml"
+
+    CredentialsRepository(path).save(Credential("gemini", "default", "secret-key"))
+
+    assert stat.S_IMODE(path.stat().st_mode) == 0o600
+
+
+@pytest.mark.skipif(os.name != "posix", reason="Unix permission bits only")
+def test_reading_an_old_world_readable_file_tightens_it(tmp_path: Path) -> None:
+    """Regression: older versions created credentials.toml as -rw-r--r--."""
+
+    path = tmp_path / "credentials.toml"
+    path.write_text('[credentials.gemini.default]\napi_key = "secret-key"\n')
+    os.chmod(path, 0o644)
+
+    credential = CredentialsRepository(path).get("gemini")
+
+    assert credential is not None
+    assert stat.S_IMODE(path.stat().st_mode) == 0o600
+
+
+def test_unparseable_credentials_file_raises_clear_error(tmp_path: Path) -> None:
+    path = tmp_path / "credentials.toml"
+    path.write_text("[credentials.gemini.default\napi_key = x\n")
+
+    with pytest.raises(InvalidCredentialsFileError) as error:
+        CredentialsRepository(path).list()
+
+    assert "Invalid TOML syntax in" in str(error.value)
+    assert "run 'diffsage auth set' again" in str(error.value)

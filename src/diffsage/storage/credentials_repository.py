@@ -1,8 +1,12 @@
 from pathlib import Path
 
-from tomlkit import document, parse, table
+from tomlkit import TOMLDocument, document, parse, table
+from tomlkit.exceptions import ParseError
 
+from diffsage.config.paths import display_path
+from diffsage.exceptions import InvalidCredentialsFileError
 from diffsage.models.credentials import Credential
+from diffsage.storage.files import restrict_to_owner, write_private_text
 
 
 class CredentialsRepository:
@@ -11,11 +15,29 @@ class CredentialsRepository:
     def __init__(self, path: Path) -> None:
         self._path = path
 
+    def _read(self) -> TOMLDocument | None:
+        """Parse the credentials file, or return None if it does not exist yet."""
+
+        if not self._path.exists():
+            return None
+
+        # Older versions created this file readable by every local user.
+        restrict_to_owner(self._path)
+
+        try:
+            return parse(self._path.read_text(encoding="utf-8"))
+        except ParseError as error:
+            raise InvalidCredentialsFileError(
+                f"Invalid TOML syntax in {display_path(self._path)}: {error}. "
+                "Fix that line in a text editor, or delete the file and run "
+                "'diffsage auth set' again."
+            ) from error
+
+    def _write(self, doc: TOMLDocument) -> None:
+        write_private_text(self._path, doc.as_string())
+
     def save(self, credential: Credential) -> None:
-        if self._path.exists():
-            doc = parse(self._path.read_text())
-        else:
-            doc = document()
+        doc = self._read() or document()
 
         credentials = doc.get("credentials")
 
@@ -37,14 +59,14 @@ class CredentialsRepository:
 
         profile["api_key"] = credential.api_key
 
-        self._path.parent.mkdir(parents=True, exist_ok=True)
-        self._path.write_text(doc.as_string())
+        self._write(doc)
 
     def get(self, provider: str, name: str = "default") -> Credential | None:
-        if not self._path.exists():
+        doc = self._read()
+
+        if doc is None:
             return None
 
-        doc = parse(self._path.read_text())
         credentials = doc.get("credentials")
 
         if credentials is None:
@@ -69,10 +91,11 @@ class CredentialsRepository:
         )
 
     def list(self) -> list[Credential]:
-        if not self._path.exists():
+        doc = self._read()
+
+        if doc is None:
             return []
 
-        doc = parse(self._path.read_text())
         credentials = doc.get("credentials")
 
         if credentials is None:
@@ -94,10 +117,11 @@ class CredentialsRepository:
         return result
 
     def delete(self, provider: str, name: str = "default") -> bool:
-        if not self._path.exists():
+        doc = self._read()
+
+        if doc is None:
             return False
 
-        doc = parse(self._path.read_text())
         credentials = doc.get("credentials")
 
         if credentials is None:
@@ -116,6 +140,6 @@ class CredentialsRepository:
         if not provider_table:
             del credentials[provider]
 
-        self._path.write_text(doc.as_string())
+        self._write(doc)
 
         return True
