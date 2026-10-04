@@ -76,6 +76,13 @@ def isolated_env(tmp_path, monkeypatch) -> IsolatedEnv:
     # messages on one line on every CI runner.
     monkeypatch.setenv("COLUMNS", "200")
 
+    # CI forces coloured output (GitHub Actions sets GITHUB_ACTIONS), which puts ANSI
+    # codes inside asserted messages. Typer reads these variables once at import, so
+    # its computed flag is patched as well as the environment.
+    for variable in ("GITHUB_ACTIONS", "FORCE_COLOR", "PY_COLORS"):
+        monkeypatch.delenv(variable, raising=False)
+    monkeypatch.setattr("typer.rich_utils.FORCE_TERMINAL", False)
+
     return IsolatedEnv(root=tmp_path, config_dir=config_dir, log_dir=log_dir, workdir=workdir)
 
 
