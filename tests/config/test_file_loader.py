@@ -3,6 +3,7 @@ from pathlib import Path
 import pytest
 
 from diffsage.config.file_loader import load_config
+from diffsage.config.paths import display_path
 from diffsage.exceptions import ConfigError
 
 
@@ -34,7 +35,7 @@ def test_load_config_reports_toml_syntax_error_with_position(tmp_path) -> None:
         load_config(path)
 
     message = str(error.value)
-    assert message.startswith(f"Invalid TOML syntax in {path}:")
+    assert message.startswith(f"Invalid TOML syntax in {display_path(path)}:")
     assert "line 1" in message
 
 
@@ -45,7 +46,7 @@ def test_load_config_reports_each_invalid_value(tmp_path) -> None:
         load_config(path)
 
     message = str(error.value)
-    assert message.startswith(f"Invalid configuration in {path}:")
+    assert message.startswith(f"Invalid configuration in {display_path(path)}:")
     assert "network.timeout: Input should be a valid integer" in message
     assert "(got 'abc')" in message
     assert "network.max_retries" in message

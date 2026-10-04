@@ -3,6 +3,7 @@ from pathlib import Path
 import pytest
 from tomlkit import document, parse, table
 
+from diffsage.config.paths import display_path
 from diffsage.exceptions import ConfigError
 from diffsage.storage.config_repository import ConfigRepository
 
@@ -296,7 +297,7 @@ def test_unparseable_file_raises_config_error_and_is_left_unchanged(tmp_path, op
         operation(ConfigRepository(path))
 
     message = str(error.value)
-    assert message.startswith(f"Invalid TOML syntax in {path}: ")
+    assert message.startswith(f"Invalid TOML syntax in {display_path(path)}: ")
     assert "line 3" in message
     assert message.endswith("fix that line in a text editor.")
     assert path.read_text() == content
