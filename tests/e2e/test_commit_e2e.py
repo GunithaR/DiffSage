@@ -8,7 +8,7 @@ from typer.testing import CliRunner
 
 from diffsage.cli import app
 from diffsage.commands.error_handler import UNEXPECTED_ERROR_MESSAGE
-from tests.helpers import run_git
+from tests.helpers import install_failing_pre_commit_hook, run_git
 
 runner = CliRunner()
 
@@ -248,3 +248,17 @@ def test_edit_starts_from_the_cleaned_message(
     assert result.exit_code == 0, result.output
     assert seen.read_text() == "feat(ui): add banner"
     assert head_message(git_repo) == "feat(ui): add banner"
+
+
+def test_commit_rejected_by_a_hook_shows_why(git_repo, fake_provider) -> None:
+    stage_file(git_repo, "app.py", "x = 1  \n")
+    install_failing_pre_commit_hook(git_repo, "lint: trailing whitespace in app.py line 1")
+    fake_provider.queue("feat: add app")
+
+    result = runner.invoke(app, ["commit"], input="y\n")
+
+    assert result.exit_code == 1
+    assert "✗ git commit failed. Nothing was committed" in result.output
+    assert "lint: trailing whitespace in app.py line 1" in result.output
+    assert UNEXPECTED_ERROR_MESSAGE not in result.output
+    assert commit_count(git_repo) == 1

@@ -29,3 +29,7 @@ class UnpushedChangesError(GitError):
     """Raised when the local branch contains commits not pushed to the remote."""
 
     default_message = "Your branch contains commits that have not been pushed to origin."
+
+
+class CommitFailedError(GitError):
+    """Raised when `git commit` itself fails, for example when a hook rejects the commit."""

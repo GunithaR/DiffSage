@@ -2,6 +2,7 @@ import subprocess
 from datetime import datetime
 from pathlib import Path
 
+from diffsage.exceptions import CommitFailedError
 from diffsage.models.git import GitCommit, GitStatus
 
 # hash, author, ISO date, subject. The subject goes last because it is the only field
@@ -172,7 +173,22 @@ class GitClient:
         length limit (32,767 characters on Windows), and nothing visible in `ps`.
         """
 
-        self._run_git_command(["commit", "-F", "-"], input_text=message)
+        try:
+            self._run_git_command(["commit", "-F", "-"], input_text=message)
+
+        except subprocess.CalledProcessError as error:
+            # Hooks print to stderr, but some git failures (e.g. "nothing to commit") go
+            # to stdout, so both are shown.
+            output = "\n".join(
+                part.strip() for part in (error.stdout, error.stderr) if part and part.strip()
+            )
+
+            if not output:
+                output = f"git exited with status {error.returncode}."
+
+            raise CommitFailedError(
+                "git commit failed. Nothing was committed; the message is shown above.\n" + output
+            ) from error
 
     def merge_base(self, base_branch: str, head_branch: str) -> str:
         """Return the common ancestor commit hash of two branches."""

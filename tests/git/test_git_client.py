@@ -3,9 +3,17 @@ from datetime import datetime
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
+
+from diffsage.exceptions import CommitFailedError
 from diffsage.git.client import GitClient
 from diffsage.models.git import GitCommit
-from tests.helpers import init_git_repo, init_git_repo_with_initial_commit, run_git
+from tests.helpers import (
+    init_git_repo,
+    init_git_repo_with_initial_commit,
+    install_failing_pre_commit_hook,
+    run_git,
+)
 
 
 def test_is_git_repository_returns_false_for_non_git_directory(tmp_path: Path) -> None:
@@ -630,3 +638,43 @@ def test_commit_accepts_a_message_longer_than_the_windows_command_line(tmp_path:
     staged_repo(tmp_path).commit(message)
 
     assert head_message(tmp_path) == message
+
+
+def commit_count(path: Path) -> int:
+    return int(run_git(["rev-list", "--count", "HEAD"], path).stdout.strip())
+
+
+def test_commit_rejected_by_a_hook_reports_the_hook_output(tmp_path: Path) -> None:
+    """Regression: the hook's explanation was dropped and users saw an unexpected error."""
+
+    client = staged_repo(tmp_path)
+    install_failing_pre_commit_hook(tmp_path, "lint: trailing whitespace in app.py line 3")
+
+    with pytest.raises(CommitFailedError) as error:
+        client.commit("feat: add app")
+
+    assert str(error.value) == (
+        "git commit failed. Nothing was committed; the message is shown above.\n"
+        "lint: trailing whitespace in app.py line 3"
+    )
+    assert commit_count(tmp_path) == 1
+
+
+def test_commit_failure_reported_on_stdout_is_shown(tmp_path: Path) -> None:
+    """Some git failures, such as "nothing to commit", are printed to stdout."""
+
+    init_git_repo_with_initial_commit(tmp_path)
+
+    with pytest.raises(CommitFailedError, match="nothing to commit"):
+        GitClient(tmp_path).commit("chore: nothing staged")
+
+
+def test_silent_commit_failure_reports_the_exit_status(tmp_path: Path) -> None:
+    client = staged_repo(tmp_path)
+    failure = subprocess.CalledProcessError(128, ["git", "commit"], output="", stderr="")
+
+    with (
+        patch("diffsage.git.client.subprocess.run", side_effect=failure),
+        pytest.raises(CommitFailedError, match="git exited with status 128."),
+    ):
+        client.commit("feat: add app")
