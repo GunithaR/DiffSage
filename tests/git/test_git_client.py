@@ -529,3 +529,39 @@ def test_remote_branch_commit_returns_none_for_missing_branch(
     client = GitClient(repo)
 
     assert client.remote_branch_commit("feature/missing") is None
+
+
+def test_has_commits_is_false_in_a_new_repository(tmp_path: Path) -> None:
+    init_git_repo(tmp_path)
+
+    assert GitClient(tmp_path).has_commits() is False
+
+
+def test_has_commits_is_true_after_the_first_commit(tmp_path: Path) -> None:
+    init_git_repo_with_initial_commit(tmp_path)
+
+    assert GitClient(tmp_path).has_commits() is True
+
+
+def test_recent_commits_is_empty_in_a_new_repository(tmp_path: Path) -> None:
+    """Regression: `git log` exits 128 when there are no commits yet."""
+
+    init_git_repo(tmp_path)
+
+    assert GitClient(tmp_path).recent_commits() == []
+
+
+def test_commit_subjects_containing_a_tab_are_parsed(tmp_path: Path) -> None:
+    """Regression: a tab in a subject broke the tab-separated git log parsing."""
+
+    init_git_repo_with_initial_commit(tmp_path)
+    run_git(["switch", "-c", "feature"], tmp_path)
+    (tmp_path / "a.txt").write_text("a")
+    run_git(["add", "a.txt"], tmp_path)
+    run_git(["commit", "-m", "fix:\tsubject with a tab"], tmp_path)
+    client = GitClient(tmp_path)
+
+    assert client.recent_commits(limit=1)[0].message == "fix:\tsubject with a tab"
+    assert [c.message for c in client.commits_between("main", "feature")] == [
+        "fix:\tsubject with a tab"
+    ]

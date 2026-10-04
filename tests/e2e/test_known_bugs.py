@@ -20,22 +20,6 @@ from tests.helpers import run_git
 runner = CliRunner()
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="Bug: `git log` fails in a repo with no commits. Fixed by fix/commit-workflow.",
-)
-def test_commit_works_for_first_commit_in_empty_repository(empty_git_repo, fake_provider) -> None:
-    (empty_git_repo / "README.md").write_text("# New project\n")
-    run_git(["add", "README.md"], empty_git_repo)
-    fake_provider.queue("chore: initial commit")
-
-    result = runner.invoke(app, ["commit"], input="y\n")
-
-    assert result.exit_code == 0, result.output
-    log = run_git(["log", "--format=%s"], empty_git_repo).stdout.strip()
-    assert log == "chore: initial commit"
-
-
 class RecordingStatus:
     """Stands in for a Rich status spinner and records every message shown."""
 

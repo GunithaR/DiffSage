@@ -186,3 +186,16 @@ def test_commit_with_a_clean_diff_has_no_notes_or_warnings(git_repo, fake_provid
     assert result.exit_code == 0, result.output
     assert "Diff Notes:" not in fake_provider.prompts[0]
     assert "!" not in result.output
+
+
+def test_commit_works_for_first_commit_in_empty_repository(empty_git_repo, fake_provider) -> None:
+    """Regression: `git log` fails in a repository with no commits, which crashed commit."""
+
+    stage_file(empty_git_repo, "README.md", "# New project\n")
+    fake_provider.queue("chore: initial commit")
+
+    result = runner.invoke(app, ["commit"], input="y\n")
+
+    assert result.exit_code == 0, result.output
+    assert head_message(empty_git_repo) == "chore: initial commit"
+    assert "Recent Commits:" in fake_provider.prompts[0]

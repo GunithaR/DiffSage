@@ -4,6 +4,22 @@ from pathlib import Path
 
 from diffsage.models.git import GitCommit, GitStatus
 
+# hash, author, ISO date, subject. The subject goes last because it is the only field
+# that may contain a tab, so each line is split at most three times.
+_LOG_FORMAT = "%H%x09%an%x09%aI%x09%s"
+
+
+def _parse_log(output: str) -> list[GitCommit]:
+    commits: list[GitCommit] = []
+
+    for line in output.splitlines():
+        hash_, author, date, message = line.split("\t", 3)
+        commits.append(
+            GitCommit(hash=hash_, author=author, message=message, date=datetime.fromisoformat(date))
+        )
+
+    return commits
+
 
 class GitClient:
     """Low-level client for executing Git commands."""
@@ -103,24 +119,24 @@ class GitClient:
         )
         return result.stdout.strip()
 
+    def has_commits(self) -> bool:
+        """Return True if HEAD points at a commit (False in a brand-new repository)."""
+
+        try:
+            self._run_git_command(["rev-parse", "--verify", "--quiet", "HEAD"])
+            return True
+        except subprocess.CalledProcessError:
+            return False
+
     def recent_commits(self, limit: int = 10) -> list[GitCommit]:
-        """Return the most recent commits."""
+        """Return the most recent commits, or none if the repository has no commits yet."""
 
-        result = self._run_git_command(
-            ["log", f"-{limit}", "--pretty=format:%H%x09%an%x09%s%x09%aI"],
-        )
+        if not self.has_commits():
+            return []
 
-        commits: list[GitCommit] = []
+        result = self._run_git_command(["log", f"-{limit}", f"--format={_LOG_FORMAT}"])
 
-        for line in result.stdout.splitlines():
-            hash_, author, message, date = line.split("\t")
-
-            commit = GitCommit(
-                hash=hash_, author=author, message=message, date=datetime.fromisoformat(date)
-            )
-            commits.append(commit)
-
-        return commits
+        return _parse_log(result.stdout)
 
     def branches(self) -> list[str]:
         """Return local branch names."""
@@ -167,24 +183,10 @@ class GitClient:
         """Return commits reachable from the head branch but not the base branch."""
 
         result = self._run_git_command(
-            [
-                "log",
-                "--format=%H%x09%an%x09%s%x09%aI",
-                f"{base_branch}..{head_branch}",
-            ],
+            ["log", f"--format={_LOG_FORMAT}", f"{base_branch}..{head_branch}"],
         )
 
-        commits: list[GitCommit] = []
-
-        for line in result.stdout.splitlines():
-            hash_, author, message, date = line.split("\t")
-
-            commit = GitCommit(
-                hash=hash_, author=author, message=message, date=datetime.fromisoformat(date)
-            )
-            commits.append(commit)
-
-        return commits
+        return _parse_log(result.stdout)
 
     def changed_files(self, base_branch: str, head_branch: str) -> list[str]:
         """Return file paths changed between the base and head branches."""
