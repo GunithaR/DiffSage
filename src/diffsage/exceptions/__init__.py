@@ -7,11 +7,15 @@ from .base import (
     InvalidCommitMessageError,
     InvalidConfigurationValueError,
     InvalidPullRequestDraftError,
+    LocalConfigUnavailableError,
     ProviderError,
     SameBranchError,
     UnknownConfigurationKeyError,
 )
-from .credentials import CredentialNotFoundError, InvalidCredentialError
+from .credentials import (
+    CredentialNotFoundError,
+    InvalidCredentialError,
+)
 from .git import (
     BaseBranchNotFoundError,
     NoStagedChangesError,
@@ -40,6 +44,7 @@ __all__ = [
     "InvalidCommitMessageError",
     "InvalidConfigurationValueError",
     "InvalidPullRequestDraftError",
+    "LocalConfigUnavailableError",
     "ProviderError",
     "SameBranchError",
     "UnknownConfigurationKeyError",

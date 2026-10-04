@@ -1,6 +1,9 @@
+import subprocess
 from pathlib import Path
 
 from platformdirs import user_config_path, user_log_path
+
+from diffsage.git.client import GitClient
 
 APP_NAME = "DiffSage"
 
@@ -23,17 +26,16 @@ def display_path(path: Path) -> str:
 
 
 def find_repository_root() -> Path | None:
-    """Return the Git repository root or None if not inside a repository."""
-    current = Path.cwd()
+    """Return the root of the Git working tree containing the current directory.
 
-    while True:
-        if (current / ".git").is_dir():
-            return current
+    Git is asked directly, because in worktrees and submodules `.git` is a file rather
+    than a directory. Returns None outside a working tree or if Git is not installed.
+    """
 
-        if current.parent == current:
-            return None
-
-        current = current.parent
+    try:
+        return GitClient().repository_root()
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return None
 
 
 def get_local_config_path() -> Path | None:

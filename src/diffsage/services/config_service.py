@@ -1,11 +1,14 @@
+from pydantic import ValidationError
+
 from diffsage.config.loader import load_settings
+from diffsage.config.schema import CONFIG_KEYS, PartialDiffSageConfig
 from diffsage.config.settings import Settings
 from diffsage.exceptions import (
     ConfigError,
     InvalidConfigurationValueError,
     UnknownConfigurationKeyError,
 )
-from diffsage.models.config import ConfigReport, ConfigValueReport
+from diffsage.models.config import ConfigReport, ConfigValueReport, RawConfigReport
 from diffsage.storage.config_repository import ConfigRepository
 
 
@@ -18,15 +21,21 @@ class ConfigService:
         "log_level": "log_level",
     }
 
-    _NORMALIZERS = {
-        "provider": str.lower,
-        "model": str.lower,
-        "log_level": str.upper,
-    }
-
-    def __init__(self, settings: Settings, repository: ConfigRepository) -> None:
+    def __init__(self, settings: Settings, repository: ConfigRepository | None = None) -> None:
         self._settings = settings
         self._repository = repository
+
+    @property
+    def _file(self) -> ConfigRepository:
+        """The configuration file this service reads and writes.
+
+        Only file operations need it; the resolved views work from settings alone.
+        """
+
+        if self._repository is None:
+            raise RuntimeError("ConfigService was created without a configuration file.")
+
+        return self._repository
 
     def _reload_report(self) -> ConfigReport:
         """Report the configuration after a write; the write itself has already succeeded."""
@@ -49,10 +58,10 @@ class ConfigService:
             log_level=settings.log_level,
         )
 
-    def get_configuration_raw(self) -> ConfigReport:
-        config = self._repository.list()
+    def get_configuration_raw(self) -> RawConfigReport:
+        config = self._file.list()
 
-        return ConfigReport(
+        return RawConfigReport(
             provider=config.get("provider"),
             model=config.get("model"),
             timeout=config.get("timeout"),
@@ -64,7 +73,7 @@ class ConfigService:
         if key not in self._ATTRIBUTE_MAP:
             raise UnknownConfigurationKeyError(key)
 
-        value = self._repository.get(key)
+        value = self._file.get(key)
 
         return ConfigValueReport(
             key=key,
@@ -85,30 +94,31 @@ class ConfigService:
         return ConfigValueReport(key=key, value=str(value))
 
     def set_value(self, key: str, value: str) -> ConfigReport:
-        attribute_name = self._ATTRIBUTE_MAP.get(key)
-
-        if attribute_name is None:
+        if key not in CONFIG_KEYS:
             raise UnknownConfigurationKeyError(key)
 
+        # Case is left alone: the schema normalises provider and log_level, and model IDs
+        # can be case-sensitive.
         value = value.strip()
-        normalizer = self._NORMALIZERS.get(key)
+        validated = self._validate(key, value)
 
-        if normalizer is not None:
-            value = normalizer(value)
-
-        expected_value = getattr(self._settings, attribute_name)
-
-        try:
-            if isinstance(expected_value, int):
-                converted_value = int(value)
-            else:
-                converted_value = value
-        except ValueError:
-            raise InvalidConfigurationValueError(value) from None
-
-        self._repository.set(key, converted_value)
+        self._file.set(key, validated)
 
         return self._reload_report()
+
+    @staticmethod
+    def _validate(key: str, value: str) -> str | int:
+        """Check a value against the configuration schema and return it converted."""
+
+        section, option = CONFIG_KEYS[key]
+
+        try:
+            partial = PartialDiffSageConfig.model_validate({section: {option: value}})
+        except ValidationError as error:
+            reason = "; ".join(detail["msg"] for detail in error.errors())
+            raise InvalidConfigurationValueError(value, key=key, reason=reason) from None
+
+        return getattr(getattr(partial, section), option)
 
     def unset_value(self, key: str) -> ConfigReport:
         attribute_name = self._ATTRIBUTE_MAP.get(key)
@@ -116,6 +126,6 @@ class ConfigService:
         if attribute_name is None:
             raise UnknownConfigurationKeyError(key)
 
-        self._repository.unset(key)
+        self._file.unset(key)
 
         return self._reload_report()

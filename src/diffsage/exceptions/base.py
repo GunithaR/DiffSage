@@ -52,6 +52,15 @@ class ConfigError(DiffSageError):
     """Raised when configuration is invalid."""
 
 
+class LocalConfigUnavailableError(ConfigError):
+    """Raised when local configuration is requested outside a Git repository."""
+
+    default_message = (
+        "Local configuration needs a Git repository: it is stored in .diffsage.toml at the "
+        "repository root. Run this inside a repository, or use --global."
+    )
+
+
 class UnknownConfigurationKeyError(ConfigError):
     """Raised when configuration key does not exist."""
 
@@ -60,7 +69,15 @@ class UnknownConfigurationKeyError(ConfigError):
 
 
 class InvalidConfigurationValueError(ConfigError):
-    """Raised when configuration value is of invalid type."""
+    """Raised when a configuration value is rejected."""
 
-    def __init__(self, value: str) -> None:
-        super().__init__(f"Invalid configuration value: '{value}'")
+    def __init__(self, value: str, key: str | None = None, reason: str | None = None) -> None:
+        message = f"Invalid value '{value}'"
+
+        if key is not None:
+            message += f" for {key}"
+
+        if reason is not None:
+            message += f": {reason}"
+
+        super().__init__(message)

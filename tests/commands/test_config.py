@@ -81,12 +81,10 @@ def test_list_config_command_defaults_to_resolved_configuration() -> None:
         patch(
             "diffsage.commands.config.load_settings", return_value=settings
         ) as mock_load_settings,
-        patch("diffsage.commands.config.get_local_config_path") as mock_get_path,
-        patch("diffsage.commands.config.ConfigRepository") as mock_repository,
+        patch("diffsage.commands.config.configuration_sources") as mock_sources,
         patch("diffsage.commands.config.ConfigService") as mock_config_service,
         patch("diffsage.commands.config.ConfigView") as mock_config_view,
     ):
-        repository = mock_repository.return_value
         service = mock_config_service.return_value
         view = mock_config_view.return_value
 
@@ -98,11 +96,10 @@ def test_list_config_command_defaults_to_resolved_configuration() -> None:
         )
 
     mock_load_settings.assert_called_once()
-    mock_get_path.assert_called_once()
-    mock_repository.assert_called_once_with(mock_get_path.return_value)
-    mock_config_service.assert_called_once_with(settings, repository)
+    mock_config_service.assert_called_once_with(settings)
     service.get_configuration.assert_called_once()
-    view.show_path.assert_called_once_with(mock_get_path.return_value)
+    view.show_sources.assert_called_once_with(mock_sources.return_value)
+    view.show_path.assert_not_called()
     view.show_configuration.assert_called_once_with(report)
 
 
@@ -217,12 +214,10 @@ def test_get_config_command_defaults_to_resolved_configuration() -> None:
             "diffsage.commands.config.load_settings",
             return_value=settings,
         ) as mock_load_settings,
-        patch("diffsage.commands.config.get_local_config_path") as mock_get_path,
-        patch("diffsage.commands.config.ConfigRepository") as mock_repository,
+        patch("diffsage.commands.config.configuration_sources") as mock_sources,
         patch("diffsage.commands.config.ConfigService") as mock_config_service,
         patch("diffsage.commands.config.ConfigView") as mock_config_view,
     ):
-        repository = mock_repository.return_value
         service = mock_config_service.return_value
         view = mock_config_view.return_value
 
@@ -235,11 +230,10 @@ def test_get_config_command_defaults_to_resolved_configuration() -> None:
         )
 
     mock_load_settings.assert_called_once()
-    mock_get_path.assert_called_once()
-    mock_repository.assert_called_once_with(mock_get_path.return_value)
-    mock_config_service.assert_called_once_with(settings, repository)
+    mock_config_service.assert_called_once_with(settings)
     service.get_value.assert_called_once_with("provider")
-    view.show_path.assert_called_once_with(mock_get_path.return_value)
+    view.show_sources.assert_called_once_with(mock_sources.return_value)
+    view.show_path.assert_not_called()
     view.show_value.assert_called_once_with(report)
 
 

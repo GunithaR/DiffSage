@@ -41,7 +41,6 @@ dependencies = [
     "tomlkit>=0.13,<1",
     "httpx>=0.28,<0.29",
     "PyYAML>=6.0,<7",
-    "python-dotenv>=1.1,<2",
     "google-genai>=1,<2",
 ]
 
@@ -94,10 +93,6 @@ warn_unused_ignores = true
 # later remediation branches. Each branch removes its modules from this list.
 [[tool.mypy.overrides]]
 module = [
-    # fix/configuration
-    "diffsage.config.resolver",
-    "diffsage.commands.config",
-    "diffsage.services.config_service",
     # fix/security-hardening
     "diffsage.storage.credentials_repository",
     # feature/ai-provider-hardening

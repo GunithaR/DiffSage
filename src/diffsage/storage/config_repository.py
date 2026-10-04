@@ -4,19 +4,14 @@ from tomlkit import TOMLDocument, document, parse, table
 from tomlkit.exceptions import ParseError
 
 from diffsage.config.paths import display_path
+from diffsage.config.schema import CONFIG_KEYS
 from diffsage.exceptions import ConfigError
 
 
 class ConfigRepository:
     """Persists DiffSage configuration."""
 
-    _PATH_MAP = {
-        "provider": ("ai", "provider"),
-        "model": ("ai", "model"),
-        "timeout": ("network", "timeout"),
-        "max_retries": ("network", "max_retries"),
-        "log_level": ("logging", "level"),
-    }
+    _PATH_MAP = CONFIG_KEYS
 
     def __init__(self, path: Path) -> None:
         self._path = path

@@ -2,7 +2,7 @@ import typer
 
 from diffsage.commands.error_handler import handle_command_errors
 from diffsage.config.loader import load_settings, load_settings_or_defaults
-from diffsage.config.resolver import get_local_config_path, resolve_config_path
+from diffsage.config.resolver import configuration_sources, resolve_config_path
 from diffsage.config.scope import ConfigScope
 from diffsage.exceptions import ConfigError
 from diffsage.logging.logger import get_logger
@@ -13,6 +13,9 @@ from diffsage.ui.config_view import ConfigView
 logger = get_logger(__name__)
 
 app = typer.Typer(help="DiffSage configuration", invoke_without_command=False)
+
+READ_LOCAL_HELP = "Read the repository's .diffsage.toml directly, instead of the resolved values."
+READ_GLOBAL_HELP = "Read your user-wide config file directly, instead of the resolved values."
 
 
 def _resolve_scope(*, local: bool, global_: bool) -> ConfigScope:
@@ -28,7 +31,8 @@ def _resolve_scope(*, local: bool, global_: bool) -> ConfigScope:
 @app.command("list")
 @handle_command_errors("config list")
 def list_config(
-    local: bool = typer.Option(False, "--local"), global_: bool = typer.Option(False, "--global")
+    local: bool = typer.Option(False, "--local", help=READ_LOCAL_HELP),
+    global_: bool = typer.Option(False, "--global", help=READ_GLOBAL_HELP),
 ) -> None:
     """List the current DiffSage configuration."""
 
@@ -47,26 +51,22 @@ def list_config(
         repository = ConfigRepository(path)
         service = ConfigService(settings, repository)
 
-        report = service.get_configuration_raw()
+        view.show_path(path)
+        view.show_configuration(service.get_configuration_raw())
+        return
 
-    else:
-        path = get_local_config_path()
+    service = ConfigService(settings)
 
-        repository = ConfigRepository(path)
-        service = ConfigService(settings, repository)
-
-        report = service.get_configuration()
-
-    view.show_path(path)
-    view.show_configuration(report)
+    view.show_sources(configuration_sources())
+    view.show_configuration(service.get_configuration())
 
 
 @app.command("get")
 @handle_command_errors("config get")
 def get_config(
     key: str,
-    local: bool = typer.Option(False, "--local"),
-    global_: bool = typer.Option(False, "--global"),
+    local: bool = typer.Option(False, "--local", help=READ_LOCAL_HELP),
+    global_: bool = typer.Option(False, "--global", help=READ_GLOBAL_HELP),
 ) -> None:
     """Get the value of a DiffSage configuration."""
 
@@ -87,14 +87,14 @@ def get_config(
 
         report = service.get_configuration_value_raw(key.strip().lower())
 
-    else:
-        path = get_local_config_path()
-        repository = ConfigRepository(path)
-        service = ConfigService(settings, repository)
+        view.show_path(path)
+        view.show_value(report)
+        return
 
-        report = service.get_value(key.strip().lower())
+    service = ConfigService(settings)
+    report = service.get_value(key.strip().lower())
 
-    view.show_path(path)
+    view.show_sources(configuration_sources())
     view.show_value(report)
 
 
@@ -103,11 +103,9 @@ def get_config(
 def set_config(
     key: str,
     value: str,
-    local: bool = typer.Option(
-        False, "--local", help="Write to the repository's local configuration."
-    ),
+    local: bool = typer.Option(False, "--local", help="Write to the repository's .diffsage.toml."),
     global_: bool = typer.Option(
-        False, "--global", help="Write to the repository's global configuration."
+        False, "--global", help="Write to your user-wide config file (the default)."
     ),
 ) -> None:
     """Set the value of a DiffSage configuration."""
@@ -135,10 +133,10 @@ def set_config(
 def unset_config(
     key: str,
     local: bool = typer.Option(
-        False, "--local", help="Write to the repository's local configuration."
+        False, "--local", help="Remove from the repository's .diffsage.toml."
     ),
     global_: bool = typer.Option(
-        False, "--global", help="Write to the repository's global configuration."
+        False, "--global", help="Remove from your user-wide config file (the default)."
     ),
 ) -> None:
     """Remove a DiffSage configuration value."""
