@@ -6,6 +6,7 @@ import pytest
 from typer.testing import CliRunner
 
 from diffsage.cli import app
+from diffsage.commands.error_handler import UNEXPECTED_ERROR_MESSAGE
 from tests.helpers import run_git
 
 runner = CliRunner()
@@ -123,3 +124,32 @@ def test_commit_without_credential_exits(git_repo) -> None:
 
     assert result.exit_code == 1
     assert "Credential not found for provider 'gemini'" in result.output
+
+
+def test_commit_reports_unparseable_ai_message(git_repo, fake_provider) -> None:
+    """Regression: an AI reply without '<type>: <subject>' was reported as unexpected."""
+
+    stage_file(git_repo, "greeting.py", "print('hello')\n")
+    fake_provider.queue("Here is a summary of your change")
+
+    result = runner.invoke(app, ["commit"])
+
+    assert result.exit_code == 1
+    assert "✗ Commit message header must use '<type>: <subject>' format." in result.output
+    assert UNEXPECTED_ERROR_MESSAGE not in result.output
+    assert commit_count(git_repo) == 1
+
+
+def test_commit_reports_missing_editor(git_repo, fake_provider, monkeypatch) -> None:
+    """Regression: a missing editor raised RuntimeError, reported as unexpected."""
+
+    monkeypatch.setenv("VISUAL", "diffsage-missing-editor")
+    stage_file(git_repo, "greeting.py", "print('hello')\n")
+    fake_provider.queue("feat: add greeting script")
+
+    result = runner.invoke(app, ["commit"], input="e\n")
+
+    assert result.exit_code == 1
+    assert '✗ Unable to launch "diffsage-missing-editor".' in result.output
+    assert UNEXPECTED_ERROR_MESSAGE not in result.output
+    assert commit_count(git_repo) == 1

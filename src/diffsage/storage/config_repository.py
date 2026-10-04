@@ -1,6 +1,10 @@
 from pathlib import Path
 
 from tomlkit import TOMLDocument, document, parse, table
+from tomlkit.exceptions import ParseError
+
+from diffsage.config.paths import display_path
+from diffsage.exceptions import ConfigError
 
 
 class ConfigRepository:
@@ -22,9 +26,14 @@ class ConfigRepository:
             return document()
 
         content = self._path.read_text()
-        doc = parse(content)
 
-        return doc
+        try:
+            return parse(content)
+        except ParseError as error:
+            raise ConfigError(
+                f"Invalid TOML syntax in {display_path(self._path)}: {error}. "
+                "DiffSage cannot edit a file it cannot parse; fix that line in a text editor."
+            ) from error
 
     def _save(self, doc: TOMLDocument) -> None:
         self._path.parent.mkdir(parents=True, exist_ok=True)

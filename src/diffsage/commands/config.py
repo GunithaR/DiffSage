@@ -1,9 +1,10 @@
 import typer
 
-from diffsage.config.loader import load_settings
+from diffsage.commands.error_handler import handle_command_errors
+from diffsage.config.loader import load_settings, load_settings_or_defaults
 from diffsage.config.resolver import get_local_config_path, resolve_config_path
 from diffsage.config.scope import ConfigScope
-from diffsage.exceptions import InvalidConfigurationValueError, UnknownConfigurationKeyError
+from diffsage.exceptions import ConfigError
 from diffsage.logging.logger import get_logger
 from diffsage.services.config_service import ConfigService
 from diffsage.storage.config_repository import ConfigRepository
@@ -16,7 +17,7 @@ app = typer.Typer(help="DiffSage configuration", invoke_without_command=False)
 
 def _resolve_scope(*, local: bool, global_: bool) -> ConfigScope:
     if local and global_:
-        raise typer.BadParameter("Cannot specify both --local and --global.")
+        raise ConfigError("Cannot specify both --local and --global.")
 
     if local:
         return ConfigScope.LOCAL
@@ -25,6 +26,7 @@ def _resolve_scope(*, local: bool, global_: bool) -> ConfigScope:
 
 
 @app.command("list")
+@handle_command_errors("config list")
 def list_config(
     local: bool = typer.Option(False, "--local"), global_: bool = typer.Option(False, "--global")
 ) -> None:
@@ -32,44 +34,35 @@ def list_config(
 
     view = ConfigView()
 
-    try:
-        settings = load_settings()
-        scope = _resolve_scope(
-            local=local,
-            global_=global_,
-        )
+    # Reading a file directly must work even when the configuration is broken.
+    settings = load_settings_or_defaults() if local or global_ else load_settings()
+    scope = _resolve_scope(
+        local=local,
+        global_=global_,
+    )
 
-        if local or global_:
-            path = resolve_config_path(scope)
+    if local or global_:
+        path = resolve_config_path(scope)
 
-            repository = ConfigRepository(path)
-            service = ConfigService(settings, repository)
+        repository = ConfigRepository(path)
+        service = ConfigService(settings, repository)
 
-            report = service.get_configuration_raw()
+        report = service.get_configuration_raw()
 
-        else:
-            path = get_local_config_path()
+    else:
+        path = get_local_config_path()
 
-            repository = ConfigRepository(path)
-            service = ConfigService(settings, repository)
+        repository = ConfigRepository(path)
+        service = ConfigService(settings, repository)
 
-            report = service.get_configuration()
+        report = service.get_configuration()
 
-        view.show_path(path)
-        view.show_configuration(report)
-
-    except typer.BadParameter as e:
-        logger.warning(str(e))
-        view.show_error(str(e))
-        raise SystemExit(1) from None
-
-    except Exception:
-        logger.exception("Unexpected error while executing config command.")
-        view.show_error("An unexpected error occurred. Please check the log file for more details.")
-        raise SystemExit(1) from None
+    view.show_path(path)
+    view.show_configuration(report)
 
 
 @app.command("get")
+@handle_command_errors("config get")
 def get_config(
     key: str,
     local: bool = typer.Option(False, "--local"),
@@ -79,48 +72,34 @@ def get_config(
 
     view = ConfigView()
 
-    try:
-        settings = load_settings()
+    # Reading a file directly must work even when the configuration is broken.
+    settings = load_settings_or_defaults() if local or global_ else load_settings()
 
-        if local or global_:
-            scope = _resolve_scope(
-                local=local,
-                global_=global_,
-            )
+    if local or global_:
+        scope = _resolve_scope(
+            local=local,
+            global_=global_,
+        )
 
-            path = resolve_config_path(scope)
-            repository = ConfigRepository(path)
-            service = ConfigService(settings, repository)
+        path = resolve_config_path(scope)
+        repository = ConfigRepository(path)
+        service = ConfigService(settings, repository)
 
-            report = service.get_configuration_value_raw(key.strip().lower())
+        report = service.get_configuration_value_raw(key.strip().lower())
 
-        else:
-            path = get_local_config_path()
-            repository = ConfigRepository(path)
-            service = ConfigService(settings, repository)
+    else:
+        path = get_local_config_path()
+        repository = ConfigRepository(path)
+        service = ConfigService(settings, repository)
 
-            report = service.get_value(key.strip().lower())
+        report = service.get_value(key.strip().lower())
 
-        view.show_path(path)
-        view.show_value(report)
-
-    except UnknownConfigurationKeyError as e:
-        logger.warning(str(e))
-        view.show_error(str(e))
-        raise SystemExit(1) from None
-
-    except typer.BadParameter as e:
-        logger.warning(str(e))
-        view.show_error(str(e))
-        raise SystemExit(1) from None
-
-    except Exception:
-        logger.exception("Unexpected error while executing config command.")
-        view.show_error("An unexpected error occurred. Please check the log file for more details.")
-        raise SystemExit(1) from None
+    view.show_path(path)
+    view.show_value(report)
 
 
 @app.command("set")
+@handle_command_errors("config set")
 def set_config(
     key: str,
     value: str,
@@ -135,43 +114,24 @@ def set_config(
 
     view = ConfigView()
 
-    try:
-        settings = load_settings()
+    # Writing must work even when the configuration is broken, so it can be repaired.
+    settings = load_settings_or_defaults()
 
-        scope = _resolve_scope(local=local, global_=global_)
-        path = resolve_config_path(scope)
-        repository = ConfigRepository(path)
+    scope = _resolve_scope(local=local, global_=global_)
+    path = resolve_config_path(scope)
+    repository = ConfigRepository(path)
 
-        service = ConfigService(settings, repository)
+    service = ConfigService(settings, repository)
 
-        report = service.set_value(key.strip().lower(), value)
+    report = service.set_value(key.strip().lower(), value)
 
-        view.show_success(f"{scope.value.capitalize()} configuration updated.")
-        view.show_path(path)
-        view.show_configuration(report)
-
-    except UnknownConfigurationKeyError as e:
-        logger.warning(str(e))
-        view.show_error(str(e))
-        raise SystemExit(1) from None
-
-    except InvalidConfigurationValueError as e:
-        logger.warning(str(e))
-        view.show_error(str(e))
-        raise SystemExit(1) from None
-
-    except typer.BadParameter as e:
-        logger.warning(str(e))
-        view.show_error(str(e))
-        raise SystemExit(1) from None
-
-    except Exception:
-        logger.exception("Unexpected error while executing config command.")
-        view.show_error("An unexpected error occurred. Please check the log file for more details.")
-        raise SystemExit(1) from None
+    view.show_success(f"{scope.value.capitalize()} configuration updated.")
+    view.show_path(path)
+    view.show_configuration(report)
 
 
 @app.command("unset")
+@handle_command_errors("config unset")
 def unset_config(
     key: str,
     local: bool = typer.Option(
@@ -185,32 +145,17 @@ def unset_config(
 
     view = ConfigView()
 
-    try:
-        settings = load_settings()
+    # Writing must work even when the configuration is broken, so it can be repaired.
+    settings = load_settings_or_defaults()
 
-        scope = _resolve_scope(local=local, global_=global_)
-        path = resolve_config_path(scope)
-        repository = ConfigRepository(path)
+    scope = _resolve_scope(local=local, global_=global_)
+    path = resolve_config_path(scope)
+    repository = ConfigRepository(path)
 
-        service = ConfigService(settings, repository)
+    service = ConfigService(settings, repository)
 
-        report = service.unset_value(key.strip().lower())
+    report = service.unset_value(key.strip().lower())
 
-        view.show_success(f"{scope.value.capitalize()} configuration removed.")
-        view.show_path(path)
-        view.show_configuration(report)
-
-    except UnknownConfigurationKeyError as e:
-        logger.warning(str(e))
-        view.show_error(str(e))
-        raise SystemExit(1) from None
-
-    except typer.BadParameter as e:
-        logger.warning(str(e))
-        view.show_error(str(e))
-        raise SystemExit(1) from None
-
-    except Exception:
-        logger.exception("Unexpected error while executing config command.")
-        view.show_error("An unexpected error occurred. Please check the log file for more details.")
-        raise SystemExit(1) from None
+    view.show_success(f"{scope.value.capitalize()} configuration removed.")
+    view.show_path(path)
+    view.show_configuration(report)

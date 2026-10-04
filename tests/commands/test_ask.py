@@ -10,6 +10,7 @@ from diffsage.exceptions import (
     ProviderUnavailableError,
 )
 from diffsage.models.provider import ProviderResponse
+from tests.helpers import assert_error_shown
 
 
 def test_ask_command_orchestrates() -> None:
@@ -59,7 +60,7 @@ def test_ask_command_orchestrates() -> None:
     view.show_response.assert_called_once_with(response)
 
 
-def test_ask_command_handles_authentication_error() -> None:
+def test_ask_command_handles_authentication_error(capsys) -> None:
     with (
         patch("diffsage.commands.ask.load_settings"),
         patch("diffsage.commands.ask.get_credentials_path"),
@@ -79,11 +80,11 @@ def test_ask_command_handles_authentication_error() -> None:
     assert exception_info.value.code == 1
 
     service.ask.assert_called_once_with("Hello")
-    view.show_error.assert_called_once_with("Invalid API key")
+    assert_error_shown(capsys, "Invalid API key")
     view.show_response.assert_not_called()
 
 
-def test_ask_command_handles_model_not_found_error() -> None:
+def test_ask_command_handles_model_not_found_error(capsys) -> None:
     with (
         patch("diffsage.commands.ask.load_settings"),
         patch("diffsage.commands.ask.get_credentials_path"),
@@ -103,11 +104,11 @@ def test_ask_command_handles_model_not_found_error() -> None:
     assert exception_info.value.code == 1
 
     service.ask.assert_called_once_with("Hello")
-    view.show_error.assert_called_once_with("Model 'gemini-3.5-flash-lit' was not found.")
+    assert_error_shown(capsys, "Model 'gemini-3.5-flash-lit' was not found.")
     view.show_reponse.assert_not_called()
 
 
-def test_ask_command_handles_provider_unavailable_error() -> None:
+def test_ask_command_handles_provider_unavailable_error(capsys) -> None:
     with (
         patch("diffsage.commands.ask.load_settings"),
         patch("diffsage.commands.ask.get_credentials_path"),
@@ -127,11 +128,11 @@ def test_ask_command_handles_provider_unavailable_error() -> None:
     assert exception_info.value.code == 1
 
     service.ask.assert_called_once_with("Hello")
-    view.show_error.assert_called_once_with("Provider temporarily unavailable.")
+    assert_error_shown(capsys, "Provider temporarily unavailable.")
     view.show_response.assert_not_called()
 
 
-def test_ask_command_handles_config_error() -> None:
+def test_ask_command_handles_config_error(capsys) -> None:
     with (
         patch("diffsage.commands.ask.load_settings"),
         patch("diffsage.commands.ask.get_credentials_path"),
@@ -151,11 +152,11 @@ def test_ask_command_handles_config_error() -> None:
     assert exception_info.value.code == 1
 
     service.ask.assert_called_once_with("Hello")
-    view.show_error.assert_called_once_with("Invalid configuration.")
+    assert_error_shown(capsys, "Invalid configuration.")
     view.show_response.assert_not_called()
 
 
-def test_ask_command_handles_unexpected_error() -> None:
+def test_ask_command_handles_unexpected_error(capsys) -> None:
     with (
         patch("diffsage.commands.ask.load_settings"),
         patch("diffsage.commands.ask.get_credentials_path"),
@@ -175,7 +176,7 @@ def test_ask_command_handles_unexpected_error() -> None:
     assert exception_info.value.code == 1
 
     service.ask.assert_called_once_with("Hello")
-    view.show_error.assert_called_once_with(
-        "An unexpected error occurred. Please check the log file for more details."
+    assert_error_shown(
+        capsys, "An unexpected error occurred. Please check the log file for more details."
     )
     view.show_response.assert_not_called()

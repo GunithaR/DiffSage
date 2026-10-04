@@ -1,6 +1,10 @@
 from diffsage.config.loader import load_settings
 from diffsage.config.settings import Settings
-from diffsage.exceptions import InvalidConfigurationValueError, UnknownConfigurationKeyError
+from diffsage.exceptions import (
+    ConfigError,
+    InvalidConfigurationValueError,
+    UnknownConfigurationKeyError,
+)
 from diffsage.models.config import ConfigReport, ConfigValueReport
 from diffsage.storage.config_repository import ConfigRepository
 
@@ -23,6 +27,18 @@ class ConfigService:
     def __init__(self, settings: Settings, repository: ConfigRepository) -> None:
         self._settings = settings
         self._repository = repository
+
+    def _reload_report(self) -> ConfigReport:
+        """Report the configuration after a write; the write itself has already succeeded."""
+
+        try:
+            updated_settings = load_settings()
+        except ConfigError as error:
+            raise ConfigError(
+                f"Configuration updated, but it is still invalid: {error.message}"
+            ) from error
+
+        return self._create_report(updated_settings)
 
     def _create_report(self, settings: Settings) -> ConfigReport:
         return ConfigReport(
@@ -92,9 +108,7 @@ class ConfigService:
 
         self._repository.set(key, converted_value)
 
-        updated_settings = load_settings()
-
-        return self._create_report(updated_settings)
+        return self._reload_report()
 
     def unset_value(self, key: str) -> ConfigReport:
         attribute_name = self._ATTRIBUTE_MAP.get(key)
@@ -104,6 +118,4 @@ class ConfigService:
 
         self._repository.unset(key)
 
-        updated_settings = load_settings()
-
-        return self._create_report(updated_settings)
+        return self._reload_report()

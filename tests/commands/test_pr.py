@@ -20,6 +20,7 @@ from diffsage.exceptions import (
     UnpushedChangesError,
 )
 from diffsage.models.pull_request import PullRequestDraft
+from tests.helpers import assert_error_shown
 
 runner = CliRunner()
 
@@ -335,20 +336,20 @@ def test_pr_reprompts_after_invalid_choice():
         assert callable(call.kwargs["on_attempt"])
 
 
-def test_pr_exits_when_not_in_git_repository():
+def test_pr_exits_when_not_in_git_repository(capsys):
     with (
         patch("diffsage.commands.pr.GitClient") as mock_git,
-        patch("diffsage.commands.pr.PullRequestView") as mock_view,
+        patch("diffsage.commands.pr.PullRequestView"),
     ):
         mock_git.side_effect = NotGitRepositoryError("Not a Git repository.")
 
         with pytest.raises(SystemExit):
             pr()
 
-        mock_view.return_value.show_not_git_repository.assert_called_once()
+        assert_error_shown(capsys, "Not a Git repository.")
 
 
-def test_pr_exits_when_head_is_detached():
+def test_pr_exits_when_head_is_detached(capsys):
     with (
         patch("diffsage.commands.pr.GitClient"),
         patch("diffsage.commands.pr.GitService") as mock_git_service,
@@ -357,7 +358,7 @@ def test_pr_exits_when_head_is_detached():
         patch("diffsage.commands.pr.get_credentials_path"),
         patch("diffsage.commands.pr.CredentialsRepository"),
         patch("diffsage.commands.pr.CredentialService"),
-        patch("diffsage.commands.pr.PullRequestView") as mock_view,
+        patch("diffsage.commands.pr.PullRequestView"),
     ):
         mock_git_service.return_value.resolve_base_branch.side_effect = DetachedHeadError(
             "Cannot generate a pull request from detached HEAD."
@@ -366,10 +367,10 @@ def test_pr_exits_when_head_is_detached():
         with pytest.raises(SystemExit):
             pr()
 
-        mock_view.return_value.show_detached_head.assert_called_once()
+        assert_error_shown(capsys, "Cannot generate a pull request from detached HEAD.")
 
 
-def test_pr_exits_when_base_branch_cannot_be_resolved():
+def test_pr_exits_when_base_branch_cannot_be_resolved(capsys):
     with (
         patch("diffsage.commands.pr.GitClient"),
         patch("diffsage.commands.pr.GitService") as mock_git_service,
@@ -378,7 +379,7 @@ def test_pr_exits_when_base_branch_cannot_be_resolved():
         patch("diffsage.commands.pr.get_credentials_path"),
         patch("diffsage.commands.pr.CredentialsRepository"),
         patch("diffsage.commands.pr.CredentialService"),
-        patch("diffsage.commands.pr.PullRequestView") as mock_view,
+        patch("diffsage.commands.pr.PullRequestView"),
     ):
         mock_git_service.return_value.resolve_base_branch.side_effect = BaseBranchNotFoundError(
             "Could not determine a base branch."
@@ -387,10 +388,10 @@ def test_pr_exits_when_base_branch_cannot_be_resolved():
         with pytest.raises(SystemExit):
             pr()
 
-        mock_view.return_value.show_base_branch_not_found.assert_called_once()
+        assert_error_shown(capsys, "Could not determine a base branch.")
 
 
-def test_pr_exits_when_base_branch_is_current_branch():
+def test_pr_exits_when_base_branch_is_current_branch(capsys):
     with (
         patch("diffsage.commands.pr.GitClient"),
         patch("diffsage.commands.pr.GitService") as mock_git_service,
@@ -399,7 +400,7 @@ def test_pr_exits_when_base_branch_is_current_branch():
         patch("diffsage.commands.pr.get_credentials_path"),
         patch("diffsage.commands.pr.CredentialsRepository"),
         patch("diffsage.commands.pr.CredentialService"),
-        patch("diffsage.commands.pr.PullRequestView") as mock_view,
+        patch("diffsage.commands.pr.PullRequestView"),
     ):
         mock_git_service.return_value.resolve_base_branch.side_effect = SameBranchError(
             "Current branch and base branch are the same."
@@ -408,10 +409,10 @@ def test_pr_exits_when_base_branch_is_current_branch():
         with pytest.raises(SystemExit):
             pr()
 
-        mock_view.return_value.show_same_branch.assert_called_once()
+        assert_error_shown(capsys, "Current branch and base branch are the same.")
 
 
-def test_pr_exits_when_credential_is_missing():
+def test_pr_exits_when_credential_is_missing(capsys):
     with (
         patch("diffsage.commands.pr.GitClient"),
         patch("diffsage.commands.pr.load_settings"),
@@ -419,17 +420,17 @@ def test_pr_exits_when_credential_is_missing():
         patch("diffsage.commands.pr.CredentialsRepository"),
         patch("diffsage.commands.pr.CredentialService"),
         patch("diffsage.commands.pr.AIService") as mock_ai_service,
-        patch("diffsage.commands.pr.PullRequestView") as mock_view,
+        patch("diffsage.commands.pr.PullRequestView"),
     ):
         mock_ai_service.side_effect = CredentialNotFoundError("Credential not found.")
 
         with pytest.raises(SystemExit):
             pr()
 
-        mock_view.return_value.show_error.assert_called_once()
+        assert_error_shown(capsys)
 
 
-def test_pr_exits_on_provider_error():
+def test_pr_exits_on_provider_error(capsys):
     with (
         patch("diffsage.commands.pr.GitClient"),
         patch("diffsage.commands.pr.load_settings"),
@@ -437,28 +438,28 @@ def test_pr_exits_on_provider_error():
         patch("diffsage.commands.pr.CredentialsRepository"),
         patch("diffsage.commands.pr.CredentialService"),
         patch("diffsage.commands.pr.AIService") as mock_ai_service,
-        patch("diffsage.commands.pr.PullRequestView") as mock_view,
+        patch("diffsage.commands.pr.PullRequestView"),
     ):
         mock_ai_service.side_effect = ProviderError("Provider unavailable.")
 
         with pytest.raises(SystemExit):
             pr()
 
-        mock_view.return_value.show_error.assert_called_once_with("Provider unavailable.")
+        assert_error_shown(capsys, "Provider unavailable.")
 
 
-def test_pr_exits_on_configuration_error():
+def test_pr_exits_on_configuration_error(capsys):
     with (
         patch("diffsage.commands.pr.GitClient"),
         patch("diffsage.commands.pr.load_settings") as mock_load_settings,
-        patch("diffsage.commands.pr.PullRequestView") as mock_view,
+        patch("diffsage.commands.pr.PullRequestView"),
     ):
         mock_load_settings.side_effect = ConfigError("Invalid configuration.")
 
         with pytest.raises(SystemExit):
             pr()
 
-        mock_view.return_value.show_error.assert_called_once_with("Invalid configuration.")
+        assert_error_shown(capsys, "Invalid configuration.")
 
 
 def test_pr_handles_invalid_edited_draft():
@@ -499,18 +500,18 @@ def test_pr_handles_invalid_edited_draft():
         mock_view.return_value.show_cancelled.assert_called_once()
 
 
-def test_pr_handles_unexpected_error():
+def test_pr_handles_unexpected_error(capsys):
     with (
         patch("diffsage.commands.pr.GitClient") as mock_git,
-        patch("diffsage.commands.pr.PullRequestView") as mock_view,
+        patch("diffsage.commands.pr.PullRequestView"),
     ):
         mock_git.side_effect = RuntimeError("Unexpected failure")
 
         with pytest.raises(SystemExit):
             pr()
 
-        mock_view.return_value.show_error.assert_called_once_with(
-            "An unexpected error occurred. Please check the log file for more details."
+        assert_error_shown(
+            capsys, "An unexpected error occurred. Please check the log file for more details."
         )
 
 
@@ -544,8 +545,8 @@ def test_pr_exits_when_github_cli_is_unavailable():
 
         mock_pr_service.return_value.generate_draft.assert_not_called()
         mock_github_service.return_value.create_pull_request.assert_not_called()
-        mock_view.return_value.show_error.assert_called_once_with(
-            "GitHub CLI is not installed. Install GitHub CLI and try again."
+        assert_error_shown(
+            result.output, "GitHub CLI is not installed. Install GitHub CLI and try again."
         )
 
 
@@ -579,8 +580,8 @@ def test_pr_exits_when_github_cli_is_not_authenticated():
 
         mock_pr_service.return_value.generate_draft.assert_not_called()
         mock_github_service.return_value.create_pull_request.assert_not_called()
-        mock_view.return_value.show_error.assert_called_once_with(
-            "GitHub CLI is not authenticated. Run 'gh auth login' and try again."
+        assert_error_shown(
+            result.output, "GitHub CLI is not authenticated. Run 'gh auth login' and try again."
         )
 
 
@@ -596,7 +597,7 @@ def test_pr_exits_when_remote_branch_does_not_exist():
         patch("diffsage.commands.pr.get_credentials_path"),
         patch("diffsage.commands.pr.CredentialsRepository"),
         patch("diffsage.commands.pr.CredentialService"),
-        patch("diffsage.commands.pr.PullRequestView") as mock_view,
+        patch("diffsage.commands.pr.PullRequestView"),
     ):
         mock_git_service.return_value.resolve_base_branch.return_value = "main"
         mock_git_service.return_value.current_branch.return_value = "feature/pr-generation"
@@ -615,7 +616,7 @@ def test_pr_exits_when_remote_branch_does_not_exist():
         mock_pr_service.return_value.generate_draft.assert_not_called()
         mock_github_service.return_value.validate.assert_not_called()
         mock_github_service.return_value.create_pull_request.assert_not_called()
-        mock_view.return_value.show_error.assert_called_once()
+        assert_error_shown(result.output)
 
 
 def test_pr_exits_when_branch_has_unpushed_commits():
@@ -630,7 +631,7 @@ def test_pr_exits_when_branch_has_unpushed_commits():
         patch("diffsage.commands.pr.get_credentials_path"),
         patch("diffsage.commands.pr.CredentialsRepository"),
         patch("diffsage.commands.pr.CredentialService"),
-        patch("diffsage.commands.pr.PullRequestView") as mock_view,
+        patch("diffsage.commands.pr.PullRequestView"),
     ):
         mock_git_service.return_value.resolve_base_branch.return_value = "main"
         mock_git_service.return_value.current_branch.return_value = "feature/pr-generation"
@@ -650,4 +651,4 @@ def test_pr_exits_when_branch_has_unpushed_commits():
         mock_pr_service.return_value.generate_draft.assert_not_called()
         mock_github_service.return_value.validate.assert_not_called()
         mock_github_service.return_value.create_pull_request.assert_not_called()
-        mock_view.return_value.show_error.assert_called_once()
+        assert_error_shown(result.output)

@@ -1,3 +1,4 @@
+import subprocess
 from unittest.mock import Mock
 
 import pytest
@@ -5,6 +6,7 @@ import pytest
 from diffsage.exceptions.github import (
     GitHubAuthenticationError,
     GitHubCLIUnavailableError,
+    GitHubError,
 )
 from diffsage.github.client import GitHubClient
 from diffsage.models.pull_request import PullRequestDraft
@@ -122,4 +124,33 @@ def test_create_pull_request_creates_pull_request() -> None:
         ),
         base_branch="main",
         head_branch="feature/pr-generation",
+    )
+
+
+def test_create_pull_request_reports_gh_stderr_as_github_error() -> None:
+    service, github_client = create_service()
+    github_client.create_pull_request.side_effect = subprocess.CalledProcessError(
+        1, ["gh", "pr", "create"], stderr="  a pull request already exists\n"
+    )
+
+    with pytest.raises(GitHubError) as error:
+        service.create_pull_request(create_pull_request_draft(), "main", "feature")
+
+    assert str(error.value) == (
+        "GitHub CLI could not create the pull request: a pull request already exists"
+    )
+    assert isinstance(error.value.__cause__, subprocess.CalledProcessError)
+
+
+def test_create_pull_request_reports_exit_status_when_gh_is_silent() -> None:
+    service, github_client = create_service()
+    github_client.create_pull_request.side_effect = subprocess.CalledProcessError(
+        4, ["gh", "pr", "create"], stderr=""
+    )
+
+    with pytest.raises(GitHubError) as error:
+        service.create_pull_request(create_pull_request_draft(), "main", "feature")
+
+    assert str(error.value) == (
+        "GitHub CLI could not create the pull request: gh exited with status 4."
     )

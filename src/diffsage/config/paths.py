@@ -11,6 +11,17 @@ def get_global_config_path() -> Path:
     return user_config_path("DiffSage") / "config.toml"
 
 
+def display_path(path: Path) -> str:
+    """Show a path with the home directory shortened to '~'."""
+
+    home = Path.home()
+
+    if path.is_relative_to(home):
+        return str(Path("~") / path.relative_to(home))
+
+    return str(path)
+
+
 def find_repository_root() -> Path | None:
     """Return the Git repository root or None if not inside a repository."""
     current = Path.cwd()

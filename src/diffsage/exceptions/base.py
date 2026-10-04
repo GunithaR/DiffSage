@@ -1,5 +1,19 @@
 class DiffSageError(Exception):
-    """Base exception for all DiffSage errors."""
+    """Base exception for all DiffSage errors.
+
+    Subclasses set `default_message` for when they are raised without one, and
+    `exit_code` for the process exit status the CLI reports.
+    """
+
+    default_message = "DiffSage could not complete the command."
+    exit_code = 1
+
+    def __init__(self, message: str | None = None) -> None:
+        super().__init__(message or self.default_message)
+
+    @property
+    def message(self) -> str:
+        return str(self)
 
 
 class ProviderError(DiffSageError):
@@ -21,9 +35,17 @@ class InvalidPullRequestDraftError(DiffSageError):
 class DetachedHeadError(DiffSageError):
     """Raised when git repository HEAD is detached."""
 
+    default_message = "Cannot generate a pull request from a detached HEAD."
+
 
 class SameBranchError(DiffSageError):
     """Raised when the current branch and base branch are the same."""
+
+    default_message = "Current branch and base branch are the same."
+
+
+class EditorError(DiffSageError):
+    """Raised when the user's text editor cannot be launched."""
 
 
 class ConfigError(DiffSageError):

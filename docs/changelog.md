@@ -4,6 +4,8 @@
 
 ### Added
 
+- Shared command error handler: every DiffSage error is shown as one `✗` message with a consistent exit code; unexpected errors are logged with a traceback.
+- `diffsage doctor` reports an invalid configuration instead of crashing.
 - End-to-end test harness: isolated config and logs, a fake AI provider, a fake GitHub CLI, and real temporary Git repositories with an origin remote.
 - End-to-end tests for the `commit` and `pr` workflows through the real CLI.
 - Strict expected-failure tests for known bugs, to be converted into regression tests as each bug is fixed.
@@ -17,6 +19,9 @@
 
 ### Fixed
 
+- Rate-limit and other provider errors in `ask`, unparseable AI commit messages, editor launch failures and `gh pr create` failures were reported as "unexpected error".
+- An invalid configuration file crashed every command with a traceback; it is now reported with the file, setting and value at fault.
+- `config set` and `config unset` can repair a broken configuration file, and `config list`/`get --global`/`--local` can still read it.
 - Dependabot configuration was invalid; it now also updates GitHub Actions.
 
 

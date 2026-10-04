@@ -8,11 +8,17 @@ from diffsage.commands.auth import app as auth_app
 from diffsage.commands.commit import commit
 from diffsage.commands.config import app as config_app
 from diffsage.commands.doctor import doctor
+from diffsage.commands.error_handler import handle_command_errors
 from diffsage.commands.pr import pr
 from diffsage.config.loader import load_settings
+from diffsage.exceptions import ConfigError
 from diffsage.logging.logger import configure_logging
 
 app = typer.Typer(help="DiffSage: AI-aware Git workflow toolkit")
+
+# Commands that must run even when the configuration is invalid, so it can be
+# repaired (`config`) or diagnosed (`doctor`).
+CONFIG_TOLERANT_COMMANDS = {"config", "doctor"}
 
 
 def version_callback(value: bool) -> None:
@@ -22,7 +28,9 @@ def version_callback(value: bool) -> None:
 
 
 @app.callback()
+@handle_command_errors("diffsage")
 def main(
+    ctx: typer.Context,
     _version: bool = typer.Option(
         False,
         "--version",
@@ -35,7 +43,18 @@ def main(
     """
     Initialize DiffSage.
     """
-    settings = load_settings()
+    try:
+        settings = load_settings()
+    except ConfigError:
+        # Start the log file at the default level so the error handler's warning is
+        # written there, instead of to stderr through Python's last-resort handler.
+        configure_logging()
+
+        if ctx.invoked_subcommand in CONFIG_TOLERANT_COMMANDS:
+            return
+
+        raise
+
     configure_logging(
         getattr(
             logging,

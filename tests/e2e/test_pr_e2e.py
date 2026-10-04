@@ -8,6 +8,7 @@ import pytest
 from typer.testing import CliRunner
 
 from diffsage.cli import app
+from diffsage.commands.error_handler import UNEXPECTED_ERROR_MESSAGE
 from tests.helpers import run_git
 
 runner = CliRunner()
@@ -148,7 +149,7 @@ def test_pr_with_unpushed_branch_exits(git_repo) -> None:
     result = runner.invoke(app, ["pr"])
 
     assert result.exit_code == 1
-    assert "Remote branch does not exist on origin" in result.output
+    assert "Remote branch 'feature/local-only' does not exist on origin." in result.output
 
 
 @pytest.mark.usefixtures("git_remote", "fake_provider", "fake_gh")
@@ -189,3 +190,24 @@ def test_pr_invalid_ai_json_exits(fake_provider, fake_gh) -> None:
     assert result.exit_code == 1
     assert "AI response is not valid JSON" in result.output
     assert pr_create_call(fake_gh.calls) is None
+
+
+@pytest.mark.usefixtures("feature_branch")
+def test_pr_reports_gh_create_failure_with_gh_message(fake_provider, fake_gh) -> None:
+    """Regression: a failing `gh pr create` was reported as an unexpected error."""
+
+    fake_gh.configure(
+        pr_create_error='a pull request for branch "feature/greeting" into branch "main" '
+        "already exists:\nhttps://github.com/example/repo/pull/7"
+    )
+    fake_provider.queue(draft_json())
+
+    result = runner.invoke(app, ["pr"], input="y\n")
+
+    assert result.exit_code == 1
+    assert (
+        '✗ GitHub CLI could not create the pull request: a pull request for branch "feature/'
+        'greeting" into branch "main" already exists:' in result.output
+    )
+    assert "https://github.com/example/repo/pull/7" in result.output
+    assert UNEXPECTED_ERROR_MESSAGE not in result.output

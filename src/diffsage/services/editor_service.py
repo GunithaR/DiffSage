@@ -5,6 +5,8 @@ import subprocess
 import tempfile
 from pathlib import Path
 
+from diffsage.exceptions import EditorError
+
 
 class EditorService:
     def edit(self, text: str) -> str:
@@ -21,7 +23,7 @@ class EditorService:
             return text.rstrip()
 
         except FileNotFoundError as e:
-            raise RuntimeError(
+            raise EditorError(
                 f'Unable to launch "{editor}". Check your EDITOR or VISUAL configuration.'
             ) from e
 

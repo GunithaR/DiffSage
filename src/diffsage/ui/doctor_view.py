@@ -25,12 +25,18 @@ class DoctorView:
             f"{self._status_icon(report.virtual_environment)} Virtual Env.   : {virtual_env_status}"
         )
 
+        configuration_status = report.configuration_error or "Loaded"
         typer.echo(
             f"{self._status_icon(report.configuration_loaded)} "
-            f"Configuration  : {report.configuration_loaded}"
+            f"Configuration  : {configuration_status}"
         )
 
         typer.echo()
+
+        if not report.configuration_loaded:
+            typer.echo("Built-in defaults are shown below because the configuration is invalid.")
+            typer.echo("Fix it with 'diffsage config set' or 'diffsage config unset'.")
+            typer.echo()
 
         typer.echo(f"Provider       : {report.provider}")
         typer.echo(f"Timeout        : {report.timeout}")

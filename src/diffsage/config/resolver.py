@@ -56,6 +56,12 @@ def _to_settings(config: DiffSageConfig) -> Settings:
     )
 
 
+def default_settings() -> Settings:
+    """Return the built-in default settings, ignoring config files and environment."""
+
+    return _to_settings(DEFAULT_CONFIG)
+
+
 def resolve_settings() -> Settings:
     """Resolve application settings from all configuration sources."""
 

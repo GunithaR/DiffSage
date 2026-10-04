@@ -1,7 +1,6 @@
 from unittest.mock import patch
 
 import pytest
-import typer
 from typer.testing import CliRunner
 
 from diffsage.cli import app
@@ -13,9 +12,13 @@ from diffsage.commands.config import (
     unset_config,
 )
 from diffsage.config.scope import ConfigScope
-from diffsage.exceptions import InvalidConfigurationValueError, UnknownConfigurationKeyError
+from diffsage.exceptions import (
+    ConfigError,
+    InvalidConfigurationValueError,
+    UnknownConfigurationKeyError,
+)
 from diffsage.models.config import ConfigReport, ConfigValueReport
-from tests.helpers import create_settings
+from tests.helpers import assert_error_shown, create_settings
 
 runner = CliRunner()
 
@@ -48,7 +51,7 @@ def test_resolve_scope_returns_global() -> None:
 
 
 def test_resolve_scope_rejects_conflicting_flags() -> None:
-    with pytest.raises(typer.BadParameter) as exception_info:
+    with pytest.raises(ConfigError) as exception_info:
         _resolve_scope(
             local=True,
             global_=True,
@@ -122,7 +125,7 @@ def test_list_config_command_uses_local_scope() -> None:
 
     with (
         patch(
-            "diffsage.commands.config.load_settings", return_value=settings
+            "diffsage.commands.config.load_settings_or_defaults", return_value=settings
         ) as mock_load_settings,
         patch("diffsage.commands.config.resolve_config_path") as mock_resolve_path,
         patch("diffsage.commands.config.ConfigRepository") as mock_repository,
@@ -168,7 +171,7 @@ def test_list_config_command_uses_global_scope() -> None:
 
     with (
         patch(
-            "diffsage.commands.config.load_settings", return_value=settings
+            "diffsage.commands.config.load_settings_or_defaults", return_value=settings
         ) as mock_load_settings,
         patch("diffsage.commands.config.resolve_config_path") as mock_resolve_path,
         patch("diffsage.commands.config.ConfigRepository") as mock_repository,
@@ -256,7 +259,7 @@ def test_get_config_command_uses_local_scope() -> None:
 
     with (
         patch(
-            "diffsage.commands.config.load_settings",
+            "diffsage.commands.config.load_settings_or_defaults",
             return_value=settings,
         ) as mock_load_settings,
         patch("diffsage.commands.config.resolve_config_path") as mock_resolve_path,
@@ -301,7 +304,7 @@ def test_get_config_command_uses_global_scope() -> None:
 
     with (
         patch(
-            "diffsage.commands.config.load_settings",
+            "diffsage.commands.config.load_settings_or_defaults",
             return_value=settings,
         ) as mock_load_settings,
         patch("diffsage.commands.config.resolve_config_path") as mock_resolve_path,
@@ -354,7 +357,7 @@ def test_set_config_command_defaults_to_global() -> None:
 
     with (
         patch(
-            "diffsage.commands.config.load_settings",
+            "diffsage.commands.config.load_settings_or_defaults",
             return_value=settings,
         ) as mock_load_settings,
         patch("diffsage.commands.config.resolve_config_path") as mock_resolve_path,
@@ -408,7 +411,7 @@ def test_set_config_command_uses_local_scope() -> None:
 
     with (
         patch(
-            "diffsage.commands.config.load_settings",
+            "diffsage.commands.config.load_settings_or_defaults",
             return_value=settings,
         ) as mock_load_settings,
         patch("diffsage.commands.config.resolve_config_path") as mock_resolve_path,
@@ -462,7 +465,7 @@ def test_set_config_command_uses_global_scope() -> None:
 
     with (
         patch(
-            "diffsage.commands.config.load_settings",
+            "diffsage.commands.config.load_settings_or_defaults",
             return_value=settings,
         ) as mock_load_settings,
         patch("diffsage.commands.config.resolve_config_path") as mock_resolve_path,
@@ -500,7 +503,7 @@ def test_set_config_command_uses_global_scope() -> None:
     view.show_configuration.assert_called_once_with(report)
 
 
-def test_set_config_command_handles_unknown_key() -> None:
+def test_set_config_command_handles_unknown_key(capsys) -> None:
     settings = create_settings(
         provider="gemini",
         ai_model="gemini-3.5-flash-lite",
@@ -508,7 +511,7 @@ def test_set_config_command_handles_unknown_key() -> None:
 
     with (
         patch(
-            "diffsage.commands.config.load_settings",
+            "diffsage.commands.config.load_settings_or_defaults",
             return_value=settings,
         ) as mock_load_settings,
         patch("diffsage.commands.config.resolve_config_path") as mock_resolve_path,
@@ -537,12 +540,12 @@ def test_set_config_command_handles_unknown_key() -> None:
         "value",
     )
 
-    view.show_error.assert_called_once_with(str(UnknownConfigurationKeyError("invalid")))
+    assert_error_shown(capsys, str(UnknownConfigurationKeyError("invalid")))
     view.show_success.assert_not_called()
     view.show_configuration.assert_not_called()
 
 
-def test_set_config_command_handles_invalid_integer() -> None:
+def test_set_config_command_handles_invalid_integer(capsys) -> None:
     settings = create_settings(
         provider="gemini",
         ai_model="gemini-3.5-flash-lite",
@@ -550,7 +553,7 @@ def test_set_config_command_handles_invalid_integer() -> None:
 
     with (
         patch(
-            "diffsage.commands.config.load_settings",
+            "diffsage.commands.config.load_settings_or_defaults",
             return_value=settings,
         ) as mock_load_settings,
         patch("diffsage.commands.config.resolve_config_path") as mock_resolve_path,
@@ -584,12 +587,12 @@ def test_set_config_command_handles_invalid_integer() -> None:
         "abc",
     )
 
-    view.show_error.assert_called_once_with(str(InvalidConfigurationValueError("abc")))
+    assert_error_shown(capsys, str(InvalidConfigurationValueError("abc")))
     view.show_success.assert_not_called()
     view.show_configuration.assert_not_called()
 
 
-def test_set_config_command_handles_unexpected_error() -> None:
+def test_set_config_command_handles_unexpected_error(capsys) -> None:
     settings = create_settings(
         provider="gemini",
         ai_model="gemini-3.5-flash-lite",
@@ -597,7 +600,7 @@ def test_set_config_command_handles_unexpected_error() -> None:
 
     with (
         patch(
-            "diffsage.commands.config.load_settings",
+            "diffsage.commands.config.load_settings_or_defaults",
             return_value=settings,
         ) as mock_load_settings,
         patch("diffsage.commands.config.resolve_config_path") as mock_resolve_path,
@@ -626,8 +629,8 @@ def test_set_config_command_handles_unexpected_error() -> None:
         "abc",
     )
 
-    view.show_error.assert_called_once_with(
-        "An unexpected error occurred. Please check the log file for more details."
+    assert_error_shown(
+        capsys, "An unexpected error occurred. Please check the log file for more details."
     )
     view.show_success.assert_not_called()
     view.show_configuration.assert_not_called()
@@ -657,7 +660,7 @@ def test_unset_config_command_defaults_to_global() -> None:
 
     with (
         patch(
-            "diffsage.commands.config.load_settings",
+            "diffsage.commands.config.load_settings_or_defaults",
             return_value=settings,
         ) as mock_load_settings,
         patch("diffsage.commands.config.resolve_config_path") as mock_resolve_path,
@@ -709,7 +712,7 @@ def test_unset_config_command_uses_local_scope() -> None:
 
     with (
         patch(
-            "diffsage.commands.config.load_settings",
+            "diffsage.commands.config.load_settings_or_defaults",
             return_value=settings,
         ) as mock_load_settings,
         patch("diffsage.commands.config.resolve_config_path") as mock_resolve_path,
@@ -761,7 +764,7 @@ def test_unset_config_command_uses_global_scope() -> None:
 
     with (
         patch(
-            "diffsage.commands.config.load_settings",
+            "diffsage.commands.config.load_settings_or_defaults",
             return_value=settings,
         ) as mock_load_settings,
         patch("diffsage.commands.config.resolve_config_path") as mock_resolve_path,
@@ -797,7 +800,7 @@ def test_unset_config_command_uses_global_scope() -> None:
     view.show_configuration.assert_called_once_with(report)
 
 
-def test_unset_config_command_handles_unknown_key() -> None:
+def test_unset_config_command_handles_unknown_key(capsys) -> None:
     settings = create_settings(
         provider="gemini",
         ai_model="gemini-3.5-flash-lite",
@@ -805,7 +808,7 @@ def test_unset_config_command_handles_unknown_key() -> None:
 
     with (
         patch(
-            "diffsage.commands.config.load_settings",
+            "diffsage.commands.config.load_settings_or_defaults",
             return_value=settings,
         ) as mock_load_settings,
         patch("diffsage.commands.config.resolve_config_path") as mock_resolve_path,
@@ -837,12 +840,12 @@ def test_unset_config_command_handles_unknown_key() -> None:
         "invalid",
     )
 
-    view.show_error.assert_called_once_with(str(UnknownConfigurationKeyError("invalid")))
+    assert_error_shown(capsys, str(UnknownConfigurationKeyError("invalid")))
     view.show_success.assert_not_called()
     view.show_configuration.assert_not_called()
 
 
-def test_unset_config_command_handles_unexpected_error() -> None:
+def test_unset_config_command_handles_unexpected_error(capsys) -> None:
     settings = create_settings(
         provider="gemini",
         ai_model="gemini-3.5-flash-lite",
@@ -850,7 +853,7 @@ def test_unset_config_command_handles_unexpected_error() -> None:
 
     with (
         patch(
-            "diffsage.commands.config.load_settings",
+            "diffsage.commands.config.load_settings_or_defaults",
             return_value=settings,
         ) as mock_load_settings,
         patch("diffsage.commands.config.resolve_config_path") as mock_resolve_path,
@@ -882,8 +885,8 @@ def test_unset_config_command_handles_unexpected_error() -> None:
         "provider",
     )
 
-    view.show_error.assert_called_once_with(
-        "An unexpected error occurred. Please check the log file for more details."
+    assert_error_shown(
+        capsys, "An unexpected error occurred. Please check the log file for more details."
     )
     view.show_success.assert_not_called()
     view.show_configuration.assert_not_called()

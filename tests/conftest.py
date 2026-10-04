@@ -31,22 +31,32 @@ def clean_diffsage_env(monkeypatch):
 
 @dataclass(slots=True)
 class IsolatedEnv:
+    root: Path
     config_dir: Path
     log_dir: Path
+    workdir: Path
 
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def isolated_env(tmp_path, monkeypatch) -> IsolatedEnv:
-    """Keep DiffSage away from the developer's real config, credentials, logs and .env.
+    """Keep DiffSage away from the developer's real config, credentials, logs, .env and
+    repository-local .diffsage.toml.
+
+    Applied to every test automatically, so no test result depends on the machine it
+    runs on. Tests that need the paths request it by name and get the same instance.
 
     platformdirs is patched directly because on Windows it ignores HOME-style
-    environment variables.
+    environment variables. The working directory moves to an empty temporary folder,
+    so a .diffsage.toml in the directory pytest was started from is never read.
     """
 
     remove_diffsage_env(monkeypatch)
 
     config_dir = tmp_path / "config"
     log_dir = tmp_path / "logs"
+    workdir = tmp_path / "workdir"
+    workdir.mkdir()
+    monkeypatch.chdir(workdir)
 
     monkeypatch.setattr(
         "diffsage.config.paths.user_config_path",
@@ -66,7 +76,14 @@ def isolated_env(tmp_path, monkeypatch) -> IsolatedEnv:
     # messages on one line on every CI runner.
     monkeypatch.setenv("COLUMNS", "200")
 
-    return IsolatedEnv(config_dir=config_dir, log_dir=log_dir)
+    # CI forces coloured output (GitHub Actions sets GITHUB_ACTIONS), which puts ANSI
+    # codes inside asserted messages. Typer reads these variables once at import, so
+    # its computed flag is patched as well as the environment.
+    for variable in ("GITHUB_ACTIONS", "FORCE_COLOR", "PY_COLORS"):
+        monkeypatch.delenv(variable, raising=False)
+    monkeypatch.setattr("typer.rich_utils.FORCE_TERMINAL", False)
+
+    return IsolatedEnv(root=tmp_path, config_dir=config_dir, log_dir=log_dir, workdir=workdir)
 
 
 def isolate_git_config(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -80,12 +97,15 @@ def isolate_git_config(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.fixture
-def git_repo(tmp_path, monkeypatch) -> Path:
-    """A Git repository with one commit on main, used as the working directory."""
+def git_repo(isolated_env, monkeypatch) -> Path:
+    """A Git repository with one commit on main, used as the working directory.
 
-    isolate_git_config(tmp_path, monkeypatch)
+    Built on isolated_env so isolation always happens first and this chdir wins.
+    """
 
-    repo = tmp_path / "repo"
+    isolate_git_config(isolated_env.root, monkeypatch)
+
+    repo = isolated_env.root / "repo"
     repo.mkdir()
     init_git_repo_with_initial_commit(repo)
 
@@ -95,12 +115,12 @@ def git_repo(tmp_path, monkeypatch) -> Path:
 
 
 @pytest.fixture
-def empty_git_repo(tmp_path, monkeypatch) -> Path:
+def empty_git_repo(isolated_env, monkeypatch) -> Path:
     """A Git repository with no commits yet, used as the working directory."""
 
-    isolate_git_config(tmp_path, monkeypatch)
+    isolate_git_config(isolated_env.root, monkeypatch)
 
-    repo = tmp_path / "empty-repo"
+    repo = isolated_env.root / "empty-repo"
     repo.mkdir()
     init_git_repo(repo)
 
