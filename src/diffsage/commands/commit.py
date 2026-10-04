@@ -21,9 +21,11 @@ logger = get_logger(__name__)
 def generate_message(
     commit_service: CommitService,
     on_attempt: Callable[[int, int], None] | None = None,
+    on_notice: Callable[[str], None] | None = None,
 ) -> str:
     return commit_service.generate_commit_message(
         on_attempt=on_attempt,
+        on_notice=on_notice,
     )
 
 
@@ -61,6 +63,7 @@ def commit() -> None:
             on_attempt=lambda attempt, total: status.update(
                 f"Generating commit message... Attempt {attempt}/{total}"
             ),
+            on_notice=view.show_warning,
         )
         commit_message = CommitMessageParser.parse(raw_message)
 
@@ -91,6 +94,7 @@ def commit() -> None:
                     on_attempt=lambda attempt, total: status.update(
                         f"Generating commit message... Attempt {attempt}/{total}"
                     ),
+                    on_notice=view.show_warning,
                 )
                 commit_message = CommitMessageParser.parse(raw_message)
 

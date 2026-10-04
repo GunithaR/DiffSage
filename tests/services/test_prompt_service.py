@@ -182,3 +182,25 @@ def test_build_pull_request_prompt_includes_risk_signals() -> None:
     assert "authentication/security-related paths changed" in prompt
     assert "high" in prompt
     assert "authentication and security-related changes" in prompt
+
+
+def test_diff_notes_are_appended_and_tell_the_ai_to_ignore_placeholders() -> None:
+    service = PromptService()
+    context = CommitContext(branch="main", staged_diff="diff", unstaged_diff="", recent_commits=[])
+
+    prompt = service.build_commit_prompt(context, ["Lockfile contents were not sent: uv.lock"])
+
+    assert prompt.endswith(
+        "Diff Notes:\n"
+        "DiffSage removed or redacted some content before sending this diff. Treat the "
+        "placeholders as unchanged details, never as changes, and do not mention them.\n"
+        "- Lockfile contents were not sent: uv.lock"
+    )
+
+
+def test_prompt_without_notes_has_no_notes_section() -> None:
+    service = PromptService()
+    context = CommitContext(branch="main", staged_diff="diff", unstaged_diff="", recent_commits=[])
+
+    assert "Diff Notes" not in service.build_commit_prompt(context)
+    assert "Diff Notes" not in service.build_commit_prompt(context, [])

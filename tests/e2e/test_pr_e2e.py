@@ -211,3 +211,22 @@ def test_pr_reports_gh_create_failure_with_gh_message(fake_provider, fake_gh) ->
     )
     assert "https://github.com/example/repo/pull/7" in result.output
     assert UNEXPECTED_ERROR_MESSAGE not in result.output
+
+
+@pytest.mark.usefixtures("git_remote")
+def test_pr_never_sends_secrets_to_the_ai(git_repo, fake_provider, fake_gh) -> None:
+    secret = "ghp_" + "a" * 36
+    run_git(["switch", "-c", "feature/secret"], git_repo)
+    commit_file(
+        git_repo, "deploy.sh", f"export GITHUB_TOKEN={secret}\n", "chore: add deploy script"
+    )
+    run_git(["push", "-u", "origin", "feature/secret"], git_repo)
+    fake_provider.queue(draft_json())
+
+    result = runner.invoke(app, ["pr"], input="n\n")
+
+    assert result.exit_code == 0, result.output
+    assert secret not in fake_provider.prompts[0]
+    assert "[REDACTED]" in fake_provider.prompts[0]
+    assert "! 1 value(s) that looked like secrets were replaced" in result.output
+    assert pr_create_call(fake_gh.calls) is None

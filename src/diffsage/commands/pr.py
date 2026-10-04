@@ -83,6 +83,7 @@ def pr(
             on_attempt=lambda attempt, total: status.update(
                 f"Generating pull request draft... Attempt {attempt}/{total}"
             ),
+            on_notice=view.show_warning,
         )
 
     view.show_generated(draft)
@@ -130,6 +131,7 @@ def pr(
                     on_attempt=lambda attempt, total: status.update(
                         f"Generating pull request draft... Attempt {attempt}/{total}"
                     ),
+                    on_notice=view.show_warning,
                 )
 
             view.show_generated(draft)

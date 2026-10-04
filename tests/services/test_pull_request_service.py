@@ -156,6 +156,7 @@ def test_generate_draft_returns_generated_pull_request_draft() -> None:
     prompt_service.build_pull_request_prompt.assert_called_once_with(
         context,
         analysis,
+        [],
     )
 
     call = ai_service.ask.call_args

@@ -57,8 +57,28 @@ class PromptService:
 
     """.strip()
 
-    def build_commit_prompt(self, context: CommitContext) -> str:
-        return f"{self._build_commit_instructions()}\n\n{self._build_commit_context(context)}"
+    def _build_diff_notes(self, notes: list[str] | None) -> str:
+        """Explain what DiffSage removed from the diff, so the AI does not describe it."""
+
+        if not notes:
+            return ""
+
+        lines = [
+            "",
+            "",
+            "Diff Notes:",
+            "DiffSage removed or redacted some content before sending this diff. Treat the "
+            "placeholders as unchanged details, never as changes, and do not mention them.",
+            *(f"- {note}" for note in notes),
+        ]
+
+        return "\n".join(lines)
+
+    def build_commit_prompt(self, context: CommitContext, notes: list[str] | None = None) -> str:
+        return (
+            f"{self._build_commit_instructions()}\n\n{self._build_commit_context(context)}"
+            f"{self._build_diff_notes(notes)}"
+        )
 
     def _build_pull_request_context(
         self,
@@ -175,8 +195,10 @@ class PromptService:
         self,
         context: PullRequestContext,
         analysis: PullRequestAnalysis,
+        notes: list[str] | None = None,
     ) -> str:
         return (
             f"{self._build_pull_request_instructions()}\n\n"
             f"{self._build_pull_request_context(context, analysis)}"
+            f"{self._build_diff_notes(notes)}"
         )
