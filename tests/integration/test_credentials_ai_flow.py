@@ -1,7 +1,8 @@
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import pytest
+from google.genai import types
 
 from diffsage.exceptions import CredentialNotFoundError
 from diffsage.models.credentials import Credential
@@ -26,14 +27,18 @@ def test_credentials_flow_into_gemini_provider(tmp_path: Path) -> None:
     credential_service = CredentialService(repository)
     settings = create_settings()
 
-    mock_response = Mock()
-    mock_response.candidates = [Mock()]
-    mock_response.candidates[0].content.parts = [Mock()]
-    mock_response.candidates[0].content.parts[0].text = "Hello from Gemini"
-    mock_response.candidates[0].finish_reason.value = "STOP"
-    mock_response.model_version = "gemini-3.5-flash-lite"
-    mock_response.usage_metadata.prompt_token_count = 10
-    mock_response.usage_metadata.candidates_token_count = 20
+    mock_response = types.GenerateContentResponse(
+        candidates=[
+            types.Candidate(
+                content=types.Content(role="model", parts=[types.Part(text="Hello from Gemini")]),
+                finish_reason=types.FinishReason.STOP,
+            )
+        ],
+        model_version="gemini-3.5-flash-lite",
+        usage_metadata=types.GenerateContentResponseUsageMetadata(
+            prompt_token_count=10, candidates_token_count=20
+        ),
+    )
 
     with patch("diffsage.providers.gemini_provider.genai.Client") as mock_client:
         client = mock_client.return_value

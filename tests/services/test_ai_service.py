@@ -3,7 +3,13 @@ from unittest.mock import Mock, call, patch
 import pytest
 
 from diffsage.exceptions import CredentialNotFoundError
-from diffsage.exceptions.provider import AuthenticationError, ProviderUnavailableError
+from diffsage.exceptions.provider import (
+    AuthenticationError,
+    ContentBlockedError,
+    EmptyResponseError,
+    ProviderUnavailableError,
+    ResponseTruncatedError,
+)
 from diffsage.models.credentials import Credential
 from diffsage.models.provider import ProviderResponse
 from diffsage.services.ai_service import AIService
@@ -174,7 +180,16 @@ def test_ask_raises_after_exhausting_retries():
     )
 
 
-def test_ask_does_not_retry_non_retryable_exception():
+@pytest.mark.parametrize(
+    "error",
+    [
+        AuthenticationError("Invalid API key"),
+        ResponseTruncatedError("cut off"),
+        ContentBlockedError("blocked"),
+        EmptyResponseError(),
+    ],
+)
+def test_ask_does_not_retry_non_retryable_exception(error):
     provider = Mock()
     credential_service = Mock(spec=CredentialService)
 
@@ -184,7 +199,7 @@ def test_ask_does_not_retry_non_retryable_exception():
         api_key="test-api-key",
     )
 
-    provider.generate.side_effect = AuthenticationError("Invalid API key")
+    provider.generate.side_effect = error
 
     settings = create_settings()
     credential_service.get_credential.return_value = credential
@@ -195,7 +210,7 @@ def test_ask_does_not_retry_non_retryable_exception():
     )
 
     with patch("diffsage.services.ai_service.time.sleep") as mock_sleep:
-        with pytest.raises(AuthenticationError):
+        with pytest.raises(type(error)):
             service.ask("prompt")
 
     assert provider.generate.call_count == 1

@@ -32,10 +32,13 @@ from .github import (
 )
 from .provider import (
     AuthenticationError,
+    ContentBlockedError,
+    EmptyResponseError,
     InvalidRequestError,
     ModelNotFoundError,
     ProviderUnavailableError,
     RateLimitError,
+    ResponseTruncatedError,
 )
 
 __all__ = [
@@ -64,8 +67,11 @@ __all__ = [
     "GitHubCLIUnavailableError",
     "GitHubError",
     "AuthenticationError",
+    "ContentBlockedError",
+    "EmptyResponseError",
     "InvalidRequestError",
     "ModelNotFoundError",
     "ProviderUnavailableError",
     "RateLimitError",
+    "ResponseTruncatedError",
 ]

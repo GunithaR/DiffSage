@@ -20,3 +20,17 @@ class ProviderUnavailableError(ProviderError):
 class InvalidRequestError(ProviderError):
     """Raised when a provider rejects a request as invalid for a reason other than
     authentication, such as a prompt that is too long or an unsupported parameter."""
+
+
+class EmptyResponseError(ProviderError):
+    """Raised when a provider returns a reply with no text."""
+
+    default_message = "The AI provider returned an empty reply."
+
+
+class ContentBlockedError(ProviderError):
+    """Raised when a provider blocks the prompt or stops the reply for policy reasons."""
+
+
+class ResponseTruncatedError(ProviderError):
+    """Raised when a reply is cut off by the output token limit."""

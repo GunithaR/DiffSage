@@ -1,15 +1,19 @@
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import pytest
 from google.genai import errors as genai_errors
+from google.genai import types
 
 from diffsage.exceptions import (
     AuthenticationError,
+    ContentBlockedError,
+    EmptyResponseError,
     InvalidRequestError,
     ModelNotFoundError,
     ProviderError,
     ProviderUnavailableError,
     RateLimitError,
+    ResponseTruncatedError,
 )
 from diffsage.models.credentials import Credential
 from diffsage.models.provider import ProviderRequest
@@ -34,39 +38,55 @@ def create_credential() -> Credential:
     )
 
 
-def test_gemini_provider_returns_provider_response():
+def gemini_reply(
+    *parts: types.Part,
+    finish_reason: types.FinishReason | None = types.FinishReason.STOP,
+    usage: types.GenerateContentResponseUsageMetadata | None = None,
+    prompt_feedback: types.GenerateContentResponsePromptFeedback | None = None,
+    candidates: bool = True,
+) -> types.GenerateContentResponse:
+    """A reply shaped like the ones the Gemini SDK returns."""
+
+    return types.GenerateContentResponse(
+        candidates=[
+            types.Candidate(
+                content=types.Content(role="model", parts=list(parts)),
+                finish_reason=finish_reason,
+            )
+        ]
+        if candidates
+        else None,
+        model_version="gemini-3.5-flash-lite",
+        usage_metadata=usage,
+        prompt_feedback=prompt_feedback,
+    )
+
+
+def generate_with_reply(reply: types.GenerateContentResponse):
     with patch("diffsage.providers.gemini_provider.genai.Client") as mock_client:
-        client = mock_client.return_value
-        mock_response = Mock()
+        mock_client.return_value.models.generate_content.return_value = reply
 
-        mock_response.candidates = [Mock()]
-        mock_response.candidates[0].content.parts = [Mock()]
-        mock_response.candidates[0].content.parts[0].text = "Hello from Gemini"
+        return GeminiProvider(create_settings(), create_credential()).generate(create_request())
 
-        mock_response.candidates[0].finish_reason.value = "STOP"
 
-        mock_response.model_version = "gemini-3.5-flash-lite"
-
-        mock_response.usage_metadata.prompt_token_count = 10
-        mock_response.usage_metadata.candidates_token_count = 20
-
-        client.models.generate_content.return_value = mock_response
-
-        provider = GeminiProvider(
-            create_settings(),
-            create_credential(),
+def test_gemini_provider_returns_provider_response():
+    response = generate_with_reply(
+        gemini_reply(
+            types.Part(text="Hello from Gemini"),
+            usage=types.GenerateContentResponseUsageMetadata(
+                prompt_token_count=10, candidates_token_count=20
+            ),
         )
+    )
 
-        response = provider.generate(create_request())
-
-        assert response.content == "Hello from Gemini"
-        assert response.provider == "gemini"
-        assert response.model == "gemini-3.5-flash-lite"
-        assert response.input_tokens == 10
-        assert response.output_tokens == 20
-        assert response.finish_reason == "STOP"
-        assert isinstance(response.latency_ms, int)
-        assert response.latency_ms >= 0
+    assert response.content == "Hello from Gemini"
+    assert response.provider == "gemini"
+    assert response.model == "gemini-3.5-flash-lite"
+    assert response.input_tokens == 10
+    assert response.output_tokens == 20
+    assert response.finish_reason == "STOP"
+    assert isinstance(response.latency_ms, int)
+    assert response.latency_ms >= 0
 
 
 def test_gemini_provider_raises_model_not_found_error():
@@ -181,16 +201,7 @@ def test_gemini_provider_passes_request_parameters_to_gemini() -> None:
     with patch("diffsage.providers.gemini_provider.genai.Client") as mock_client:
         client = mock_client.return_value
 
-        mock_response = Mock()
-        mock_response.candidates = [Mock()]
-        mock_response.candidates[0].content.parts = [Mock()]
-        mock_response.candidates[0].content.parts[0].text = "Hello"
-        mock_response.candidates[0].finish_reason.value = "STOP"
-        mock_response.model_version = "gemini-3.5-flash-lite"
-        mock_response.usage_metadata.prompt_token_count = 10
-        mock_response.usage_metadata.candidates_token_count = 20
-
-        client.models.generate_content.return_value = mock_response
+        client.models.generate_content.return_value = gemini_reply(types.Part(text="Hello"))
 
         settings = create_settings()
         provider = GeminiProvider(
@@ -336,3 +347,111 @@ def test_gemini_provider_invalid_argument_without_a_message_has_a_fallback() -> 
 
     with pytest.raises(InvalidRequestError, match=r"^Gemini rejected the request as invalid\.$"):
         generate_with_error(error)
+
+
+@pytest.mark.parametrize(
+    "parts",
+    [
+        [types.Part(text="feat(api): add a partial")],
+        [],  # thinking models can spend the whole limit before writing an answer
+    ],
+)
+def test_gemini_provider_rejects_a_reply_cut_off_by_the_token_limit(parts) -> None:
+    """Regression: a MAX_TOKENS reply was returned as if complete (or crashed when it
+    had no text), so a half-written message reached the parser."""
+
+    reply = gemini_reply(*parts, finish_reason=types.FinishReason.MAX_TOKENS)
+
+    with pytest.raises(
+        ResponseTruncatedError,
+        match=r"^Gemini's reply was cut off at the output limit of 1000 tokens\.$",
+    ):
+        generate_with_reply(reply)
+
+
+def test_gemini_provider_reports_a_blocked_prompt() -> None:
+    """Regression: a blocked prompt has no candidates and crashed with an IndexError."""
+
+    reply = gemini_reply(
+        candidates=False,
+        prompt_feedback=types.GenerateContentResponsePromptFeedback(
+            block_reason=types.BlockedReason.SAFETY,
+            block_reason_message="The prompt was blocked due to safety.",
+        ),
+    )
+
+    with pytest.raises(ContentBlockedError) as raised:
+        generate_with_reply(reply)
+
+    assert raised.value.message == (
+        "Gemini blocked the prompt (reason: SAFETY). The prompt was blocked due to safety."
+    )
+
+
+@pytest.mark.parametrize(
+    "finish_reason", [types.FinishReason.SAFETY, types.FinishReason.RECITATION]
+)
+def test_gemini_provider_reports_a_reply_stopped_for_policy_reasons(finish_reason) -> None:
+    reply = gemini_reply(finish_reason=finish_reason)
+
+    with pytest.raises(
+        ContentBlockedError,
+        match=rf"^Gemini stopped the reply \(reason: {finish_reason.value}\)\.$",
+    ):
+        generate_with_reply(reply)
+
+
+def test_gemini_provider_reports_a_reply_with_no_candidates() -> None:
+    with pytest.raises(EmptyResponseError, match=r"^Gemini returned no reply\.$"):
+        generate_with_reply(gemini_reply(candidates=False))
+
+
+@pytest.mark.parametrize(
+    "reply",
+    [
+        gemini_reply(),
+        gemini_reply(types.Part(text="   \n")),
+        types.GenerateContentResponse(
+            candidates=[types.Candidate(content=None, finish_reason=types.FinishReason.STOP)]
+        ),
+    ],
+    ids=["no-parts", "whitespace", "no-content"],
+)
+def test_gemini_provider_reports_an_empty_reply(reply) -> None:
+    """Regression: a reply without text crashed (IndexError / AttributeError) or was
+    passed on as an empty string."""
+
+    with pytest.raises(
+        EmptyResponseError, match=r"^Gemini returned an empty reply \(finish reason: STOP\)\.$"
+    ):
+        generate_with_reply(reply)
+
+
+def test_gemini_provider_joins_text_parts_and_skips_thoughts() -> None:
+    reply = gemini_reply(
+        types.Part(text="Let me look at the diff first.", thought=True),
+        types.Part(text="feat(api): add retries"),
+        types.Part(text="\n\nRetry failed requests."),
+    )
+
+    response = generate_with_reply(reply)
+
+    assert response.content == "feat(api): add retries\n\nRetry failed requests."
+
+
+def test_gemini_provider_tolerates_missing_usage_model_and_finish_reason() -> None:
+    """Regression: a reply without usage metadata crashed with an AttributeError."""
+
+    reply = types.GenerateContentResponse(
+        candidates=[
+            types.Candidate(content=types.Content(role="model", parts=[types.Part(text="ok")]))
+        ]
+    )
+
+    response = generate_with_reply(reply)
+
+    assert response.content == "ok"
+    assert response.model == create_request().model
+    assert response.input_tokens is None
+    assert response.output_tokens is None
+    assert response.finish_reason is None

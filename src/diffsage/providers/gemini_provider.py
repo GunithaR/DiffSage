@@ -7,11 +7,14 @@ from google.genai import types
 from diffsage.config.settings import Settings
 from diffsage.exceptions import (
     AuthenticationError,
+    ContentBlockedError,
+    EmptyResponseError,
     InvalidRequestError,
     ModelNotFoundError,
     ProviderError,
     ProviderUnavailableError,
     RateLimitError,
+    ResponseTruncatedError,
 )
 from diffsage.models.credentials import Credential
 from diffsage.models.provider import ProviderRequest, ProviderResponse
@@ -46,6 +49,62 @@ def _is_invalid_api_key(error: genai_errors.APIError) -> bool:
     return INVALID_API_KEY_REASON in _error_reasons(error) or "API key not valid" in (
         error.message or ""
     )
+
+
+# Finish reasons that mean Gemini stopped the reply on purpose (policy or safety).
+BLOCKED_FINISH_REASONS = {
+    types.FinishReason.SAFETY,
+    types.FinishReason.RECITATION,
+    types.FinishReason.BLOCKLIST,
+    types.FinishReason.PROHIBITED_CONTENT,
+    types.FinishReason.SPII,
+}
+
+
+def _reply_text(response: types.GenerateContentResponse, max_tokens: int) -> str:
+    """The text of Gemini's reply, or an error saying why there is no usable reply.
+
+    A truncated reply is rejected even when it has text: a commit message or PR
+    draft cut off mid-way cannot be parsed reliably.
+    """
+
+    feedback = response.prompt_feedback
+
+    if feedback is not None and feedback.block_reason is not None:
+        message = f"Gemini blocked the prompt (reason: {feedback.block_reason.value})."
+
+        if feedback.block_reason_message:
+            message += f" {feedback.block_reason_message}"
+
+        raise ContentBlockedError(message)
+
+    if not response.candidates:
+        raise EmptyResponseError("Gemini returned no reply.")
+
+    candidate = response.candidates[0]
+    finish_reason = candidate.finish_reason
+
+    if finish_reason == types.FinishReason.MAX_TOKENS:
+        raise ResponseTruncatedError(
+            f"Gemini's reply was cut off at the output limit of {max_tokens} tokens."
+        )
+
+    if finish_reason in BLOCKED_FINISH_REASONS:
+        raise ContentBlockedError(f"Gemini stopped the reply (reason: {finish_reason.value}).")
+
+    parts = candidate.content.parts if candidate.content and candidate.content.parts else []
+    # Thinking models return their reasoning as separate "thought" parts; only the
+    # answer is wanted.
+    text = "".join(part.text for part in parts if part.text and not part.thought)
+
+    if not text.strip():
+        raise EmptyResponseError(
+            f"Gemini returned an empty reply (finish reason: {finish_reason.value})."
+            if finish_reason is not None
+            else None
+        )
+
+    return text
 
 
 class GeminiProvider(BaseProvider):
@@ -105,12 +164,17 @@ class GeminiProvider(BaseProvider):
 
         latency_ms = round((time.perf_counter() - start_time) * 1000)
 
+        content = _reply_text(response, request.max_tokens)
+        # _reply_text guarantees at least one candidate.
+        finish_reason = response.candidates[0].finish_reason if response.candidates else None
+        usage = response.usage_metadata
+
         return ProviderResponse(
-            content=response.candidates[0].content.parts[0].text,
+            content=content,
             provider="gemini",
-            model=response.model_version,
-            input_tokens=response.usage_metadata.prompt_token_count,
-            output_tokens=response.usage_metadata.candidates_token_count,
-            finish_reason=response.candidates[0].finish_reason.value,
+            model=response.model_version or request.model,
+            input_tokens=usage.prompt_token_count if usage else None,
+            output_tokens=usage.candidates_token_count if usage else None,
+            finish_reason=finish_reason.value if finish_reason else None,
             latency_ms=latency_ms,
         )

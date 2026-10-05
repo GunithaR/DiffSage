@@ -14,7 +14,8 @@ class ProviderResponse:
     content: str
     provider: str
     model: str
-    input_tokens: int
-    output_tokens: int
-    finish_reason: str
+    # None when the provider does not report usage or a finish reason.
+    input_tokens: int | None
+    output_tokens: int | None
+    finish_reason: str | None
     latency_ms: int
