@@ -5,6 +5,7 @@ from google.genai import errors as genai_errors
 
 from diffsage.exceptions import (
     AuthenticationError,
+    InvalidRequestError,
     ModelNotFoundError,
     ProviderError,
     ProviderUnavailableError,
@@ -258,3 +259,80 @@ def test_gemini_provider_raises_authentication_error_for_invalid_api_key() -> No
 
         with pytest.raises(AuthenticationError, match="Please check your API Key."):
             provider.generate(create_request())
+
+
+def generate_with_error(error: genai_errors.APIError) -> None:
+    with patch("diffsage.providers.gemini_provider.genai.Client") as mock_client:
+        mock_client.return_value.models.generate_content.side_effect = error
+
+        GeminiProvider(create_settings(), create_credential()).generate(create_request())
+
+
+def invalid_argument(message: str, *details: dict) -> genai_errors.APIError:
+    """An INVALID_ARGUMENT error with the body shape the Gemini API returns."""
+
+    return genai_errors.APIError(
+        code=400,
+        response_json={
+            "error": {
+                "code": 400,
+                "message": message,
+                "status": "INVALID_ARGUMENT",
+                "details": list(details),
+            }
+        },
+    )
+
+
+def test_gemini_provider_reads_the_invalid_key_reason_from_the_nested_error_body() -> None:
+    error = invalid_argument(
+        "API key not valid. Please pass a valid API key.",
+        {
+            "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+            "reason": "API_KEY_INVALID",
+            "domain": "googleapis.com",
+        },
+    )
+
+    with pytest.raises(AuthenticationError, match="Please check your API Key."):
+        generate_with_error(error)
+
+
+def test_gemini_provider_recognises_an_invalid_key_by_message_without_details() -> None:
+    error = invalid_argument("API key not valid. Please pass a valid API key.")
+
+    with pytest.raises(AuthenticationError):
+        generate_with_error(error)
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
+        "The input token count (1200000) exceeds the maximum number of tokens allowed (1048576).",
+        "Unable to submit request because it has an empty text parameter.",
+        "* GenerateContentRequest.generation_config.max_output_tokens: must be positive",
+    ],
+)
+def test_gemini_provider_does_not_blame_the_api_key_for_other_invalid_arguments(
+    message,
+) -> None:
+    """Regression: every 400 INVALID_ARGUMENT was reported as a bad API key, so a
+    prompt that was too long told the user to check a key that worked."""
+
+    error = invalid_argument(
+        message,
+        {"@type": "type.googleapis.com/google.rpc.BadRequest", "fieldViolations": []},
+    )
+
+    with pytest.raises(InvalidRequestError) as raised:
+        generate_with_error(error)
+
+    assert not isinstance(raised.value, AuthenticationError)
+    assert raised.value.message == f"Gemini rejected the request: {message}"
+
+
+def test_gemini_provider_invalid_argument_without_a_message_has_a_fallback() -> None:
+    error = genai_errors.APIError(code=400, response_json={"status": "INVALID_ARGUMENT"})
+
+    with pytest.raises(InvalidRequestError, match=r"^Gemini rejected the request as invalid\.$"):
+        generate_with_error(error)

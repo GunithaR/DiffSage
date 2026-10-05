@@ -15,3 +15,8 @@ class ModelNotFoundError(ProviderError):
 
 class ProviderUnavailableError(ProviderError):
     """Raised when the provider service is unavailable."""
+
+
+class InvalidRequestError(ProviderError):
+    """Raised when a provider rejects a request as invalid for a reason other than
+    authentication, such as a prompt that is too long or an unsupported parameter."""

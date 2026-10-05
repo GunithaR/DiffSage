@@ -5,7 +5,7 @@ from typer.testing import CliRunner
 
 from diffsage.cli import app
 from diffsage.commands.error_handler import UNEXPECTED_ERROR_MESSAGE
-from diffsage.exceptions import ProviderError, RateLimitError
+from diffsage.exceptions import InvalidRequestError, ProviderError, RateLimitError
 
 runner = CliRunner()
 
@@ -25,6 +25,7 @@ def test_ask_prints_provider_response(fake_provider) -> None:
     [
         RateLimitError("Gemini API rate limit exceeded."),
         ProviderError("Gemini API request failed: 500 INTERNAL."),
+        InvalidRequestError("Gemini rejected the request: The input token count is too large."),
     ],
 )
 def test_ask_reports_provider_errors_instead_of_unexpected_error(fake_provider, error) -> None:

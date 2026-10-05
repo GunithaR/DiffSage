@@ -7,6 +7,7 @@ from google.genai import types
 from diffsage.config.settings import Settings
 from diffsage.exceptions import (
     AuthenticationError,
+    InvalidRequestError,
     ModelNotFoundError,
     ProviderError,
     ProviderUnavailableError,
@@ -15,6 +16,36 @@ from diffsage.exceptions import (
 from diffsage.models.credentials import Credential
 from diffsage.models.provider import ProviderRequest, ProviderResponse
 from diffsage.providers.base import BaseProvider
+
+# ErrorInfo reason Gemini sends with INVALID_ARGUMENT when the API key is wrong.
+INVALID_API_KEY_REASON = "API_KEY_INVALID"
+
+
+def _error_reasons(error: genai_errors.APIError) -> set[str]:
+    """ErrorInfo reasons in a Gemini error body.
+
+    Gemini nests them under "error" ({"error": {"details": [...]}}); a bare
+    {"details": [...]} body is accepted too.
+    """
+
+    body = error.details if isinstance(error.details, dict) else {}
+    nested = body.get("error")
+    details = (nested if isinstance(nested, dict) else body).get("details")
+
+    if not isinstance(details, list):
+        return set()
+
+    return {
+        detail["reason"]
+        for detail in details
+        if isinstance(detail, dict) and isinstance(detail.get("reason"), str)
+    }
+
+
+def _is_invalid_api_key(error: genai_errors.APIError) -> bool:
+    return INVALID_API_KEY_REASON in _error_reasons(error) or "API key not valid" in (
+        error.message or ""
+    )
 
 
 class GeminiProvider(BaseProvider):
@@ -51,10 +82,18 @@ class GeminiProvider(BaseProvider):
                 raise AuthenticationError("Authentication with Gemini failed.") from e
 
             elif status == "INVALID_ARGUMENT":
-                if e.code == 400:
+                if _is_invalid_api_key(e):
                     raise AuthenticationError(
                         "Authentication with Gemini failed. Please check your API Key."
                     ) from e
+
+                # Anything else is a problem with the request itself (prompt too long,
+                # unsupported parameter, ...): show Gemini's own explanation.
+                raise InvalidRequestError(
+                    f"Gemini rejected the request: {e.message}"
+                    if e.message
+                    else "Gemini rejected the request as invalid."
+                ) from e
 
             elif status == "RESOURCE_EXHAUSTED":
                 raise RateLimitError("Gemini API rate limit exceeded.") from e
