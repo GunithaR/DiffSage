@@ -6,7 +6,17 @@ class AuthenticationError(ProviderError):
 
 
 class RateLimitError(ProviderError):
-    """Raised when a provider rate limit is exceeded."""
+    """Raised when a provider rate limit is exceeded.
+
+    `retry_after` is how many seconds the provider asked the client to wait before
+    trying again, when it said.
+    """
+
+    default_message = "The AI provider's rate limit was exceeded."
+
+    def __init__(self, message: str | None = None, retry_after: float | None = None) -> None:
+        super().__init__(message)
+        self.retry_after = retry_after
 
 
 class ModelNotFoundError(ProviderError):

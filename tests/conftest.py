@@ -85,6 +85,10 @@ def isolated_env(tmp_path, monkeypatch) -> IsolatedEnv:
         monkeypatch.delenv(variable, raising=False)
     monkeypatch.setattr("typer.rich_utils.FORCE_TERMINAL", False)
 
+    # Retries back off for seconds at a time; tests never wait for real. Tests that
+    # check the delays patch sleep themselves.
+    monkeypatch.setattr("diffsage.services.ai_service.time.sleep", lambda _seconds: None)
+
     return IsolatedEnv(root=tmp_path, config_dir=config_dir, log_dir=log_dir, workdir=workdir)
 
 

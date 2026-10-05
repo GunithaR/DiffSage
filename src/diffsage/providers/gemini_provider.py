@@ -1,4 +1,7 @@
+import math
+import re
 import time
+from typing import Any
 
 from google import genai
 from google.genai import errors as genai_errors
@@ -24,8 +27,12 @@ from diffsage.providers.base import BaseProvider
 INVALID_API_KEY_REASON = "API_KEY_INVALID"
 
 
-def _error_reasons(error: genai_errors.APIError) -> set[str]:
-    """ErrorInfo reasons in a Gemini error body.
+# RetryInfo.retryDelay is a protobuf Duration in JSON form, such as "37s" or "0.5s".
+_DURATION = re.compile(r"^(?P<seconds>\d+(?:\.\d+)?)s$")
+
+
+def _error_details(error: genai_errors.APIError) -> list[dict[str, Any]]:
+    """The "details" entries of a Gemini error body.
 
     Gemini nests them under "error" ({"error": {"details": [...]}}); a bare
     {"details": [...]} body is accepted too.
@@ -36,13 +43,49 @@ def _error_reasons(error: genai_errors.APIError) -> set[str]:
     details = (nested if isinstance(nested, dict) else body).get("details")
 
     if not isinstance(details, list):
-        return set()
+        return []
+
+    return [detail for detail in details if isinstance(detail, dict)]
+
+
+def _error_reasons(error: genai_errors.APIError) -> set[str]:
+    """ErrorInfo reasons in a Gemini error body."""
 
     return {
         detail["reason"]
-        for detail in details
-        if isinstance(detail, dict) and isinstance(detail.get("reason"), str)
+        for detail in _error_details(error)
+        if isinstance(detail.get("reason"), str)
     }
+
+
+def _retry_after(error: genai_errors.APIError) -> float | None:
+    """Seconds Gemini asked us to wait: RetryInfo in the body, else a Retry-After header."""
+
+    for detail in _error_details(error):
+        match = _DURATION.match(str(detail.get("retryDelay", "")))
+
+        if match:
+            return float(match.group("seconds"))
+
+    headers = getattr(error.response, "headers", None)
+    header = headers.get("retry-after") if headers is not None else None
+
+    try:
+        return float(header) if header is not None else None
+    except ValueError:  # an HTTP date instead of seconds; fall back to our own backoff
+        return None
+
+
+def _rate_limit_message(retry_after: float | None) -> str:
+    message = "Gemini API rate limit exceeded."
+
+    if retry_after is None:
+        return message
+
+    seconds = math.ceil(retry_after)
+    wait = f"{seconds} seconds" if seconds < 120 else f"{math.ceil(seconds / 60)} minutes"
+
+    return f"{message} Gemini asked to wait {wait} before trying again."
 
 
 def _is_invalid_api_key(error: genai_errors.APIError) -> bool:
@@ -155,7 +198,11 @@ class GeminiProvider(BaseProvider):
                 ) from e
 
             elif status == "RESOURCE_EXHAUSTED":
-                raise RateLimitError("Gemini API rate limit exceeded.") from e
+                retry_after = _retry_after(e)
+
+                raise RateLimitError(
+                    _rate_limit_message(retry_after), retry_after=retry_after
+                ) from e
 
             elif status in ("UNAVAILABLE", "DEADLINE_EXCEEDED"):
                 raise ProviderUnavailableError("Gemini service is currently unavailable.") from e

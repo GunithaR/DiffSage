@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+import httpx
 import pytest
 from google.genai import errors as genai_errors
 from google.genai import types
@@ -455,3 +456,69 @@ def test_gemini_provider_tolerates_missing_usage_model_and_finish_reason() -> No
     assert response.input_tokens is None
     assert response.output_tokens is None
     assert response.finish_reason is None
+
+
+def rate_limited(*details: dict, headers: dict[str, str] | None = None) -> genai_errors.APIError:
+    """A 429 shaped like the Gemini API's, optionally with an HTTP response's headers."""
+
+    return genai_errors.APIError(
+        code=429,
+        response_json={
+            "error": {
+                "code": 429,
+                "message": "You exceeded your current quota.",
+                "status": "RESOURCE_EXHAUSTED",
+                "details": list(details),
+            }
+        },
+        response=httpx.Response(429, headers=headers) if headers is not None else None,
+    )
+
+
+@pytest.mark.parametrize(
+    ("error", "retry_after", "message"),
+    [
+        (
+            rate_limited(
+                {"@type": "type.googleapis.com/google.rpc.QuotaFailure", "violations": []},
+                {"@type": "type.googleapis.com/google.rpc.RetryInfo", "retryDelay": "37s"},
+            ),
+            37.0,
+            "Gemini API rate limit exceeded. Gemini asked to wait 37 seconds before trying again.",
+        ),
+        (
+            rate_limited(
+                {"@type": "type.googleapis.com/google.rpc.RetryInfo", "retryDelay": "0.5s"}
+            ),
+            0.5,
+            "Gemini API rate limit exceeded. Gemini asked to wait 1 seconds before trying again.",
+        ),
+        (
+            rate_limited(headers={"Retry-After": "12"}),
+            12.0,
+            "Gemini API rate limit exceeded. Gemini asked to wait 12 seconds before trying again.",
+        ),
+        (
+            rate_limited(
+                {"@type": "type.googleapis.com/google.rpc.RetryInfo", "retryDelay": "3600s"}
+            ),
+            3600.0,
+            "Gemini API rate limit exceeded. Gemini asked to wait 60 minutes before trying again.",
+        ),
+        (
+            rate_limited(headers={"Retry-After": "Wed, 21 Oct 2026 07:28:00 GMT"}),
+            None,
+            "Gemini API rate limit exceeded.",
+        ),
+        (rate_limited(), None, "Gemini API rate limit exceeded."),
+    ],
+    ids=["retry-info", "fractional", "retry-after-header", "long-wait", "http-date", "no-hint"],
+)
+def test_gemini_provider_passes_on_the_suggested_wait_of_a_rate_limit(
+    error, retry_after, message
+) -> None:
+    with pytest.raises(RateLimitError) as raised:
+        generate_with_error(error)
+
+    assert raised.value.retry_after == retry_after
+    assert raised.value.message == message
