@@ -522,3 +522,31 @@ def test_gemini_provider_passes_on_the_suggested_wait_of_a_rate_limit(
 
     assert raised.value.retry_after == retry_after
     assert raised.value.message == message
+
+
+def sent_config(request: ProviderRequest) -> types.GenerateContentConfig:
+    with patch("diffsage.providers.gemini_provider.genai.Client") as mock_client:
+        client = mock_client.return_value
+        client.models.generate_content.return_value = gemini_reply(types.Part(text="{}"))
+
+        GeminiProvider(create_settings(), create_credential()).generate(request)
+
+        return client.models.generate_content.call_args.kwargs["config"]
+
+
+def test_gemini_provider_requests_json_mode_when_a_schema_is_given() -> None:
+    schema = {"type": "object", "properties": {"title": {"type": "string"}}}
+    request = create_request()
+    request.response_schema = schema
+
+    config = sent_config(request)
+
+    assert config.response_mime_type == "application/json"
+    assert config.response_json_schema == schema
+
+
+def test_gemini_provider_requests_plain_text_without_a_schema() -> None:
+    config = sent_config(create_request())
+
+    assert config.response_mime_type is None
+    assert config.response_json_schema is None

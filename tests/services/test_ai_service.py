@@ -382,3 +382,22 @@ def test_backoff_is_jittered_between_half_and_the_whole_step(monkeypatch, attemp
 
     assert all(step / 2 <= delay <= step for delay in delays)
     assert len(delays) > 1
+
+
+def test_ask_forwards_the_response_schema_to_the_provider():
+    schema = {"type": "object"}
+    provider = Mock()
+    provider.generate.return_value = ok_response()
+
+    service_with_provider(provider).ask("prompt", response_schema=schema)
+
+    assert provider.generate.call_args.args[0].response_schema is schema
+
+
+def test_ask_requests_plain_text_by_default():
+    provider = Mock()
+    provider.generate.return_value = ok_response()
+
+    service_with_provider(provider).ask("prompt")
+
+    assert provider.generate.call_args.args[0].response_schema is None

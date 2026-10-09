@@ -1,7 +1,21 @@
 import json
+from typing import Any
 
 from diffsage.exceptions import InvalidPullRequestDraftError
 from diffsage.models.pull_request import PullRequestDraft
+
+_TEXT_FIELDS = ("title", "summary", "why")
+_LIST_FIELDS = ("changes", "testing", "risks", "reviewer_focus", "breaking_changes")
+
+# JSON Schema of a pull request draft, sent to providers that can enforce it.
+PULL_REQUEST_DRAFT_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        **{name: {"type": "string"} for name in _TEXT_FIELDS},
+        **{name: {"type": "array", "items": {"type": "string"}} for name in _LIST_FIELDS},
+    },
+    "required": [*_TEXT_FIELDS, *_LIST_FIELDS],
+}
 
 
 class PullRequestParser:
@@ -14,18 +28,7 @@ class PullRequestParser:
         if not isinstance(data, dict):
             raise InvalidPullRequestDraftError("AI response must be a JSON object.")
 
-        required_fields = {
-            "title",
-            "summary",
-            "why",
-            "changes",
-            "testing",
-            "risks",
-            "reviewer_focus",
-            "breaking_changes",
-        }
-
-        if set(data) != required_fields:
+        if set(data) != set(PULL_REQUEST_DRAFT_SCHEMA["required"]):
             raise InvalidPullRequestDraftError(
                 "AI response contains invalid or missing pull request fields."
             )
@@ -39,15 +42,7 @@ class PullRequestParser:
         if not isinstance(data["why"], str):
             raise InvalidPullRequestDraftError("Pull request why field must be a string.")
 
-        list_fields = {
-            "changes",
-            "testing",
-            "risks",
-            "reviewer_focus",
-            "breaking_changes",
-        }
-
-        for field in list_fields:
+        for field in _LIST_FIELDS:
             if not isinstance(data[field], list):
                 raise InvalidPullRequestDraftError(f"Pull request {field} field must be a list.")
 

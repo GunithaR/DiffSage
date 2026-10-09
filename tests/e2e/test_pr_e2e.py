@@ -10,6 +10,7 @@ from typer.testing import CliRunner
 
 from diffsage.cli import app
 from diffsage.commands.error_handler import UNEXPECTED_ERROR_MESSAGE
+from diffsage.parsers.pull_request_parser import PULL_REQUEST_DRAFT_SCHEMA
 from tests.helpers import run_git
 
 runner = CliRunner()
@@ -244,3 +245,12 @@ def test_cancelled_pr_edit_keeps_the_draft(fake_provider, fake_gh, monkeypatch) 
     assert result.exit_code == 0, result.output
     assert "! Edit cancelled. The draft is unchanged." in result.output
     assert pr_create_call(fake_gh.calls)[7] == "Add greeting script"
+
+
+@pytest.mark.usefixtures("feature_branch", "fake_gh")
+def test_pr_asks_the_ai_for_a_reply_in_the_draft_schema(fake_provider) -> None:
+    fake_provider.queue(draft_json())
+
+    runner.invoke(app, ["pr"], input="n\n")
+
+    assert fake_provider.requests[0].response_schema == PULL_REQUEST_DRAFT_SCHEMA

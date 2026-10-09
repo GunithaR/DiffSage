@@ -1,6 +1,7 @@
 import random
 import time
 from collections.abc import Callable
+from typing import Any
 
 from diffsage.config.settings import Settings
 from diffsage.exceptions import ProviderUnavailableError, RateLimitError
@@ -36,12 +37,15 @@ class AIService:
 
             self._provider = create_provider(settings, credential)
 
-    def _ask_once(self, prompt: str) -> ProviderResponse:
+    def _ask_once(
+        self, prompt: str, response_schema: dict[str, Any] | None = None
+    ) -> ProviderResponse:
         request = ProviderRequest(
             prompt=prompt,
             model=self._settings.ai_model,
             temperature=0.2,
             max_tokens=1000,
+            response_schema=response_schema,
         )
 
         return self._provider.generate(request)
@@ -71,22 +75,32 @@ class AIService:
         self,
         prompt: str,
         on_attempt: Callable[[int, int], None] | None = None,
+        response_schema: dict[str, Any] | None = None,
     ) -> ProviderResponse:
-        total_attempts = self._settings.max_retries + 1
+        """Send `prompt` to the provider, retrying outages and rate limits.
 
-        for attempt in range(total_attempts):
+        `response_schema` (a JSON Schema) asks for a reply in that JSON shape.
+        """
+
+        total_attempts = self._settings.max_retries + 1
+        attempt = 0
+
+        # Every pass returns, raises, or sleeps and tries again; `while True` lets type
+        # checkers see that the method never falls off the end without a response.
+        while True:
             attempt_number = attempt + 1
 
             if on_attempt is not None:
                 on_attempt(attempt_number, total_attempts)
 
             try:
-                return self._ask_once(prompt)
+                return self._ask_once(prompt, response_schema)
 
             except (ProviderUnavailableError, RateLimitError) as error:
                 delay = self._retry_delay(attempt, error)
 
-                if attempt == total_attempts - 1 or delay is None:
+                if attempt_number >= total_attempts or delay is None:
                     raise
 
                 time.sleep(delay)
+                attempt += 1

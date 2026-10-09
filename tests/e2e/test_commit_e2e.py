@@ -380,3 +380,12 @@ def test_cancelled_edit_keeps_the_message(git_repo, fake_provider, monkeypatch) 
     assert result.exit_code == 0, result.output
     assert "! Edit cancelled. The message below is unchanged." in result.output
     assert head_message(git_repo) == "feat: add app"
+
+
+def test_commit_asks_the_ai_for_plain_text(git_repo, fake_provider) -> None:
+    stage_file(git_repo, "greeting.py", "print('hello')\n")
+    fake_provider.queue("feat: add greeting script")
+
+    runner.invoke(app, ["commit"], input="n\n")
+
+    assert fake_provider.requests[0].response_schema is None

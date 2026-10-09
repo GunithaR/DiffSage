@@ -1,9 +1,11 @@
 import json
+from dataclasses import fields
 
 import pytest
 
 from diffsage.exceptions import InvalidPullRequestDraftError
-from diffsage.parsers.pull_request_parser import PullRequestParser
+from diffsage.models.pull_request import PullRequestDraft
+from diffsage.parsers.pull_request_parser import PULL_REQUEST_DRAFT_SCHEMA, PullRequestParser
 
 
 def test_parse_valid_pull_request_response() -> None:
@@ -164,3 +166,21 @@ def test_parse_list_with_non_string_item_raises_error() -> None:
 
     with pytest.raises(InvalidPullRequestDraftError):
         parser.parse(content)
+
+
+def test_draft_schema_matches_the_draft_model() -> None:
+    """The schema sent to the AI and the model the parser builds must not drift apart."""
+
+    names = [field.name for field in fields(PullRequestDraft)]
+
+    assert list(PULL_REQUEST_DRAFT_SCHEMA["properties"]) == names
+    assert PULL_REQUEST_DRAFT_SCHEMA["required"] == names
+
+
+def test_a_draft_that_follows_the_schema_parses() -> None:
+    draft = {
+        name: "text" if spec["type"] == "string" else ["item"]
+        for name, spec in PULL_REQUEST_DRAFT_SCHEMA["properties"].items()
+    }
+
+    assert PullRequestParser().parse(json.dumps(draft)).to_dict() == draft

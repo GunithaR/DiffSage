@@ -170,6 +170,12 @@ class GeminiProvider(BaseProvider):
             http_options=types.HttpOptions(timeout=timeout_ms),
         )
 
+        if request.response_schema is not None:
+            # Gemini's JSON mode: the reply is a bare JSON document in this shape, with
+            # no code fences or surrounding prose.
+            config.response_mime_type = "application/json"
+            config.response_json_schema = request.response_schema
+
         try:
             response = self._client.models.generate_content(
                 model=request.model, contents=request.prompt, config=config
