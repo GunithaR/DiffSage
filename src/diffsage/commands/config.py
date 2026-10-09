@@ -1,4 +1,8 @@
+import re
+from typing import Any
+
 import typer
+from typer.core import TyperCommand
 
 from diffsage.commands.error_handler import handle_command_errors
 from diffsage.config.loader import load_settings, load_settings_or_defaults
@@ -16,6 +20,31 @@ app = typer.Typer(help="DiffSage configuration", invoke_without_command=False)
 
 READ_LOCAL_HELP = "Read the repository's .diffsage.toml directly, instead of the resolved values."
 READ_GLOBAL_HELP = "Read your user-wide config file directly, instead of the resolved values."
+
+
+_NEGATIVE_NUMBER = re.compile(r"^-\d+(\.\d+)?$")
+
+
+class _AcceptsNegativeNumbers(TyperCommand):
+    """Read a negative number such as -5 as a value, not as an unknown option.
+
+    Click treats every argument starting with "-" as an option, so `config set timeout -5`
+    failed with "No such option: -5" before the value could be validated. Negative
+    numbers are moved behind "--" (end of options), where Click reads them as arguments;
+    options and the key keep their order in front, so misspelled options are still
+    reported as unknown options.
+    """
+
+    # ctx is only passed on; its type is Click's Context, which Typer vendors privately.
+    def parse_args(self, ctx: Any, args: list[str]) -> list[str]:
+        if "--" not in args:
+            numbers = [arg for arg in args if _NEGATIVE_NUMBER.match(arg)]
+
+            if numbers:
+                rest = [arg for arg in args if not _NEGATIVE_NUMBER.match(arg)]
+                args = [*rest, "--", *numbers]
+
+        return super().parse_args(ctx, args)
 
 
 def _resolve_scope(*, local: bool, global_: bool) -> ConfigScope:
@@ -98,7 +127,7 @@ def get_config(
     view.show_value(report)
 
 
-@app.command("set")
+@app.command("set", cls=_AcceptsNegativeNumbers)
 @handle_command_errors("config set")
 def set_config(
     key: str,
