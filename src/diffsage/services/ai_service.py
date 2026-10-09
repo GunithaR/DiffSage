@@ -44,7 +44,7 @@ class AIService:
             prompt=prompt,
             model=self._settings.ai_model,
             temperature=0.2,
-            max_tokens=1000,
+            max_tokens=self._settings.max_output_tokens,
             response_schema=response_schema,
         )
 

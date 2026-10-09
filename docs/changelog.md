@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- `max_output_tokens` setting (`[ai] max_output_tokens`, `DIFFSAGE_MAX_OUTPUT_TOKENS`, default 1000, allowed 1–65536) in place of the fixed limit of 1000 tokens on AI replies.
+
 
 ## [1.4.0] - 2026-10-05
 

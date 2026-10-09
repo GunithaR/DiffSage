@@ -39,6 +39,7 @@ class DoctorView:
             typer.echo()
 
         typer.echo(f"Provider       : {report.provider}")
+        typer.echo(f"Output Tokens  : {report.max_output_tokens}")
         typer.echo(f"Timeout        : {report.timeout}")
         typer.echo(f"Max Retries    : {report.max_retries}")
         typer.echo(f"Log Level      : {report.log_level}")

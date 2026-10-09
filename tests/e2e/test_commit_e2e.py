@@ -389,3 +389,38 @@ def test_commit_asks_the_ai_for_plain_text(git_repo, fake_provider) -> None:
     runner.invoke(app, ["commit"], input="n\n")
 
     assert fake_provider.requests[0].response_schema is None
+
+
+@pytest.mark.parametrize(
+    ("configure", "expected"),
+    [
+        ([], 1000),
+        (["config", "set", "max_output_tokens", "4000", "--global"], 4000),
+    ],
+    ids=["default", "config-file"],
+)
+def test_commit_uses_the_configured_output_token_limit(
+    git_repo, fake_provider, configure, expected
+) -> None:
+    """Regression: the limit was fixed at 1000 tokens, so long replies could not fit."""
+
+    if configure:
+        assert runner.invoke(app, configure).exit_code == 0
+    stage_file(git_repo, "greeting.py", "print('hello')\n")
+    fake_provider.queue("feat: add greeting script")
+
+    runner.invoke(app, ["commit"], input="n\n")
+
+    assert fake_provider.requests[0].max_tokens == expected
+
+
+def test_commit_output_token_limit_follows_the_environment(
+    git_repo, fake_provider, monkeypatch
+) -> None:
+    monkeypatch.setenv("DIFFSAGE_MAX_OUTPUT_TOKENS", "2500")
+    stage_file(git_repo, "greeting.py", "print('hello')\n")
+    fake_provider.queue("feat: add greeting script")
+
+    runner.invoke(app, ["commit"], input="n\n")
+
+    assert fake_provider.requests[0].max_tokens == 2500

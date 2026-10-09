@@ -12,12 +12,16 @@ MIN_TIMEOUT_SECONDS = 1
 MAX_TIMEOUT_SECONDS = 600
 MIN_RETRIES = 0
 MAX_RETRIES = 10
+# Upper bound of the output limit current Gemini models accept.
+MIN_OUTPUT_TOKENS = 1
+MAX_OUTPUT_TOKENS = 65_536
 
 # CLI key -> (config file section, option)
 CONFIG_KEYS: dict[str, tuple[str, str]] = {
     "provider": ("ai", "provider"),
     "model": ("ai", "model"),
     "credential_profile": ("ai", "credential_profile"),
+    "max_output_tokens": ("ai", "max_output_tokens"),
     "timeout": ("network", "timeout"),
     "max_retries": ("network", "max_retries"),
     "log_level": ("logging", "level"),
@@ -40,6 +44,7 @@ CredentialProfile = Annotated[
 ]
 Timeout = Annotated[int, Field(ge=MIN_TIMEOUT_SECONDS, le=MAX_TIMEOUT_SECONDS)]
 MaxRetries = Annotated[int, Field(ge=MIN_RETRIES, le=MAX_RETRIES)]
+MaxOutputTokens = Annotated[int, Field(ge=MIN_OUTPUT_TOKENS, le=MAX_OUTPUT_TOKENS)]
 LogLevel = Annotated[
     Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], BeforeValidator(_upper)
 ]
@@ -54,6 +59,7 @@ class AIConfig(_Section):
     provider: Provider
     model: Model
     credential_profile: CredentialProfile
+    max_output_tokens: MaxOutputTokens
 
 
 class NetworkConfig(_Section):
@@ -75,6 +81,7 @@ class PartialAIConfig(_Section):
     provider: Provider | None = None
     model: Model | None = None
     credential_profile: CredentialProfile | None = None
+    max_output_tokens: MaxOutputTokens | None = None
 
 
 class PartialNetworkConfig(_Section):

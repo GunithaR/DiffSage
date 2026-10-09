@@ -216,6 +216,7 @@ DIFFSAGE_AI_MODEL=<provider-supported-model>
 DIFFSAGE_LOG_LEVEL=INFO
 DIFFSAGE_TIMEOUT=60
 DIFFSAGE_MAX_RETRIES=3
+DIFFSAGE_MAX_OUTPUT_TOKENS=1000
 ```
 
 The configured model must be supported by the selected AI provider.
@@ -227,6 +228,15 @@ diffsage config list
 diffsage config get provider
 diffsage config set provider gemini
 diffsage config unset provider
+```
+
+`max_output_tokens` (default `1000`, allowed 1–65536) caps how long an AI reply may be.
+If a reply is cut off, DiffSage stops with an error instead of using a half-written
+message; raise the limit for large pull requests or for models that spend output on
+reasoning:
+
+```bash
+diffsage config set max_output_tokens 4000
 ```
 
 ---

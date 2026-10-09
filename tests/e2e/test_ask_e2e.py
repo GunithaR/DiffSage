@@ -55,3 +55,12 @@ def test_ask_recovers_from_a_rate_limit_by_retrying(fake_provider) -> None:
     assert result.exit_code == 0, result.output
     assert "Recovered answer." in result.output
     assert fake_provider.prompts == ["hello", "hello"]
+
+
+def test_truncated_reply_says_how_to_raise_the_limit(fake_provider) -> None:
+    fake_provider.queue(ResponseTruncatedError("The reply was cut off at 1000 tokens."))
+
+    result = runner.invoke(app, ["ask", "hello"])
+
+    assert result.exit_code == 1
+    assert "diffsage config set max_output_tokens <tokens>" in " ".join(result.output.split())

@@ -1,3 +1,4 @@
+import re
 from unittest.mock import patch
 
 import httpx
@@ -365,7 +366,9 @@ def test_gemini_provider_rejects_a_reply_cut_off_by_the_token_limit(parts) -> No
 
     with pytest.raises(
         ResponseTruncatedError,
-        match=r"^Gemini's reply was cut off at the output limit of 1000 tokens\.$",
+        match=r"^Gemini's reply was cut off at the output limit of 1000 tokens\. "
+        + re.escape(ResponseTruncatedError.HINT)
+        + "$",
     ):
         generate_with_reply(reply)
 

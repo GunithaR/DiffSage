@@ -43,4 +43,14 @@ class ContentBlockedError(ProviderError):
 
 
 class ResponseTruncatedError(ProviderError):
-    """Raised when a reply is cut off by the output token limit."""
+    """Raised when a reply is cut off by the output token limit.
+
+    The message always ends with how to raise the limit.
+    """
+
+    HINT = (
+        "To allow longer replies, raise the limit: diffsage config set max_output_tokens <tokens>"
+    )
+
+    def __init__(self, message: str | None = None) -> None:
+        super().__init__(f"{message or 'The AI reply was cut off.'} {self.HINT}")
