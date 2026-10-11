@@ -52,7 +52,7 @@ dev = [
     "pre-commit>=4,<5",
     "build>=1,<2",
     "pip-audit>=2,<3",
-    "mypy>=1.18,<2",
+    "mypy>=1.18,<3",
 ]
 
 [project.scripts]
