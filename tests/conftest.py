@@ -7,6 +7,7 @@ from diffsage.config.paths import get_credentials_path
 from diffsage.github.client import GitHubClient
 from diffsage.models.credentials import Credential
 from diffsage.storage.credentials_repository import CredentialsRepository
+from tests import network_guard
 from tests.fakes import FakeGitHubCLI, FakeProvider
 from tests.helpers import init_git_repo, init_git_repo_with_initial_commit, run_git
 
@@ -47,7 +48,7 @@ class IsolatedEnv:
 @pytest.fixture(autouse=True)
 def isolated_env(tmp_path, monkeypatch) -> IsolatedEnv:
     """Keep DiffSage away from the developer's real config, credentials, logs and
-    repository-local .diffsage.toml.
+    repository-local .diffsage.toml, and away from real AI providers and the network.
 
     Applied to every test automatically, so no test result depends on the machine it
     runs on. Tests that need the paths request it by name and get the same instance.
@@ -58,6 +59,7 @@ def isolated_env(tmp_path, monkeypatch) -> IsolatedEnv:
     """
 
     remove_diffsage_env(monkeypatch)
+    network_guard.install(monkeypatch)
 
     config_dir = tmp_path / "config"
     log_dir = tmp_path / "logs"

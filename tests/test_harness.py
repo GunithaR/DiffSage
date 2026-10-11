@@ -1,8 +1,11 @@
+import socket
 import subprocess
 from pathlib import Path
 
 import pytest
+from typer.testing import CliRunner
 
+from diffsage.cli import app
 from diffsage.config.loader import load_settings
 from diffsage.config.paths import (
     get_credentials_path,
@@ -16,11 +19,15 @@ from diffsage.exceptions import (
 )
 from diffsage.git.client import GitClient
 from diffsage.github.client import GitHubClient
+from diffsage.models.credentials import Credential
 from diffsage.models.pull_request import PullRequestDraft
+from diffsage.providers.gemini_provider import GeminiProvider
 from diffsage.services.ai_service import AIService
 from diffsage.services.credentials_service import CredentialService
 from diffsage.services.github_service import GitHubService
 from diffsage.storage.credentials_repository import CredentialsRepository
+from tests.helpers import create_settings
+from tests.network_guard import RealServiceAccessError
 
 
 def create_ai_service() -> AIService:
@@ -126,3 +133,42 @@ def test_git_remote_tracks_main() -> None:
 def test_isolated_env_ignores_local_config_where_pytest_started(isolated_env) -> None:
     assert Path.cwd() == isolated_env.workdir
     assert not (Path.cwd() / ".diffsage.toml").exists()
+
+
+def test_creating_a_real_gemini_client_fails_the_test() -> None:
+    with pytest.raises(RealServiceAccessError, match="real Gemini client"):
+        GeminiProvider(create_settings(), Credential("gemini", "default", "dummy-key"))
+
+
+@pytest.mark.usefixtures("credential")
+def test_a_real_gemini_client_cannot_hide_behind_the_cli_error_handler() -> None:
+    """The guard must not be reported as "unexpected error" and pass a test that
+    expects the command to fail."""
+
+    with pytest.raises(RealServiceAccessError):
+        CliRunner().invoke(app, ["ask", "hello"], catch_exceptions=True)
+
+
+@pytest.mark.parametrize(
+    "connect",
+    [
+        lambda: socket.create_connection(("generativelanguage.googleapis.com", 443), timeout=1),
+        lambda: socket.create_connection(("8.8.8.8", 53), timeout=1),
+        lambda: socket.getaddrinfo("example.com", 80),
+    ],
+    ids=["by-name", "by-ip", "dns-lookup"],
+)
+def test_network_access_fails_the_test(connect) -> None:
+    with pytest.raises(RealServiceAccessError):
+        connect()
+
+
+def test_local_sockets_still_work() -> None:
+    with socket.create_server(("127.0.0.1", 0)) as server:
+        port = server.getsockname()[1]
+
+        with socket.create_connection(("127.0.0.1", port), timeout=1):
+            pass
+
+        with socket.create_connection(("localhost", port), timeout=1):
+            pass
