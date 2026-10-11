@@ -10,6 +10,7 @@ DEFAULT_CONFIG = DiffSageConfig(
         provider="gemini",
         model="gemini-3.5-flash-lite",
         credential_profile="default",
+        max_output_tokens=1000,
     ),
     network=NetworkConfig(
         timeout=30,

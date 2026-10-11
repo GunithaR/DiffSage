@@ -3,7 +3,7 @@ from dataclasses import replace
 
 from diffsage.logging.logger import get_logger
 from diffsage.models.pull_request import PullRequestDraft
-from diffsage.parsers.pull_request_parser import PullRequestParser
+from diffsage.parsers.pull_request_parser import PULL_REQUEST_DRAFT_SCHEMA, PullRequestParser
 from diffsage.services.ai_service import AIService
 from diffsage.services.diff_sanitizer import sanitize
 from diffsage.services.git_service import GitService
@@ -54,6 +54,10 @@ class PullRequestService:
             notes,
         )
 
-        response = self._ai_service.ask(prompt, on_attempt=on_attempt)
+        response = self._ai_service.ask(
+            prompt,
+            on_attempt=on_attempt,
+            response_schema=PULL_REQUEST_DRAFT_SCHEMA,
+        )
 
         return self._parser.parse(response.content)

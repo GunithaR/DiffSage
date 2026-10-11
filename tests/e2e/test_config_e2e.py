@@ -186,10 +186,19 @@ def test_diffsage_does_not_import_dotenv() -> None:
         (["max_retries", "999"], "Invalid value '999' for max_retries: Input should be less than"),
         (["log_level", "LOUD"], "Invalid value 'LOUD' for log_level: Input should be 'DEBUG'"),
         (["provider", "openai"], "Invalid value 'openai' for provider: Input should be 'gemini'"),
+        (
+            ["max_output_tokens", "0"],
+            "Invalid value '0' for max_output_tokens: Input should be greater than or equal to 1",
+        ),
+        (
+            ["max_output_tokens", "70000"],
+            "Invalid value '70000' for max_output_tokens: Input should be less than or equal to "
+            "65536",
+        ),
     ],
 )
 def test_config_set_rejects_invalid_values_and_writes_nothing(isolated_env, args, expected) -> None:
-    # --global goes first: a negative number needs "--", which ends option parsing.
+    # The explicit "--" form (end of options) must keep working for negative numbers.
     result = runner.invoke(app, ["config", "set", "--global", *args])
 
     assert result.exit_code == 1
@@ -265,3 +274,50 @@ def test_scope_option_help_describes_each_file(command, expected) -> None:
     for text in expected:
         assert text in flat(result.output)
     assert "repository's global" not in result.output
+
+
+def test_max_output_tokens_is_stored_in_the_ai_section_and_listed(isolated_env) -> None:
+    result = runner.invoke(app, ["config", "set", "max_output_tokens", "4000", "--global"])
+
+    assert result.exit_code == 0, result.output
+    assert "[ai]\nmax_output_tokens = 4000" in (isolated_env.config_dir / "config.toml").read_text()
+
+    listed = runner.invoke(app, ["config", "list"])
+
+    assert "Max Output Tokens 4000" in flat(listed.output)
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        ["timeout", "-5"],
+        ["timeout", "-5", "--global"],
+        ["--global", "timeout", "-5"],
+        ["max_output_tokens", "-5", "--global"],
+        ["max_retries", "-1.5"],
+    ],
+)
+def test_config_set_validates_negative_numbers_instead_of_reading_them_as_options(
+    isolated_env, args
+) -> None:
+    """Regression: Click read "-5" as an unknown option and failed with "No such
+    option: -5" before DiffSage could explain which values are allowed."""
+
+    result = runner.invoke(app, ["config", "set", *args])
+
+    key = next(arg for arg in args if not arg.startswith("-"))
+    value = next(arg for arg in args if arg[1:2].isdigit())
+    assert result.exit_code == 1
+    assert f"✗ Invalid value '{value}' for {key}:" in flat(result.output)
+    assert "No such option" not in result.output
+    assert not (isolated_env.config_dir / "config.toml").exists()
+
+
+@pytest.mark.parametrize(
+    "args", [["timeout", "5", "--golbal"], ["--golbal", "timeout", "5"], ["timeout", "-5", "-x"]]
+)
+def test_config_set_still_reports_misspelled_options(args) -> None:
+    result = runner.invoke(app, ["config", "set", *args])
+
+    assert result.exit_code == 2
+    assert "No such option" in result.output

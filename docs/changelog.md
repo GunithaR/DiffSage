@@ -2,6 +2,30 @@
 
 ## [Unreleased]
 
+### Added
+
+- `max_output_tokens` setting (`[ai] max_output_tokens`, `DIFFSAGE_MAX_OUTPUT_TOKENS`, default 1000, allowed 1–65536) in place of the fixed limit of 1000 tokens on AI replies. `config list` and `doctor` show it.
+
+### Changed
+
+- Rate-limited AI requests (HTTP 429) are retried like provider outages, up to `max_retries` times. DiffSage waits as long as the provider asks, up to 60 seconds; if it asks for longer (typically a used-up daily quota), the command stops at once and says how long to wait. Other retries back off exponentially with random jitter, up to 30 seconds between attempts.
+- Pull request drafts are requested in Gemini's JSON output mode with a schema of the draft, so replies arrive as bare JSON in the expected shape.
+- Commands start about a third of a second faster: the Gemini SDK is loaded only when a command calls the AI, so `config`, `auth` and `doctor` no longer load it.
+
+### Fixed
+
+- Every Gemini `INVALID_ARGUMENT` error (for example a prompt over the model's token limit) was reported as a bad API key. Only a rejected key is reported that way now; other errors show Gemini's own explanation.
+- A blocked prompt, a reply stopped by Gemini's safety filters, an empty reply, or a reply without usage data crashed with an unexpected error. Each is now reported with a clear message.
+- A reply cut off by the output token limit was used as if it were complete, so a half-written message reached the parser. It now stops with an error that says how to raise the limit.
+- Pull request drafts wrapped in a ```` ```json ```` code fence, or with a sentence before or after them, were rejected as invalid JSON. The draft inside is now found and validated as usual, including drafts edited by hand.
+- `config set timeout -5` (or any negative number) failed with "No such option: -5" instead of explaining which values are allowed.
+
+### Development
+
+- The Gemini provider and the AI service are type-checked; they are no longer in the mypy baseline.
+- Tests fail if they create a real Gemini client or connect to anything other than this machine.
+- AI providers are registered in one place (`providers/factory.py`), and the configuration schema reads the supported names from it, so a new provider needs no changes outside `providers/`.
+
 
 ## [1.4.0] - 2026-10-05
 

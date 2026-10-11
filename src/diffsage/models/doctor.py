@@ -6,6 +6,7 @@ class DoctorReport(BaseModel):
     git_installed: bool
     git_version: str | None
     provider: str
+    max_output_tokens: int
     timeout: int
     max_retries: int
     log_level: str

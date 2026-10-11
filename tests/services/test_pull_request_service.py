@@ -11,7 +11,7 @@ from diffsage.models.pull_request_analysis import (
     PullRequestAnalysis,
     RiskLevel,
 )
-from diffsage.parsers.pull_request_parser import PullRequestParser
+from diffsage.parsers.pull_request_parser import PULL_REQUEST_DRAFT_SCHEMA, PullRequestParser
 from diffsage.services.ai_service import AIService
 from diffsage.services.git_service import GitService
 from diffsage.services.prompt_service import PromptService
@@ -164,6 +164,7 @@ def test_generate_draft_returns_generated_pull_request_draft() -> None:
     assert call.args[0] == "generated prompt"
     assert "on_attempt" in call.kwargs
     assert call.kwargs["on_attempt"] is on_attempt
+    assert call.kwargs["response_schema"] is PULL_REQUEST_DRAFT_SCHEMA
 
     parser.parse.assert_called_once_with(response.content)
 

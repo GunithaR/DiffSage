@@ -47,6 +47,7 @@ class DoctorService:
             git_installed=git_installed,
             git_version=git_version,
             provider=settings.provider,
+            max_output_tokens=settings.max_output_tokens,
             timeout=settings.timeout,
             max_retries=settings.max_retries,
             log_level=settings.log_level,

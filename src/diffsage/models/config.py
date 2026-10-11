@@ -7,6 +7,7 @@ class ConfigReport:
     provider: str | None
     model: str | None
     credential_profile: str | None
+    max_output_tokens: int | None
     timeout: int | None
     max_retries: int | None
     log_level: str | None
@@ -22,6 +23,7 @@ class RawConfigReport:
     provider: str | int | None
     model: str | int | None
     credential_profile: str | int | None
+    max_output_tokens: str | int | None
     timeout: str | int | None
     max_retries: str | int | None
     log_level: str | int | None

@@ -5,7 +5,12 @@ from typer.testing import CliRunner
 
 from diffsage.cli import app
 from diffsage.commands.error_handler import UNEXPECTED_ERROR_MESSAGE
-from diffsage.exceptions import ProviderError, RateLimitError
+from diffsage.exceptions import (
+    InvalidRequestError,
+    ProviderError,
+    RateLimitError,
+    ResponseTruncatedError,
+)
 
 runner = CliRunner()
 
@@ -23,8 +28,11 @@ def test_ask_prints_provider_response(fake_provider) -> None:
 @pytest.mark.parametrize(
     "error",
     [
-        RateLimitError("Gemini API rate limit exceeded."),
+        # Not retried: the wait asked for is longer than DiffSage is willing to wait.
+        RateLimitError("Gemini API rate limit exceeded.", retry_after=3600),
         ProviderError("Gemini API request failed: 500 INTERNAL."),
+        InvalidRequestError("Gemini rejected the request: The input token count is too large."),
+        ResponseTruncatedError("Gemini's reply was cut off at the output limit of 1000 tokens."),
     ],
 )
 def test_ask_reports_provider_errors_instead_of_unexpected_error(fake_provider, error) -> None:
@@ -37,3 +45,22 @@ def test_ask_reports_provider_errors_instead_of_unexpected_error(fake_provider, 
     assert result.exit_code == 1
     assert f"✗ {error}" in result.output
     assert UNEXPECTED_ERROR_MESSAGE not in result.output
+
+
+def test_ask_recovers_from_a_rate_limit_by_retrying(fake_provider) -> None:
+    fake_provider.queue(RateLimitError("Gemini API rate limit exceeded."), "Recovered answer.")
+
+    result = runner.invoke(app, ["ask", "hello"])
+
+    assert result.exit_code == 0, result.output
+    assert "Recovered answer." in result.output
+    assert fake_provider.prompts == ["hello", "hello"]
+
+
+def test_truncated_reply_says_how_to_raise_the_limit(fake_provider) -> None:
+    fake_provider.queue(ResponseTruncatedError("The reply was cut off at 1000 tokens."))
+
+    result = runner.invoke(app, ["ask", "hello"])
+
+    assert result.exit_code == 1
+    assert "diffsage config set max_output_tokens <tokens>" in " ".join(result.output.split())
