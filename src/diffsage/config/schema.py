@@ -6,7 +6,17 @@ validated against these models, so the same value is accepted or rejected everyw
 
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, StringConstraints
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    BeforeValidator,
+    ConfigDict,
+    Field,
+    StringConstraints,
+)
+from pydantic_core import PydanticCustomError
+
+from diffsage.providers.factory import PROVIDERS
 
 MIN_TIMEOUT_SECONDS = 1
 MAX_TIMEOUT_SECONDS = 600
@@ -36,7 +46,20 @@ def _upper(value: Any) -> Any:
     return value.strip().upper() if isinstance(value, str) else value
 
 
-Provider = Annotated[Literal["gemini"], BeforeValidator(_lower)]
+def _supported_provider(value: str) -> str:
+    """Accept only providers in the provider registry, so adding a provider needs no
+    change here. The message matches pydantic's own for a fixed list of values."""
+
+    if value not in PROVIDERS:
+        expected = " or ".join(repr(name) for name in PROVIDERS)
+        raise PydanticCustomError(
+            "literal_error", "Input should be {expected}", {"expected": expected}
+        )
+
+    return value
+
+
+Provider = Annotated[str, BeforeValidator(_lower), AfterValidator(_supported_provider)]
 Model = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 # Profile names are stored lowercased by `diffsage auth set --name`.
 CredentialProfile = Annotated[

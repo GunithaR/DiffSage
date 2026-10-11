@@ -14,7 +14,7 @@ def test_create_provider_creates_gemini_provider_with_credential() -> None:
         api_key="test-api-key",
     )
 
-    with patch("diffsage.providers.factory.GeminiProvider") as mock_provider:
+    with patch("diffsage.providers.gemini_provider.GeminiProvider") as mock_provider:
         create_provider(
             settings,
             credential,
