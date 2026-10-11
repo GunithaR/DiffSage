@@ -93,9 +93,6 @@ warn_unused_ignores = true
 # later remediation branches. Each branch removes its modules from this list.
 [[tool.mypy.overrides]]
 module = [
-    # feature/ai-provider-hardening
-    "diffsage.providers.gemini_provider",
-    "diffsage.services.ai_service",
     # chore/cleanup
     "diffsage.ui.auth_view",
     "diffsage.ui.config_view",
