@@ -254,3 +254,14 @@ def test_pr_asks_the_ai_for_a_reply_in_the_draft_schema(fake_provider) -> None:
     runner.invoke(app, ["pr"], input="n\n")
 
     assert fake_provider.requests[0].response_schema == PULL_REQUEST_DRAFT_SCHEMA
+
+
+@pytest.mark.usefixtures("feature_branch")
+def test_pr_accepts_a_draft_wrapped_in_a_code_fence(fake_provider, fake_gh) -> None:
+    fake_provider.queue(f"Here is the draft:\n```json\n{draft_json()}\n```")
+
+    result = runner.invoke(app, ["pr"], input="y\n")
+
+    assert result.exit_code == 0, result.output
+    assert "Pull request created successfully" in result.output
+    assert pr_create_call(fake_gh.calls) is not None

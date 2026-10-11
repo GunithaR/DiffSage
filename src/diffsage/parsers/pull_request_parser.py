@@ -18,12 +18,34 @@ PULL_REQUEST_DRAFT_SCHEMA: dict[str, Any] = {
 }
 
 
+def _load_json(content: str) -> Any:
+    """Parse the reply as JSON, falling back to the first JSON object inside it.
+
+    Providers with a JSON mode return bare JSON. Others (and edits) may wrap it in a
+    ```json code fence or add a sentence before or after it; the fallback decodes the
+    first complete object from each "{" in turn, so braces or fences inside string
+    values cannot cut it short.
+    """
+
+    try:
+        return json.loads(content)
+    except json.JSONDecodeError as error:
+        decoder = json.JSONDecoder()
+        start = content.find("{")
+
+        while start != -1:
+            try:
+                data, _end = decoder.raw_decode(content, start)
+                return data
+            except json.JSONDecodeError:
+                start = content.find("{", start + 1)
+
+        raise InvalidPullRequestDraftError("AI response is not valid JSON.") from error
+
+
 class PullRequestParser:
     def parse(self, content: str) -> PullRequestDraft:
-        try:
-            data = json.loads(content)
-        except json.JSONDecodeError as exc:
-            raise InvalidPullRequestDraftError("AI response is not valid JSON.") from exc
+        data = _load_json(content)
 
         if not isinstance(data, dict):
             raise InvalidPullRequestDraftError("AI response must be a JSON object.")
