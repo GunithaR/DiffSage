@@ -1,9 +1,7 @@
-"""Known bugs from the v1.3.1 review, pinned as strict expected failures.
+"""End-to-end tests for the `diffsage pr` progress spinner.
 
-Each test describes the CORRECT behaviour. While the bug exists the test fails
-and pytest reports it as xfail. When a branch fixes the bug the test passes,
-strict mode turns that XPASS into a failure, and the fixing branch must remove
-the xfail marker so the test becomes a normal regression test.
+These began as strict expected failures for a bug found in the v1.3.1 review:
+regenerate opened a new spinner but reported attempts on the first, closed one.
 """
 
 import json
@@ -76,8 +74,6 @@ DRAFT = json.dumps(
 
 @pytest.mark.usefixtures("pushed_feature_branch", "fake_gh")
 def test_pr_first_generation_reports_attempt(fake_provider, recorded_statuses) -> None:
-    """Control case for the regenerate bug below: the first spinner works today."""
-
     fake_provider.queue(DRAFT)
 
     runner.invoke(app, ["pr"], input="n\n")
@@ -85,13 +81,11 @@ def test_pr_first_generation_reports_attempt(fake_provider, recorded_statuses) -
     assert recorded_statuses[0].messages == ["Generating pull request draft... Attempt 1/4"]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="Bug: regenerate opens a new spinner but updates the closed first one. "
-    "Fixed by fix/pr-workflow.",
-)
 @pytest.mark.usefixtures("pushed_feature_branch", "fake_gh")
 def test_pr_regenerate_reports_attempt_on_its_own_spinner(fake_provider, recorded_statuses) -> None:
+    """Regression: regenerate opened a new spinner, but attempts were reported on the
+    first, already closed spinner, so the new one never showed them."""
+
     fake_provider.queue(DRAFT, DRAFT)
 
     result = runner.invoke(app, ["pr"], input="r\nn\n")

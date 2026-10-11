@@ -9,6 +9,7 @@ from diffsage.exceptions import InvalidPullRequestDraftError
 from diffsage.git.client import GitClient
 from diffsage.github.client import GitHubClient
 from diffsage.logging.logger import get_logger
+from diffsage.models.pull_request import PullRequestDraft
 from diffsage.parsers.pull_request_parser import PullRequestParser
 from diffsage.services.ai_service import AIService
 from diffsage.services.credentials_service import CredentialService
@@ -24,6 +25,27 @@ from diffsage.storage.credentials_repository import CredentialsRepository
 from diffsage.ui.pull_request_view import PullRequestView
 
 logger = get_logger(__name__)
+
+
+def _generate_draft(
+    view: PullRequestView,
+    pull_request_service: PullRequestService,
+    base_branch: str,
+) -> PullRequestDraft:
+    """Generate a draft under its own spinner, which shows the current attempt.
+
+    Shared by the first generation and regenerate, so each spinner updates itself:
+    regenerate used to update the first, already closed spinner instead.
+    """
+
+    with view.generating() as status:
+        return pull_request_service.generate_draft(
+            base_branch,
+            on_attempt=lambda attempt, total: status.update(
+                f"Generating pull request draft... Attempt {attempt}/{total}"
+            ),
+            on_notice=view.show_warning,
+        )
 
 
 @handle_command_errors("pr")
@@ -77,14 +99,7 @@ def pr(
         head_branch=head_branch,
     )
 
-    with view.generating() as status:
-        draft = pull_request_service.generate_draft(
-            resolved_base_branch,
-            on_attempt=lambda attempt, total: status.update(
-                f"Generating pull request draft... Attempt {attempt}/{total}"
-            ),
-            on_notice=view.show_warning,
-        )
+    draft = _generate_draft(view, pull_request_service, resolved_base_branch)
 
     view.show_generated(draft)
 
@@ -130,14 +145,7 @@ def pr(
         if choice == "r":
             logger.info("User selected regenerate.")
 
-            with view.generating():
-                draft = pull_request_service.generate_draft(
-                    resolved_base_branch,
-                    on_attempt=lambda attempt, total: status.update(
-                        f"Generating pull request draft... Attempt {attempt}/{total}"
-                    ),
-                    on_notice=view.show_warning,
-                )
+            draft = _generate_draft(view, pull_request_service, resolved_base_branch)
 
             view.show_generated(draft)
             continue
