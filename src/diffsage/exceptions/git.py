@@ -31,5 +31,11 @@ class UnpushedChangesError(GitError):
     default_message = "Your branch contains commits that have not been pushed to origin."
 
 
+class FetchFailedError(GitError):
+    """Raised when `git fetch` cannot update a branch from origin."""
+
+    default_message = "git fetch failed."
+
+
 class CommitFailedError(GitError):
     """Raised when `git commit` itself fails, for example when a hook rejects the commit."""

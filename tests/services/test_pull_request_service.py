@@ -151,7 +151,7 @@ def test_generate_draft_returns_generated_pull_request_draft() -> None:
 
     assert result == draft
 
-    git_service.build_pull_request_context.assert_called_once_with("main")
+    git_service.build_pull_request_context.assert_called_once_with("main", None)
     analysis_service.analyze.assert_called_once_with(context)
     prompt_service.build_pull_request_prompt.assert_called_once_with(
         context,

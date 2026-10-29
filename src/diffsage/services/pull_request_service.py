@@ -33,8 +33,9 @@ class PullRequestService:
         base_branch: str,
         on_attempt: Callable[[int, int], None] | None = None,
         on_notice: Callable[[str], None] | None = None,
+        base_ref: str | None = None,
     ) -> PullRequestDraft:
-        context = self._git_service.build_pull_request_context(base_branch)
+        context = self._git_service.build_pull_request_context(base_branch, base_ref)
 
         analysis = self._analysis_service.analyze(context)
 

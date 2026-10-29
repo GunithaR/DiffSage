@@ -31,6 +31,7 @@ def _generate_draft(
     view: PullRequestView,
     pull_request_service: PullRequestService,
     base_branch: str,
+    base_ref: str,
 ) -> PullRequestDraft:
     """Generate a draft under its own spinner, which shows the current attempt.
 
@@ -45,6 +46,7 @@ def _generate_draft(
                 f"Generating pull request draft... Attempt {attempt}/{total}"
             ),
             on_notice=view.show_warning,
+            base_ref=base_ref,
         )
 
 
@@ -99,7 +101,10 @@ def pr(
         head_branch=head_branch,
     )
 
-    draft = _generate_draft(view, pull_request_service, resolved_base_branch)
+    # Compare with the base as it is on origin, which is what GitHub will show.
+    base_ref = git_service.base_comparison_ref(resolved_base_branch, on_notice=view.show_warning)
+
+    draft = _generate_draft(view, pull_request_service, resolved_base_branch, base_ref)
 
     view.show_generated(draft)
 
@@ -145,7 +150,7 @@ def pr(
         if choice == "r":
             logger.info("User selected regenerate.")
 
-            draft = _generate_draft(view, pull_request_service, resolved_base_branch)
+            draft = _generate_draft(view, pull_request_service, resolved_base_branch, base_ref)
 
             view.show_generated(draft)
             continue

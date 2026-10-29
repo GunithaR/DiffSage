@@ -124,6 +124,7 @@ def test_pr_regenerate_uses_second_draft(fake_provider, fake_gh) -> None:
 
 def test_pr_against_explicit_base_branch(feature_branch, fake_provider, fake_gh) -> None:
     run_git(["branch", "develop", "main"], feature_branch)
+    run_git(["push", "origin", "develop"], feature_branch)
     fake_provider.queue(draft_json())
 
     result = runner.invoke(app, ["pr", "develop"], input="y\n")

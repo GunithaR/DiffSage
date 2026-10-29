@@ -20,6 +20,7 @@ from .credentials import (
 from .git import (
     BaseBranchNotFoundError,
     CommitFailedError,
+    FetchFailedError,
     NoStagedChangesError,
     NotGitRepositoryError,
     RemoteBranchNotFoundError,
@@ -59,6 +60,7 @@ __all__ = [
     "InvalidCredentialsFileError",
     "BaseBranchNotFoundError",
     "CommitFailedError",
+    "FetchFailedError",
     "NoStagedChangesError",
     "NotGitRepositoryError",
     "RemoteBranchNotFoundError",

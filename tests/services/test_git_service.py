@@ -6,6 +6,7 @@ import pytest
 from diffsage.exceptions import (
     BaseBranchNotFoundError,
     DetachedHeadError,
+    FetchFailedError,
     RemoteBranchNotFoundError,
     SameBranchError,
     UnpushedChangesError,
@@ -115,6 +116,9 @@ def test_resolve_base_branch_raises_for_invalid_explicit_branch() -> None:
     client.current_branch.return_value = "feature"
     client.branches.return_value = ["main", "feature"]
 
+    client.ref_exists.return_value = False
+    client.remote_has_branch.return_value = False
+
     service = GitService(client)
 
     with pytest.raises(BaseBranchNotFoundError):
@@ -159,6 +163,9 @@ def test_resolve_base_branch_falls_back_to_master() -> None:
     client.default_branch.return_value = None
     client.branches.return_value = ["master", "feature"]
 
+    client.ref_exists.return_value = False
+    client.remote_has_branch.return_value = False
+
     service = GitService(client)
 
     assert service.resolve_base_branch() == "master"
@@ -174,6 +181,9 @@ def test_resolve_base_branch_raises_when_no_base_can_be_resolved() -> None:
     client.current_branch.return_value = "feature"
     client.default_branch.return_value = None
     client.branches.return_value = ["feature"]
+
+    client.ref_exists.return_value = False
+    client.remote_has_branch.return_value = False
 
     service = GitService(client)
 
@@ -251,3 +261,95 @@ def test_validate_remote_head_raises_when_remote_branch_does_not_exist() -> None
 
     client.current_commit.assert_called_once()
     client.remote_branch_commit.assert_called_once_with("feature")
+
+
+def comparison_client(*, on_origin, fetch_error=None, tracking=False, local=("main",)) -> Mock:
+    client = Mock(spec=GitClient)
+    client.remote_has_branch.return_value = on_origin
+    client.fetch_branch.side_effect = fetch_error
+    client.ref_exists.return_value = tracking
+    client.branches.return_value = list(local)
+    return client
+
+
+def test_base_comparison_ref_fetches_and_uses_origin() -> None:
+    client = comparison_client(on_origin=True)
+    notices: list[str] = []
+
+    ref = GitService(client).base_comparison_ref("main", on_notice=notices.append)
+
+    assert ref == "refs/remotes/origin/main"
+    client.fetch_branch.assert_called_once_with("main")
+    assert notices == []
+
+
+def test_base_comparison_ref_rejects_a_base_that_origin_does_not_have() -> None:
+    client = comparison_client(on_origin=False)
+
+    with pytest.raises(BaseBranchNotFoundError, match="does not exist on origin"):
+        GitService(client).base_comparison_ref("main")
+
+    client.fetch_branch.assert_not_called()
+
+
+def test_base_comparison_ref_falls_back_to_last_fetched_origin_when_fetch_fails() -> None:
+    client = comparison_client(
+        on_origin=True, fetch_error=FetchFailedError("could not read from remote"), tracking=True
+    )
+    notices: list[str] = []
+
+    ref = GitService(client).base_comparison_ref("main", on_notice=notices.append)
+
+    assert ref == "refs/remotes/origin/main"
+    assert notices == [
+        "Could not update origin/main (could not read from remote). Comparing against "
+        "origin/main as last fetched, which may be out of date."
+    ]
+
+
+def test_base_comparison_ref_falls_back_to_the_local_branch_when_origin_is_unreachable() -> None:
+    client = comparison_client(on_origin=None)
+    notices: list[str] = []
+
+    ref = GitService(client).base_comparison_ref("main", on_notice=notices.append)
+
+    assert ref == "main"
+    assert notices == [
+        "Could not fetch main from origin (origin could not be reached). Comparing against "
+        "your local main, which may be out of date."
+    ]
+    client.fetch_branch.assert_not_called()
+
+
+def test_base_comparison_ref_fails_when_nothing_can_be_compared() -> None:
+    client = comparison_client(on_origin=None, local=())
+
+    with pytest.raises(BaseBranchNotFoundError, match="Could not fetch base branch 'main'"):
+        GitService(client).base_comparison_ref("main")
+
+
+def test_resolve_base_branch_accepts_a_branch_only_on_origin() -> None:
+    client = Mock(spec=GitClient)
+    client.current_branch.return_value = "feature"
+    client.branches.return_value = ["main", "feature"]
+    client.ref_exists.return_value = False
+    client.remote_has_branch.return_value = True
+
+    assert GitService(client).resolve_base_branch("release") == "release"
+
+    client.remote_has_branch.assert_called_once_with("release")
+
+
+def test_build_pull_request_context_compares_against_the_given_ref() -> None:
+    client = Mock(spec=GitClient)
+    client.current_branch.return_value = "feature"
+    client.merge_base.return_value = "abc"
+    client.commits_between.return_value = []
+    client.changed_files.return_value = []
+    client.branch_diff.return_value = ""
+
+    context = GitService(client).build_pull_request_context("main", "refs/remotes/origin/main")
+
+    assert context.base_branch == "main"
+    client.merge_base.assert_called_once_with("refs/remotes/origin/main", "feature")
+    client.branch_diff.assert_called_once_with("refs/remotes/origin/main", "feature")

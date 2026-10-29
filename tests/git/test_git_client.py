@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 import pytest
 
-from diffsage.exceptions import CommitFailedError
+from diffsage.exceptions import CommitFailedError, FetchFailedError
 from diffsage.git.client import GitClient
 from diffsage.models.git import GitCommit
 from tests.helpers import (
@@ -614,3 +614,57 @@ def test_silent_commit_failure_reports_the_exit_status(tmp_path: Path) -> None:
         pytest.raises(CommitFailedError, match="git exited with status 128."),
     ):
         client.commit("feat: add app")
+
+
+def repo_with_origin(tmp_path: Path) -> tuple[Path, Path]:
+    repo = tmp_path / "repo"
+    remote = tmp_path / "remote.git"
+    repo.mkdir()
+    remote.mkdir()
+    run_git(["init", "--bare", "--initial-branch=main"], remote)
+    init_git_repo_with_initial_commit(repo)
+    run_git(["remote", "add", "origin", str(remote)], repo)
+    run_git(["push", "-u", "origin", "main"], repo)
+    return repo, remote
+
+
+def test_remote_has_branch_tells_missing_apart_from_unreachable(tmp_path: Path) -> None:
+    repo, remote = repo_with_origin(tmp_path)
+    client = GitClient(repo)
+
+    assert client.remote_has_branch("main") is True
+    assert client.remote_has_branch("feature/missing") is False
+
+    run_git(["remote", "set-url", "origin", str(tmp_path / "gone.git")], repo)
+
+    assert client.remote_has_branch("main") is None
+
+
+def test_remote_has_branch_matches_the_whole_branch_name(tmp_path: Path) -> None:
+    """`ls-remote origin main` also matches refs/heads/release/main."""
+
+    repo, _remote = repo_with_origin(tmp_path)
+    run_git(["push", "origin", "main:release/candidate"], repo)
+
+    assert GitClient(repo).remote_has_branch("candidate") is False
+
+
+def test_fetch_branch_updates_the_remote_tracking_branch(tmp_path: Path) -> None:
+    repo, remote = repo_with_origin(tmp_path)
+    run_git(["push", "origin", "main:develop"], repo)
+    # Pushing records origin/develop locally; remove it so only a fetch can bring it back.
+    run_git(["update-ref", "-d", "refs/remotes/origin/develop"], repo)
+    client = GitClient(repo)
+
+    assert client.ref_exists("refs/remotes/origin/develop") is False
+
+    client.fetch_branch("develop")
+
+    assert client.ref_exists("refs/remotes/origin/develop") is True
+
+
+def test_fetch_branch_failure_reports_gits_reason(tmp_path: Path) -> None:
+    repo, _remote = repo_with_origin(tmp_path)
+
+    with pytest.raises(FetchFailedError, match="missing"):
+        GitClient(repo).fetch_branch("missing")

@@ -2,7 +2,7 @@ import subprocess
 from datetime import datetime
 from pathlib import Path
 
-from diffsage.exceptions import CommitFailedError
+from diffsage.exceptions import CommitFailedError, FetchFailedError
 from diffsage.models.git import GitCommit
 
 # hash, author, ISO date, subject. The subject goes last because it is the only field
@@ -212,14 +212,52 @@ class GitClient:
 
         return None
 
+    def remote_has_branch(self, branch: str) -> bool | None:
+        """Whether origin has the branch, or None if origin could not be reached."""
+
+        try:
+            self._run_git_command(
+                ["ls-remote", "--exit-code", "--heads", "origin", f"refs/heads/{branch}"]
+            )
+        except subprocess.CalledProcessError as error:
+            # With --exit-code, status 2 means origin answered but has no such branch;
+            # anything else (network, authentication, no origin) means we cannot tell.
+            return False if error.returncode == 2 else None
+
+        return True
+
     def remote_branch_exists(self, branch: str) -> bool:
         """Return True if the branch exists on the origin remote."""
 
+        return self.remote_has_branch(branch) is True
+
+    def fetch_branch(self, branch: str) -> None:
+        """Update the remote-tracking branch origin/<branch> from origin."""
+
         try:
-            self._run_git_command(["ls-remote", "--exit-code", "--heads", "origin", branch])
-            return True
+            self._run_git_command(
+                [
+                    "fetch",
+                    "--quiet",
+                    "--no-tags",
+                    "origin",
+                    # "+": follow origin exactly, even if the branch was force-pushed.
+                    f"+refs/heads/{branch}:refs/remotes/origin/{branch}",
+                ]
+            )
+        except subprocess.CalledProcessError as error:
+            lines = [line.strip() for line in (error.stderr or "").splitlines() if line.strip()]
+            raise FetchFailedError(lines[-1] if lines else None) from error
+
+    def ref_exists(self, ref: str) -> bool:
+        """Return True if `ref` names a commit in this repository."""
+
+        try:
+            self._run_git_command(["rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}"])
         except subprocess.CalledProcessError:
             return False
+
+        return True
 
     def remote_branch_commit(self, branch: str) -> str | None:
         """Return the commit hash of the remote origin branch."""
