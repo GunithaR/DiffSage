@@ -3,6 +3,7 @@ import json
 import typer
 
 from diffsage.commands.error_handler import handle_command_errors
+from diffsage.commands.options import DryRunOption, YesOption, check_yes_and_dry_run
 from diffsage.config.loader import load_settings
 from diffsage.config.paths import get_credentials_path
 from diffsage.exceptions import InvalidPullRequestDraftError
@@ -57,8 +58,12 @@ def pr(
         None,
         help="Base branch to compare against. If omitted, DiffSage resolves it automatically.",
     ),
+    yes: YesOption = False,
+    dry_run: DryRunOption = False,
 ) -> None:
     """Generate a pull request draft"""
+
+    check_yes_and_dry_run(yes=yes, dry_run=dry_run)
 
     view = PullRequestView()
 
@@ -121,20 +126,32 @@ def pr(
 
     view.show_generated(draft)
 
+    def create_pull_request() -> None:
+        with view.creating():
+            pull_request_url = github_service.create_pull_request(
+                draft=draft,
+                base_branch=resolved_base_branch,
+                head_branch=head_branch,
+            )
+
+        view.show_created(pull_request_url)
+
+    if dry_run:
+        logger.info("Dry run: pull request draft shown, nothing created.")
+        view.show_info("Dry run: no pull request was created.")
+        return
+
+    if yes:
+        logger.info("Creating the pull request without asking (--yes).")
+        create_pull_request()
+        return
+
     while True:
         choice = view.prompt_action()
 
         if choice in ("", "y"):
             logger.info("User accepted pull request draft.")
-
-            with view.creating():
-                pull_request_url = github_service.create_pull_request(
-                    draft=draft,
-                    base_branch=resolved_base_branch,
-                    head_branch=head_branch,
-                )
-
-            view.show_created(pull_request_url)
+            create_pull_request()
             break
 
         if choice == "e":

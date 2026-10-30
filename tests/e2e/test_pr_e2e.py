@@ -403,3 +403,38 @@ def test_pr_diff_limit_follows_the_environment(
     assert "x = 1\n" * 400 not in fake_provider.prompts[0]
     assert "diffsage config set max_diff_characters <characters>" in " ".join(result.output.split())
     assert fake_gh.calls
+
+
+@pytest.mark.usefixtures("feature_branch")
+def test_pr_yes_creates_the_pull_request_without_asking(fake_provider, fake_gh) -> None:
+    fake_provider.queue(draft_json())
+
+    result = runner.invoke(app, ["pr", "--yes"])  # no input: nobody at the keyboard
+
+    assert result.exit_code == 0, result.output
+    assert "Pull request created successfully" in result.output
+    assert pr_create_call(fake_gh.calls) is not None
+    assert "[Y]" not in result.output
+
+
+@pytest.mark.usefixtures("feature_branch")
+def test_pr_dry_run_runs_the_checks_but_creates_nothing(fake_provider, fake_gh) -> None:
+    fake_provider.queue(draft_json())
+
+    result = runner.invoke(app, ["pr", "--dry-run"])
+
+    assert result.exit_code == 0, result.output
+    assert "Add greeting script" in result.output
+    assert "Dry run: no pull request was created." in result.output
+    assert ["pr", "list"] == next(call[:2] for call in fake_gh.calls if call[0] == "pr")
+    assert pr_create_call(fake_gh.calls) is None
+
+
+@pytest.mark.usefixtures("feature_branch")
+def test_pr_rejects_yes_with_dry_run(fake_provider, fake_gh) -> None:
+    result = runner.invoke(app, ["pr", "--yes", "--dry-run"])
+
+    assert result.exit_code == 2
+    assert "--yes and --dry-run cannot be used together." in " ".join(result.output.split())
+    assert fake_provider.requests == []
+    assert fake_gh.calls == []

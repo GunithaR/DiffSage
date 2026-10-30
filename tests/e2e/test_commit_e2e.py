@@ -465,3 +465,40 @@ def test_commit_sends_the_whole_diff_under_the_default_limit(git_repo, fake_prov
 
     assert "# second" in fake_provider.prompts[0]
     assert "max_diff_characters" not in result.output
+
+
+@pytest.mark.parametrize("flag", ["--yes", "-y"])
+def test_commit_yes_commits_without_asking(git_repo, fake_provider, flag) -> None:
+    stage_file(git_repo, "greeting.py", "print('hello')\n")
+    fake_provider.queue("feat: add greeting script")
+
+    result = runner.invoke(app, ["commit", flag])  # no input: nobody at the keyboard
+
+    assert result.exit_code == 0, result.output
+    assert head_message(git_repo) == "feat: add greeting script"
+    assert commit_count(git_repo) == 2
+    assert "[Y]" not in result.output
+
+
+def test_commit_dry_run_shows_the_message_and_commits_nothing(git_repo, fake_provider) -> None:
+    stage_file(git_repo, "greeting.py", "print('hello')\n")
+    fake_provider.queue("feat: add greeting script")
+
+    result = runner.invoke(app, ["commit", "--dry-run"])
+
+    assert result.exit_code == 0, result.output
+    assert "add greeting script" in result.output
+    assert "Dry run: nothing was committed." in result.output
+    assert "[Y]" not in result.output
+    assert commit_count(git_repo) == 1
+
+
+def test_commit_rejects_yes_with_dry_run(git_repo, fake_provider) -> None:
+    stage_file(git_repo, "greeting.py", "print('hello')\n")
+
+    result = runner.invoke(app, ["commit", "--yes", "--dry-run"])
+
+    assert result.exit_code == 2
+    assert "--yes and --dry-run cannot be used together." in flat(result.output)
+    assert fake_provider.requests == []
+    assert commit_count(git_repo) == 1

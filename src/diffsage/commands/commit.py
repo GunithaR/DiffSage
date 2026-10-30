@@ -1,11 +1,13 @@
 from collections.abc import Callable
 
 from diffsage.commands.error_handler import handle_command_errors
+from diffsage.commands.options import DryRunOption, YesOption, check_yes_and_dry_run
 from diffsage.config.loader import load_settings
 from diffsage.config.paths import get_credentials_path
 from diffsage.exceptions import InvalidCommitMessageError
 from diffsage.git.client import GitClient
 from diffsage.logging.logger import get_logger
+from diffsage.models.commit_message import CommitMessage
 from diffsage.parsers.commit_message_parser import CommitMessageParser
 from diffsage.services.ai_service import AIService
 from diffsage.services.commit_service import CommitService
@@ -30,9 +32,21 @@ def generate_message(
     )
 
 
+def _create_commit(git_client: GitClient, view: CommitView, commit_message: CommitMessage) -> None:
+    # Commit the cleaned message: no code fences or preamble from the AI reply.
+    message_text = commit_message.to_text()
+    git_client.commit(message_text)
+    view.show_success(message_text)
+
+
 @handle_command_errors("commit")
-def commit() -> None:
+def commit(
+    yes: YesOption = False,
+    dry_run: DryRunOption = False,
+) -> None:
     """Generate a conventional commit message"""
+
+    check_yes_and_dry_run(yes=yes, dry_run=dry_run)
 
     git_client = GitClient()
     view = CommitView()
@@ -72,6 +86,16 @@ def commit() -> None:
     view.show_generated()
     view.show_commit(commit_message)
 
+    if dry_run:
+        logger.info("Dry run: commit message shown, nothing committed.")
+        view.show_info("Dry run: nothing was committed.")
+        return
+
+    if yes:
+        logger.info("Committing without asking (--yes).")
+        _create_commit(git_client, view, commit_message)
+        return
+
     # Text of an edit that did not parse; the next E reopens it so nothing typed is lost.
     pending_edit: str | None = None
 
@@ -80,10 +104,7 @@ def commit() -> None:
 
         if choice in ("", "y"):
             logger.info("User selected commit.")
-            # Commit the cleaned message: no code fences or preamble from the AI reply.
-            message_text = commit_message.to_text()
-            git_client.commit(message_text)
-            view.show_success(message_text)
+            _create_commit(git_client, view, commit_message)
             break
 
         if choice == "e":
