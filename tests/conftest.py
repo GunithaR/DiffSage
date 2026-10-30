@@ -89,6 +89,11 @@ def isolated_env(tmp_path, monkeypatch) -> IsolatedEnv:
         monkeypatch.delenv(variable, raising=False)
     monkeypatch.setattr("typer.rich_utils.FORCE_TERMINAL", False)
 
+    # The test runner never provides a real terminal. Tests answer the commit and pr
+    # prompts through CliRunner's input, standing in for a person at a terminal; tests
+    # of the no-terminal case switch this off.
+    monkeypatch.setattr("diffsage.commands.options.stdin_is_terminal", lambda: True)
+
     # Retries back off for seconds at a time; tests never wait for real. Tests that
     # check the delays patch sleep themselves.
     monkeypatch.setattr("diffsage.services.ai_service.time.sleep", lambda _seconds: None)

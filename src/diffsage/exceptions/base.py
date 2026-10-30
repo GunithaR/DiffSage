@@ -47,6 +47,13 @@ class SameBranchError(DiffSageError):
     default_message = "Current branch and base branch are the same."
 
 
+class NoTerminalError(DiffSageError):
+    """Raised when a command would ask for confirmation but there is no terminal to ask in,
+    as in CI, git hooks and pipes."""
+
+    exit_code = 2
+
+
 class EditorError(DiffSageError):
     """Raised when the user's text editor cannot be launched."""
 

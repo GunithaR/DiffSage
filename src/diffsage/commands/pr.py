@@ -63,7 +63,9 @@ def pr(
 ) -> None:
     """Generate a pull request draft"""
 
-    check_yes_and_dry_run(yes=yes, dry_run=dry_run)
+    check_yes_and_dry_run(
+        yes=yes, dry_run=dry_run, command="pr", action="creating the pull request"
+    )
 
     view = PullRequestView()
 

@@ -1,4 +1,5 @@
 import logging
+import sys
 from importlib.metadata import version
 
 import typer
@@ -27,6 +28,21 @@ def version_callback(value: bool) -> None:
         raise typer.Exit()
 
 
+def _replace_unprintable_output() -> None:
+    """Print characters the output cannot encode as "?" instead of crashing.
+
+    DiffSage's messages use symbols such as ✗ and ✓. Where the output is not UTF-8 (an
+    ASCII locale, as in some minimal CI and Docker images), printing them raised
+    UnicodeEncodeError, so every error became a traceback.
+    """
+
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+
+        if reconfigure is not None:
+            reconfigure(errors="replace")
+
+
 @app.callback()
 @handle_command_errors("diffsage")
 def main(
@@ -43,6 +59,9 @@ def main(
     """
     Initialize DiffSage.
     """
+    # First, so even an error found while loading the configuration can be printed.
+    _replace_unprintable_output()
+
     try:
         settings = load_settings()
     except ConfigError:

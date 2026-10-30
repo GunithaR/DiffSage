@@ -46,7 +46,7 @@ def commit(
 ) -> None:
     """Generate a conventional commit message"""
 
-    check_yes_and_dry_run(yes=yes, dry_run=dry_run)
+    check_yes_and_dry_run(yes=yes, dry_run=dry_run, command="commit", action="committing")
 
     git_client = GitClient()
     view = CommitView()
