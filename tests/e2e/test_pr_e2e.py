@@ -387,3 +387,19 @@ def test_pr_does_not_spend_a_network_call_on_gh_auth_status(fake_provider, fake_
 
     assert ["auth", "status"] not in fake_gh.calls
     assert [call[:2] for call in fake_gh.calls] == [["--version"], ["pr", "list"]]
+
+
+def test_pr_diff_limit_follows_the_environment(
+    feature_branch, fake_provider, fake_gh, monkeypatch
+) -> None:
+    commit_file(feature_branch, "big.py", "# big\n" + "x = 1\n" * 400, "feat: add big file")
+    run_git(["push"], feature_branch)
+    monkeypatch.setenv("DIFFSAGE_MAX_DIFF_CHARACTERS", "1000")
+    fake_provider.queue(draft_json())
+
+    result = runner.invoke(app, ["pr"], input="n\n")
+
+    assert result.exit_code == 0, result.output
+    assert "x = 1\n" * 400 not in fake_provider.prompts[0]
+    assert "diffsage config set max_diff_characters <characters>" in " ".join(result.output.split())
+    assert fake_gh.calls

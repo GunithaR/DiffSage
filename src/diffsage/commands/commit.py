@@ -56,6 +56,7 @@ def commit() -> None:
         git_service,
         prompt_service,
         ai_service,
+        max_diff_characters=settings.max_diff_characters,
     )
 
     with view.generating() as status:

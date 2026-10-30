@@ -7,6 +7,7 @@
 - `max_output_tokens` setting (`[ai] max_output_tokens`, `DIFFSAGE_MAX_OUTPUT_TOKENS`, default 1000, allowed 1–65536) in place of the fixed limit of 1000 tokens on AI replies. `config list` and `doctor` show it.
 - `diffsage pr` fills in the repository's own pull request template when it has one (`pull_request_template.md` in `.github/`, the repository root or `docs/`, any letter case, read from the base branch as GitHub does) instead of DiffSage's fixed sections. Headings, their order and checklists are kept; placeholder text and HTML comments are followed as instructions for their section; checkboxes are ticked only when the evidence confirms them.
 - `diffsage pr <base>` accepts a base branch that exists only on origin and has never been checked out.
+- `max_diff_characters` setting (`[ai] max_diff_characters`, `DIFFSAGE_MAX_DIFF_CHARACTERS`, default 100,000, allowed 1,000–1,000,000) in place of the fixed 100,000-character limit on the diff sent to the AI by `commit` and `pr`. When files are left out to fit, DiffSage says how to raise it.
 
 ### Changed
 

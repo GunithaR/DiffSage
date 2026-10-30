@@ -191,6 +191,16 @@ def test_diffsage_does_not_import_dotenv() -> None:
             "Invalid value '0' for max_output_tokens: Input should be greater than or equal to 1",
         ),
         (
+            ["max_diff_characters", "999"],
+            "Invalid value '999' for max_diff_characters: Input should be greater than or equal "
+            "to 1000",
+        ),
+        (
+            ["max_diff_characters", "1000001"],
+            "Invalid value '1000001' for max_diff_characters: Input should be less than or "
+            "equal to 1000000",
+        ),
+        (
             ["max_output_tokens", "70000"],
             "Invalid value '70000' for max_output_tokens: Input should be less than or equal to "
             "65536",
@@ -321,3 +331,11 @@ def test_config_set_still_reports_misspelled_options(args) -> None:
 
     assert result.exit_code == 2
     assert "No such option" in result.output
+
+
+def test_max_diff_characters_is_stored_in_the_ai_section_and_listed(isolated_env) -> None:
+    result = runner.invoke(app, ["config", "set", "max_diff_characters", "300000", "--global"])
+
+    assert result.exit_code == 0, result.output
+    assert "max_diff_characters = 300000" in (isolated_env.config_dir / "config.toml").read_text()
+    assert "Max Diff Characters 300000" in flat(runner.invoke(app, ["config", "list"]).output)

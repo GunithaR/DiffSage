@@ -217,6 +217,7 @@ DIFFSAGE_LOG_LEVEL=INFO
 DIFFSAGE_TIMEOUT=60
 DIFFSAGE_MAX_RETRIES=3
 DIFFSAGE_MAX_OUTPUT_TOKENS=1000
+DIFFSAGE_MAX_DIFF_CHARACTERS=100000
 ```
 
 The configured model must be supported by the selected AI provider.
@@ -237,6 +238,15 @@ reasoning:
 
 ```bash
 diffsage config set max_output_tokens 4000
+```
+
+`max_diff_characters` (default `100000`, about 25,000 tokens; allowed 1000–1000000) caps
+how much of the diff `commit` and `pr` send to the AI provider. Whole files that do not fit
+are left out, and DiffSage names them. Raise it for large pull requests; a bigger diff makes
+each request slower and, on paid plans, more expensive:
+
+```bash
+diffsage config set max_diff_characters 300000
 ```
 
 ---

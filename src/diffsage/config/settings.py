@@ -6,6 +6,7 @@ class Settings(BaseModel):
     ai_model: str
     credential_profile: str
     max_output_tokens: int
+    max_diff_characters: int
     timeout: int
     max_retries: int
     log_level: str

@@ -9,7 +9,7 @@ from diffsage.parsers.pull_request_parser import (
     PullRequestParser,
 )
 from diffsage.services.ai_service import AIService
-from diffsage.services.diff_sanitizer import sanitize
+from diffsage.services.diff_sanitizer import MAX_DIFF_CHARACTERS, RAISE_LIMIT_HINT, sanitize
 from diffsage.services.git_service import GitService
 from diffsage.services.prompt_service import PromptService
 from diffsage.services.pull_request_analysis_service import PullRequestAnalysisService
@@ -25,12 +25,14 @@ class PullRequestService:
         prompt_service: PromptService,
         ai_service: AIService,
         parser: PullRequestParser,
+        max_diff_characters: int = MAX_DIFF_CHARACTERS,
     ) -> None:
         self._git_service = git_service
         self._analysis_service = analysis_service
         self._prompt_service = prompt_service
         self._ai_service = ai_service
         self._parser = parser
+        self._max_diff_characters = max_diff_characters
 
     def generate_draft(
         self,
@@ -51,7 +53,7 @@ class PullRequestService:
 
         analysis = self._analysis_service.analyze(context)
 
-        sanitized = sanitize(context.diff)
+        sanitized = sanitize(context.diff, max_characters=self._max_diff_characters)
         context = replace(context, diff=sanitized.text)
         notes = sanitized.notices()
 
@@ -60,6 +62,10 @@ class PullRequestService:
 
             if on_notice is not None:
                 on_notice(note)
+
+        # Only the user is told how to raise the limit; the AI does not need to know.
+        if sanitized.cut and on_notice is not None:
+            on_notice(RAISE_LIMIT_HINT)
 
         prompt = self._prompt_service.build_pull_request_prompt(
             context,

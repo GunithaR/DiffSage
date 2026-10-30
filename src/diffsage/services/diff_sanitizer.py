@@ -13,6 +13,11 @@ from pathlib import PurePosixPath
 
 REDACTED = "[REDACTED]"
 MAX_DIFF_CHARACTERS = 100_000
+# Shown to the user (not sent to the AI) when the diff was cut to fit the limit.
+RAISE_LIMIT_HINT = (
+    "To send more of the diff, raise the limit: "
+    "diffsage config set max_diff_characters <characters>"
+)
 
 LOCKFILES = {
     "package-lock.json",
@@ -84,6 +89,12 @@ class SanitizedDiff:
     lockfiles: list[str] = field(default_factory=list)
     truncated_files: list[str] = field(default_factory=list)
     shortened_file: str | None = None
+
+    @property
+    def cut(self) -> bool:
+        """True when files were left out or shortened to fit the size limit."""
+
+        return bool(self.truncated_files) or self.shortened_file is not None
 
     def notices(self) -> list[str]:
         """Plain-language notes, shown to the user and added to the prompt."""

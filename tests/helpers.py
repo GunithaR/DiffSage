@@ -58,6 +58,7 @@ def create_settings(**overrides) -> Settings:
         "ai_model": DEFAULT_CONFIG.ai.model,
         "credential_profile": DEFAULT_CONFIG.ai.credential_profile,
         "max_output_tokens": DEFAULT_CONFIG.ai.max_output_tokens,
+        "max_diff_characters": DEFAULT_CONFIG.ai.max_diff_characters,
         "timeout": DEFAULT_CONFIG.network.timeout,
         "max_retries": DEFAULT_CONFIG.network.max_retries,
         "log_level": DEFAULT_CONFIG.logging.level,

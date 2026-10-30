@@ -89,6 +89,7 @@ def pr(
         prompt_service=prompt_service,
         ai_service=ai_service,
         parser=parser,
+        max_diff_characters=settings.max_diff_characters,
     )
 
     # These checks talk to origin and GitHub, so they get a spinner that says which one
