@@ -1,3 +1,5 @@
+import pytest
+
 from diffsage.models.git import PullRequestContext
 from diffsage.models.pull_request_analysis import (
     ChangeCategory,
@@ -139,12 +141,12 @@ def test_analyze_authentication_change_returns_high_risk() -> None:
 
 def test_analyze_public_interface_change_returns_high_risk() -> None:
     context = PullRequestContext(
-        current_branch="feature/cli",
+        current_branch="feature/api",
         base_branch="main",
         merge_base="abc123",
         commits=[],
         changed_files=[
-            "src/diffsage/commands/pr.py",
+            "src/app/api/users.py",
         ],
         diff="",
     )
@@ -240,3 +242,106 @@ def test_analyze_documentation_and_test_changes_returns_low_risk() -> None:
     assert ChangeCategory.DOCUMENTATION in analysis.change_categories
     assert ChangeCategory.TEST in analysis.change_categories
     assert analysis.risk_level == RiskLevel.LOW
+
+
+def analyze_files(*files: str):
+    context = PullRequestContext(
+        current_branch="feature/x",
+        base_branch="main",
+        merge_base="abc123",
+        commits=[],
+        changed_files=list(files),
+        diff="",
+    )
+
+    return PullRequestAnalysisService().analyze(context)
+
+
+@pytest.mark.parametrize(
+    "file",
+    ["AUTHORS", "src/author_profile.py", "src/authority.py", "lib/coauthors/list.py"],
+)
+def test_words_that_only_contain_auth_are_not_authentication(file) -> None:
+    """Regression: "auth" was matched as a substring, so AUTHORS made a PR HIGH risk."""
+
+    analysis = analyze_files(file)
+
+    assert ChangeCategory.AUTHENTICATION not in analysis.change_categories
+    assert analysis.risk_level == RiskLevel.LOW
+
+
+@pytest.mark.parametrize(
+    "file",
+    [
+        "src/auth.py",
+        "app/AuthService.java",
+        "src/login_view.py",
+        "src/diffsage/storage/credentials_repository.py",
+        "src/security/headers.py",
+        "lib/oauth2/client.py",
+    ],
+)
+def test_authentication_paths_are_high_risk(file) -> None:
+    analysis = analyze_files(file)
+
+    assert ChangeCategory.AUTHENTICATION in analysis.change_categories
+    assert analysis.risk_level == RiskLevel.HIGH
+
+
+@pytest.mark.parametrize(
+    "file",
+    [
+        "src/app/tests/test_models.py",
+        "test/helpers.py",
+        "web/__tests__/button.js",
+        "web/src/button.test.tsx",
+        "web/src/button.spec.ts",
+        "pkg/store/store_test.go",
+        "src/main/java/UserServiceTest.java",
+        "Api/UserTests.cs",
+        "spec/models/user_spec.rb",
+        "conftest.py",
+    ],
+)
+def test_test_files_are_recognised_anywhere(file) -> None:
+    """Regression: only tests/ at the top level and a top-level test_* file counted."""
+
+    assert ChangeCategory.TEST in analyze_files(file).change_categories
+
+
+@pytest.mark.parametrize("file", ["src/contest.py", "src/latest.py", "src/testing_utils.py"])
+def test_names_that_only_contain_test_are_not_tests(file) -> None:
+    assert ChangeCategory.TEST not in analyze_files(file).change_categories
+
+
+@pytest.mark.parametrize(
+    "file", ["tests/test_auth.py", "docs/authentication.md", "src/auth/README.md"]
+)
+def test_tests_and_docs_about_risky_areas_are_not_risky(file) -> None:
+    """Regression: tests/test_auth.py or docs/authentication.md made a PR HIGH risk."""
+
+    analysis = analyze_files(file)
+
+    assert ChangeCategory.AUTHENTICATION not in analysis.change_categories
+    assert analysis.risk_level == RiskLevel.LOW
+
+
+@pytest.mark.parametrize("file", ["src/diffsage/commands/pr.py", "src/tool/cli/main.py"])
+def test_command_line_changes_are_medium_not_high_risk(file) -> None:
+    """Regression: every change under commands/ was HIGH risk, so every DiffSage PR was."""
+
+    analysis = analyze_files(file)
+
+    assert ChangeCategory.COMMAND_LINE in analysis.change_categories
+    assert ChangeCategory.PUBLIC_INTERFACE not in analysis.change_categories
+    assert analysis.risk_level == RiskLevel.MEDIUM
+
+
+@pytest.mark.parametrize(
+    "file", ["src/app/api/users.py", "server/routes/index.ts", "schema.graphql", "api.proto"]
+)
+def test_network_api_changes_are_high_risk(file) -> None:
+    analysis = analyze_files(file)
+
+    assert ChangeCategory.PUBLIC_INTERFACE in analysis.change_categories
+    assert analysis.risk_level == RiskLevel.HIGH

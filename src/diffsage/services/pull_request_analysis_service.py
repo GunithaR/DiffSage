@@ -1,3 +1,5 @@
+import re
+
 from diffsage.models.git import PullRequestContext
 from diffsage.models.pull_request_analysis import (
     ChangeCategory,
@@ -5,18 +7,62 @@ from diffsage.models.pull_request_analysis import (
     RiskLevel,
 )
 
+TEST_DIRECTORIES = {"test", "tests", "__tests__", "spec", "specs", "testing"}
+# test_x.py, x_test.py, x_test.go, x.test.ts, x.spec.js, XTest.java, XTests.cs, conftest.py
+TEST_FILE = re.compile(
+    r"^(test_.+|.+_test\.[^.]+|.+\.(test|spec)\.[^.]+|.+Tests?\.(java|kt|cs|swift)|conftest\.py)$"
+)
+AUTHENTICATION_WORDS = {
+    "auth",
+    "authn",
+    "authz",
+    "authentication",
+    "authorization",
+    "authorisation",
+    "oauth",
+    "oauth2",
+    "oidc",
+    "sso",
+    "login",
+    "credential",
+    "credentials",
+    "password",
+    "passwords",
+    "security",
+    "permission",
+    "permissions",
+}
+
+
+def _segments(file: str) -> list[str]:
+    """Directory and file names of a path, lowercased."""
+
+    return file.lower().split("/")
+
+
+def _words(file: str) -> set[str]:
+    """Whole words in a path: split on / . _ - and camelCase, lowercased.
+
+    Matching words instead of substrings keeps AUTHORS or author_profile.py from
+    counting as authentication.
+    """
+
+    spaced = re.sub(r"([a-z0-9])([A-Z])", r"\1 \2", file)
+    return {word for word in re.split(r"[^A-Za-z0-9]+", spaced.lower()) if word}
+
 
 class PullRequestAnalysisService:
     def _is_documentation_file(self, file: str) -> bool:
-        return (
-            file.startswith("docs/")
-            or file == "README.md"
-            or file.endswith(".md")
-            or file.endswith(".rst")
-        )
+        path = file.lower()
+
+        return "docs" in _segments(file)[:-1] or path.endswith((".md", ".rst", ".adoc"))
 
     def _is_test_file(self, file: str) -> bool:
-        return file.startswith("tests/") or file.startswith("test_") or file.endswith("_test.py")
+        segments = file.split("/")
+
+        return bool(TEST_DIRECTORIES & {part.lower() for part in segments[:-1]}) or bool(
+            TEST_FILE.match(segments[-1])
+        )
 
     def _is_dependency_file(self, file: str) -> bool:
         filename = file.rsplit("/", 1)[-1]
@@ -83,42 +129,21 @@ class PullRequestAnalysisService:
         )
 
     def _is_authentication_file(self, file: str) -> bool:
-        path = file.lower()
-
-        return any(
-            keyword in path
-            for keyword in {
-                "auth",
-                "authentication",
-                "authorization",
-                "credential",
-                "credentials",
-                "security",
-                "permission",
-                "permissions",
-            }
-        )
+        return bool(AUTHENTICATION_WORDS & _words(file))
 
     def _is_public_interface_file(self, file: str) -> bool:
+        """Network APIs other programs call: changes here can break clients."""
+
         path = file.lower()
 
-        return (
-            "/api/" in path
-            or path.startswith("api/")
-            or "/routes/" in path
-            or path.startswith("routes/")
-            or "/controllers/" in path
-            or path.startswith("controllers/")
-            or path.endswith("openapi.yaml")
-            or path.endswith("openapi.yml")
-            or path.endswith("openapi.json")
-            or path.endswith("schema.graphql")
-            or path.endswith(".graphql")
-            or "/cli/" in path
-            or path.startswith("cli/")
-            or "/commands/" in path
-            or path.startswith("commands/")
+        return bool({"api", "routes", "controllers"} & set(_segments(file)[:-1])) or (
+            path.endswith(("openapi.yaml", "openapi.yml", "openapi.json", ".graphql", ".proto"))
         )
+
+    def _is_command_line_file(self, file: str) -> bool:
+        """Command-line commands and options: user-facing, but rarely a breaking API."""
+
+        return bool({"cli", "commands"} & set(_segments(file)[:-1]))
 
     def _calculate_risk_level(
         self,
@@ -134,6 +159,7 @@ class PullRequestAnalysisService:
             ChangeCategory.PROVIDER in categories
             or ChangeCategory.DEPENDENCY in categories
             or ChangeCategory.CONFIGURATION in categories
+            or ChangeCategory.COMMAND_LINE in categories
         ):
             return RiskLevel.MEDIUM
 
@@ -177,6 +203,11 @@ class PullRequestAnalysisService:
                     analysis.reviewer_focus,
                     "test coverage and test changes",
                 )
+
+            # A test or a document about authentication is not itself risky: only
+            # its own category applies.
+            if self._is_test_file(file) or self._is_documentation_file(file):
+                continue
 
             if self._is_dependency_file(file):
                 self._add_unique(
@@ -266,6 +297,24 @@ class PullRequestAnalysisService:
                 self._add_unique(
                     analysis.reviewer_focus,
                     "public interface changes",
+                )
+
+            if self._is_command_line_file(file):
+                self._add_unique(
+                    analysis.change_categories,
+                    ChangeCategory.COMMAND_LINE,
+                )
+                self._add_unique(
+                    analysis.changed_areas,
+                    "command-line interface",
+                )
+                self._add_unique(
+                    analysis.risk_signals,
+                    "command-line interface paths changed",
+                )
+                self._add_unique(
+                    analysis.reviewer_focus,
+                    "command-line commands, options and output",
                 )
 
         return analysis

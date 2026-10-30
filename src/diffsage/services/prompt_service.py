@@ -163,9 +163,9 @@ class PromptService:
     "Testing status was not provided."
     - Do not mention DiffSage, its execution, its internal analysis, or whether
     DiffSage itself ran repository checks.
-    - Treat the supplied risk level as authoritative.
-    - Do not upgrade, downgrade, or replace the supplied risk classification.
-    - Explain the risk using the supplied risk signals and actual Git diff.
+    - The supplied risk level and risk signals come from file-path rules. Use them
+    as a starting point, but judge the actual risk from the Git diff: if the diff
+    shows the risk is higher or lower than suggested, describe the risk the diff shows.
     - Identify the areas reviewers should focus on using the supplied reviewer-focus signals.
     - Identify breaking changes only when supported by repository evidence.
     - Do not invent repository facts, changes, tests, risks, or breaking changes.

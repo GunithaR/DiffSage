@@ -200,3 +200,13 @@ def test_prompt_without_notes_has_no_notes_section() -> None:
 
     assert "Diff Notes" not in service.build_commit_prompt(context)
     assert "Diff Notes" not in service.build_commit_prompt(context, [])
+
+
+def test_pull_request_prompt_treats_the_risk_level_as_advisory() -> None:
+    """The risk level comes from file-path rules; the AI must be free to judge the diff."""
+
+    instructions = PromptService()._build_pull_request_instructions()
+
+    assert "authoritative" not in instructions
+    assert "Do not upgrade, downgrade" not in instructions
+    assert "judge the actual risk from the Git diff" in " ".join(instructions.split())
