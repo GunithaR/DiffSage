@@ -70,6 +70,10 @@ def test_credential_assignments_with_literal_values_are_redacted(line, expected)
         'api_key = ""',
         "timeout = 30",
         "def rotate_secret(self):",
+        '"max_output_tokens": "max_output_tokens",',
+        "{'token_type': 'bearer_token'}",
+        'const name = { accessToken: "accessToken" }',
+        "SECRET_KEY_NAME=secret_key_name",
     ],
 )
 def test_code_that_only_mentions_secrets_is_left_alone(line) -> None:
@@ -193,7 +197,7 @@ def test_notices_describe_every_change() -> None:
     notices = sanitize(diff).notices()
 
     assert notices == [
-        f"1 value(s) that looked like secrets were replaced with {REDACTED}.",
+        f"1 value(s) that looked like secrets were replaced with {REDACTED} in: app.py",
         "Contents of files that may hold secrets were not sent: .env",
         "Lockfile contents were not sent: poetry.lock",
     ]
@@ -204,3 +208,38 @@ def test_empty_diff_stays_empty() -> None:
 
     assert result.text == ""
     assert result.notices() == []
+
+
+@pytest.mark.parametrize(
+    ("line", "expected"),
+    [
+        ('password = "correct-horse"', f'password = "{REDACTED}"'),
+        ('api_key = "supersecretvalue"', f'api_key = "{REDACTED}"'),
+        ('"token": "Ab3_xY9_kk"', f'"token": "{REDACTED}"'),
+        # Identifier-shaped but names nothing secret-like: may be a real key.
+        ('stripe_secret = "sk_live_abcdefgh"', f'stripe_secret = "{REDACTED}"'),
+        ('"token": "plain_word_value"', f'"token": "{REDACTED}"'),
+    ],
+)
+def test_values_that_are_not_plain_identifiers_are_still_redacted(line, expected) -> None:
+    """The identifier exception only covers lowercase words with underscores or camelCase."""
+
+    assert added_lines(sanitize(file_diff("app.py", line)).text) == [expected]
+
+
+def test_notice_names_the_files_with_redactions_but_never_the_values() -> None:
+    diff = "\n".join(
+        [
+            file_diff("src/settings.py", 'api_key = "hunter2-hunter2"'),
+            file_diff("src/clean.py", "print('hello')"),
+            file_diff("deploy/env.py", 'PASSWORD: "x9-y8-z7-w6"'),
+        ]
+    )
+
+    notices = sanitize(diff).notices()
+
+    assert notices == [
+        f"2 value(s) that looked like secrets were replaced with {REDACTED} in: "
+        "src/settings.py, deploy/env.py"
+    ]
+    assert "hunter2" not in notices[0]

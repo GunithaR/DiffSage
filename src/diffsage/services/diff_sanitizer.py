@@ -73,6 +73,18 @@ ENV_ASSIGNMENT = re.compile(
     r"[A-Z0-9_]*=)(?P<value>[^\s\"'#$<{%(][^\s()]{7,})$"
 )
 
+# Values that are field names in code, not secrets: an identifier (lowercase words joined
+# by underscores, or camelCase words) that itself names a secret-like field, as in
+# "max_output_tokens": "max_output_tokens" or "token_type": "bearer_token". An identifier
+# without such a word (sk_live_abcdefgh) may be a real key, so it is still redacted.
+_IDENTIFIER = re.compile(r"^(?:[a-z]+(?:_[a-z]+)+|[a-z]+(?:[A-Z][a-z]+)+)$")
+_SECRET_WORD = re.compile(r"(?i)api_?key|secret|token|passw(?:or)?d|private_?key")
+
+
+def _is_field_name(value: str) -> bool:
+    return bool(_IDENTIFIER.match(value) and _SECRET_WORD.search(value))
+
+
 PRIVATE_KEY_BEGIN = re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----")
 PRIVATE_KEY_END = re.compile(r"-----END [A-Z ]*PRIVATE KEY-----")
 
@@ -85,6 +97,7 @@ class SanitizedDiff:
 
     text: str
     redactions: int = 0
+    redacted_files: list[str] = field(default_factory=list)
     secret_files: list[str] = field(default_factory=list)
     lockfiles: list[str] = field(default_factory=list)
     truncated_files: list[str] = field(default_factory=list)
@@ -104,7 +117,7 @@ class SanitizedDiff:
         if self.redactions:
             notes.append(
                 f"{self.redactions} value(s) that looked like secrets were replaced with "
-                f"{REDACTED}."
+                f"{REDACTED} in: " + ", ".join(self.redacted_files)
             )
 
         if self.secret_files:
@@ -174,7 +187,7 @@ def _redact_line(content: str) -> tuple[str, int]:
     def replace_quoted(match: re.Match[str]) -> str:
         nonlocal count
 
-        if match.group("value") == REDACTED:
+        if match.group("value") == REDACTED or _is_field_name(match.group("value")):
             return match.group(0)
 
         count += 1
@@ -184,7 +197,7 @@ def _redact_line(content: str) -> tuple[str, int]:
 
     match = ENV_ASSIGNMENT.match(content)
 
-    if match and match.group("value") != REDACTED:
+    if match and match.group("value") != REDACTED and not _is_field_name(match.group("value")):
         content = f"{match.group('name')}{REDACTED}"
         count += 1
 
@@ -249,6 +262,9 @@ def sanitize(diff: str, max_characters: int = MAX_DIFF_CHARACTERS) -> SanitizedD
         else:
             section, found = _redact_section(section)
             report.redactions += found
+
+            if found:
+                report.redacted_files.append(path)
 
         text = "\n".join(section)
 

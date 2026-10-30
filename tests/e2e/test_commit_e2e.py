@@ -181,7 +181,10 @@ def test_commit_never_sends_secrets_to_the_ai(git_repo, fake_provider) -> None:
     assert "sk_live_abcdefgh" not in prompt
     assert "lockfileVersion" not in prompt
     assert "Diff Notes:" in prompt
-    assert "! 1 value(s) that looked like secrets were replaced with [REDACTED]." in result.output
+    assert (
+        "! 1 value(s) that looked like secrets were replaced with [REDACTED] in: settings.py"
+        in result.output
+    )
     assert "! Contents of files that may hold secrets were not sent: .env" in result.output
     assert "! Lockfile contents were not sent: package-lock.json" in result.output
 
