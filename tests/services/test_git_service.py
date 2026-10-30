@@ -5,9 +5,12 @@ import pytest
 
 from diffsage.exceptions import (
     BaseBranchNotFoundError,
+    BranchesDivergedError,
     DetachedHeadError,
     FetchFailedError,
+    RemoteAheadError,
     RemoteBranchNotFoundError,
+    RemoteUnavailableError,
     SameBranchError,
     UnpushedChangesError,
 )
@@ -239,6 +242,7 @@ def test_validate_remote_head_raises_when_local_branch_has_unpushed_commits() ->
     client = Mock(spec=GitClient)
     client.current_commit.return_value = "local123"
     client.remote_branch_commit.return_value = "remote123"
+    client.is_ancestor.return_value = True
 
     service = GitService(client)
 
@@ -253,6 +257,7 @@ def test_validate_remote_head_raises_when_remote_branch_does_not_exist() -> None
     client = Mock(spec=GitClient)
     client.current_commit.return_value = "local123"
     client.remote_branch_commit.return_value = None
+    client.remote_has_branch.return_value = False
 
     service = GitService(client)
 
@@ -353,3 +358,57 @@ def test_build_pull_request_context_compares_against_the_given_ref() -> None:
     assert context.base_branch == "main"
     client.merge_base.assert_called_once_with("refs/remotes/origin/main", "feature")
     client.branch_diff.assert_called_once_with("refs/remotes/origin/main", "feature")
+
+
+def sync_client(*, remote_in_local, local_in_remote, remote_known=True) -> Mock:
+    client = Mock(spec=GitClient)
+    client.current_commit.return_value = "local"
+    client.remote_branch_commit.return_value = "remote"
+    client.ref_exists.return_value = remote_known
+    client.is_ancestor.side_effect = lambda ancestor, _descendant: (
+        remote_in_local if ancestor == "remote" else local_in_remote
+    )
+    return client
+
+
+def test_validate_remote_head_reports_a_branch_behind_origin() -> None:
+    client = sync_client(remote_in_local=False, local_in_remote=True)
+
+    with pytest.raises(RemoteAheadError, match="git pull"):
+        GitService(client).validate_remote_head("feature")
+
+    client.fetch_branch.assert_not_called()
+
+
+def test_validate_remote_head_reports_diverged_branches() -> None:
+    client = sync_client(remote_in_local=False, local_in_remote=False)
+
+    with pytest.raises(BranchesDivergedError, match="have diverged"):
+        GitService(client).validate_remote_head("feature")
+
+
+def test_validate_remote_head_fetches_an_unknown_origin_commit_before_deciding() -> None:
+    client = sync_client(remote_in_local=None, local_in_remote=False, remote_known=False)
+
+    with pytest.raises(BranchesDivergedError):
+        GitService(client).validate_remote_head("feature")
+
+    client.fetch_branch.assert_called_once_with("feature")
+
+
+def test_validate_remote_head_says_pull_when_origin_commit_cannot_be_fetched() -> None:
+    client = sync_client(remote_in_local=None, local_in_remote=None, remote_known=False)
+    client.fetch_branch.side_effect = FetchFailedError("offline")
+
+    with pytest.raises(RemoteAheadError):
+        GitService(client).validate_remote_head("feature")
+
+
+def test_validate_remote_head_reports_an_unreachable_origin() -> None:
+    client = Mock(spec=GitClient)
+    client.current_commit.return_value = "local"
+    client.remote_branch_commit.return_value = None
+    client.remote_has_branch.return_value = None
+
+    with pytest.raises(RemoteUnavailableError, match="Could not reach origin"):
+        GitService(client).validate_remote_head("feature")

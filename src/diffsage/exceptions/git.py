@@ -31,6 +31,24 @@ class UnpushedChangesError(GitError):
     default_message = "Your branch contains commits that have not been pushed to origin."
 
 
+class RemoteAheadError(GitError):
+    """Raised when origin has commits on the branch that the local branch does not."""
+
+    default_message = "Origin has commits on this branch that your local branch does not have."
+
+
+class BranchesDivergedError(GitError):
+    """Raised when the local branch and its origin copy each have commits the other lacks."""
+
+    default_message = "Your local branch and its copy on origin have diverged."
+
+
+class RemoteUnavailableError(GitError):
+    """Raised when origin cannot be reached to check a branch."""
+
+    default_message = "Could not reach origin."
+
+
 class FetchFailedError(GitError):
     """Raised when `git fetch` cannot update a branch from origin."""
 

@@ -2,9 +2,12 @@ from collections.abc import Callable
 
 from diffsage.exceptions import (
     BaseBranchNotFoundError,
+    BranchesDivergedError,
     DetachedHeadError,
     FetchFailedError,
+    RemoteAheadError,
     RemoteBranchNotFoundError,
+    RemoteUnavailableError,
     SameBranchError,
     UnpushedChangesError,
 )
@@ -178,15 +181,54 @@ class GitService:
         return branch
 
     def validate_remote_head(self, branch: str) -> None:
-        """Ensure the local branch is synchronized with origin."""
+        """Ensure the local branch and its copy on origin point at the same commit.
+
+        When they differ, say which side is behind, because the fix differs: push,
+        pull, or pull and then push.
+        """
 
         local_head = self._git_client.current_commit()
         remote_head = self._git_client.remote_branch_commit(branch)
 
         if remote_head is None:
-            raise RemoteBranchNotFoundError(f"Remote branch '{branch}' does not exist on origin.")
+            if self._git_client.remote_has_branch(branch) is None:
+                raise RemoteUnavailableError(
+                    f"Could not reach origin to check branch '{branch}'. Check your network "
+                    "connection and access to the repository, then try again."
+                )
 
-        if local_head != remote_head:
-            raise UnpushedChangesError(
-                f"Local branch '{branch}' contains commits that have not been pushed to origin."
+            raise RemoteBranchNotFoundError(
+                f"Branch '{branch}' does not exist on origin. Push it first: "
+                f"git push -u origin {branch}"
             )
+
+        if local_head == remote_head:
+            return
+
+        if self._git_client.is_ancestor(remote_head, local_head):
+            raise UnpushedChangesError(
+                f"Local branch '{branch}' has commits that have not been pushed to origin. "
+                "Push them first: git push"
+            )
+
+        # Origin's commit is not part of the local branch. If it was never fetched,
+        # fetch it so we can tell "behind" from "diverged".
+        if not self._git_client.ref_exists(remote_head):
+            try:
+                self._git_client.fetch_branch(branch)
+            except FetchFailedError:
+                pass
+
+        behind = self._git_client.is_ancestor(local_head, remote_head)
+
+        if behind is False:
+            raise BranchesDivergedError(
+                f"Local branch '{branch}' and origin/{branch} have diverged: each has commits "
+                "the other does not. Combine them first (git pull --rebase, or git pull), "
+                "then push: git push"
+            )
+
+        raise RemoteAheadError(
+            f"origin/{branch} has commits that your local branch does not have. Pull them "
+            "first: git pull"
+        )

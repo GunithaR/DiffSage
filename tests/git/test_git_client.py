@@ -668,3 +668,17 @@ def test_fetch_branch_failure_reports_gits_reason(tmp_path: Path) -> None:
 
     with pytest.raises(FetchFailedError, match="missing"):
         GitClient(repo).fetch_branch("missing")
+
+
+def test_is_ancestor_answers_yes_no_or_unknown(tmp_path: Path) -> None:
+    repo, _remote = repo_with_origin(tmp_path)
+    client = GitClient(repo)
+    first = client.current_commit()
+    (repo / "next.txt").write_text("next\n")
+    run_git(["add", "next.txt"], repo)
+    run_git(["commit", "-m", "next"], repo)
+    second = client.current_commit()
+
+    assert client.is_ancestor(first, second) is True
+    assert client.is_ancestor(second, first) is False
+    assert client.is_ancestor("0" * 40, second) is None

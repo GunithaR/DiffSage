@@ -249,6 +249,18 @@ class GitClient:
             lines = [line.strip() for line in (error.stderr or "").splitlines() if line.strip()]
             raise FetchFailedError(lines[-1] if lines else None) from error
 
+    def is_ancestor(self, ancestor: str, descendant: str) -> bool | None:
+        """Whether commit `ancestor` is contained in `descendant`, or None if either
+        commit is not in this repository (for example, not fetched yet)."""
+
+        try:
+            self._run_git_command(["merge-base", "--is-ancestor", ancestor, descendant])
+        except subprocess.CalledProcessError as error:
+            # Status 1 is a plain "no"; anything else means Git could not tell.
+            return False if error.returncode == 1 else None
+
+        return True
+
     def ref_exists(self, ref: str) -> bool:
         """Return True if `ref` names a commit in this repository."""
 
