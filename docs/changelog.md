@@ -5,12 +5,18 @@
 ### Added
 
 - `max_output_tokens` setting (`[ai] max_output_tokens`, `DIFFSAGE_MAX_OUTPUT_TOKENS`, default 1000, allowed 1–65536) in place of the fixed limit of 1000 tokens on AI replies. `config list` and `doctor` show it.
+- `diffsage pr` fills in the repository's own pull request template when it has one (`pull_request_template.md` in `.github/`, the repository root or `docs/`, any letter case, read from the base branch as GitHub does) instead of DiffSage's fixed sections. Headings, their order and checklists are kept; placeholder text and HTML comments are followed as instructions for their section; checkboxes are ticked only when the evidence confirms them.
+- `diffsage pr <base>` accepts a base branch that exists only on origin and has never been checked out.
 
 ### Changed
 
 - Rate-limited AI requests (HTTP 429) are retried like provider outages, up to `max_retries` times. DiffSage waits as long as the provider asks, up to 60 seconds; if it asks for longer (typically a used-up daily quota), the command stops at once and says how long to wait. Other retries back off exponentially with random jitter, up to 30 seconds between attempts.
 - Pull request drafts are requested in Gemini's JSON output mode with a schema of the draft, so replies arrive as bare JSON in the expected shape.
 - Commands start about a third of a second faster: the Gemini SDK is loaded only when a command calls the AI, so `config`, `auth` and `doctor` no longer load it.
+- `diffsage pr` compares your branch with the base branch as it is on origin, which is what GitHub shows, fetching it first. This updates `origin/<base>` but never your local branch. If origin cannot be fetched, DiffSage warns and uses the last fetched `origin/<base>`, or your local base branch.
+- `diffsage pr` stops before generating a draft when the branch already has an open pull request into the base branch, and shows its URL.
+- The pull request risk level is guessed more carefully: paths are matched on whole words (`AUTHORS` is no longer "authentication"), test files are recognised in more languages and folders, tests and documentation about a risky area are not themselves risky, and command-line code is medium rather than high risk. The AI now treats the risk level as a starting point and judges the actual risk from the diff.
+- The pull request body is passed to `gh` on standard input instead of the command line, so long bodies work on Windows (32,767-character command-line limit), and `gh` output is read as UTF-8.
 
 ### Fixed
 
@@ -19,12 +25,19 @@
 - A reply cut off by the output token limit was used as if it were complete, so a half-written message reached the parser. It now stops with an error that says how to raise the limit.
 - Pull request drafts wrapped in a ```` ```json ```` code fence, or with a sentence before or after them, were rejected as invalid JSON. The draft inside is now found and validated as usual, including drafts edited by hand.
 - `config set timeout -5` (or any negative number) failed with "No such option: -5" instead of explaining which values are allowed.
+- In `diffsage pr`, the regenerate spinner never showed the attempt counter, so retries during regenerate looked stuck.
+- A stale local base branch made pull request drafts describe commits that were already on origin.
+- A base branch that existed only locally was accepted, and `gh pr create` failed at the very end. It is now rejected before the AI is called, with how to fix it.
+- Any difference between your branch and its copy on origin was reported as unpushed commits, so DiffSage suggested a push that Git would reject. It now says whether to push, pull, or combine diverged branches, and an unreachable origin is no longer reported as a missing branch.
+- Unclear `diffsage pr` errors: two sentences joined without a space when no base branch could be found, two different detached-HEAD messages, a same-branch message that did not name the branch, and an invalid hand-edited draft blamed on the "AI response" without naming the bad fields.
 
 ### Development
 
 - The Gemini provider and the AI service are type-checked; they are no longer in the mypy baseline.
 - Tests fail if they create a real Gemini client or connect to anything other than this machine.
 - AI providers are registered in one place (`providers/factory.py`), and the configuration schema reads the supported names from it, so a new provider needs no changes outside `providers/`.
+- The last strict expected-failure test (the regenerate spinner) passes and is a normal regression test; no known-bug tests remain.
+- The fake GitHub CLI used by the tests supports `gh pr list` and records pull request bodies received on standard input.
 
 
 ## [1.4.0] - 2026-10-05

@@ -438,6 +438,34 @@ Edit  Regenerate      Cancel
         Display pull request URL
 ```
 
+Your branch is compared with the base branch as it is on origin (DiffSage fetches it
+first), which is what GitHub shows. If the branch already has an open pull request into
+the base branch, DiffSage stops before generating a draft and shows its URL.
+
+### Pull Request Templates
+
+If the repository has a pull request template, `diffsage pr` fills it in instead of using
+DiffSage's own sections. Like GitHub, it looks for `pull_request_template.md` (any letter
+case) in `.github/`, the repository root, then `docs/`, on the base branch.
+
+The template's headings, their order and its checklists are kept, and checkboxes are only
+ticked when the evidence confirms them. DiffSage decides what goes under each heading from
+what the heading asks for, and follows placeholder text and HTML comments as instructions
+for that section, so clear comments give better drafts:
+
+```markdown
+## What does this change?
+<!-- Summarise the change, then list the main files or modules it touches. -->
+
+## How was it tested?
+<!-- Tests added or changed, and how to run them. -->
+
+## Ticket
+<!-- The issue or ticket this closes, for example Closes #123. -->
+
+- [ ] Documentation updated
+```
+
 ---
 
 # Architecture Overview
