@@ -80,7 +80,7 @@ class GitService:
         current_branch = self._git_client.current_branch()
 
         if not current_branch:
-            raise DetachedHeadError("Cannot generate a pull request from a detached HEAD.")
+            raise DetachedHeadError()
 
         branches = self._git_client.branches()
 
@@ -112,12 +112,16 @@ class GitService:
                 resolved_base = "master"
             else:
                 raise BaseBranchNotFoundError(
-                    "Could not determine a base branch automatically."
+                    "Could not determine a base branch automatically. "
                     "Specify one explicitly with 'diffsage pr <base-branch>'."
                 )
 
         if resolved_base == current_branch:
-            raise SameBranchError("Current branch and base branch are the same.")
+            raise SameBranchError(
+                f"'{current_branch}' is both the current branch and the base branch. Switch to "
+                "the branch you want to open a pull request for, or name another base branch: "
+                "diffsage pr <base-branch>"
+            )
 
         return resolved_base
 
@@ -176,7 +180,7 @@ class GitService:
         branch = self._git_client.current_branch()
 
         if not branch:
-            raise DetachedHeadError("Cannot generate a pull request from detached HEAD.")
+            raise DetachedHeadError()
 
         return branch
 

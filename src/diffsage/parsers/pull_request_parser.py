@@ -40,7 +40,7 @@ def _load_json(content: str) -> Any:
             except json.JSONDecodeError:
                 start = content.find("{", start + 1)
 
-        raise InvalidPullRequestDraftError("AI response is not valid JSON.") from error
+        raise InvalidPullRequestDraftError("The pull request draft is not valid JSON.") from error
 
 
 class PullRequestParser:
@@ -48,11 +48,23 @@ class PullRequestParser:
         data = _load_json(content)
 
         if not isinstance(data, dict):
-            raise InvalidPullRequestDraftError("AI response must be a JSON object.")
+            raise InvalidPullRequestDraftError("The pull request draft must be a JSON object.")
 
-        if set(data) != set(PULL_REQUEST_DRAFT_SCHEMA["required"]):
+        required = PULL_REQUEST_DRAFT_SCHEMA["required"]
+        missing = [name for name in required if name not in data]
+        unexpected = [name for name in data if name not in required]
+
+        if missing or unexpected:
+            problems = []
+
+            if missing:
+                problems.append("missing " + ", ".join(missing))
+
+            if unexpected:
+                problems.append("unexpected " + ", ".join(unexpected))
+
             raise InvalidPullRequestDraftError(
-                "AI response contains invalid or missing pull request fields."
+                f"The pull request draft has invalid fields: {'; '.join(problems)}."
             )
 
         if not isinstance(data["title"], str):

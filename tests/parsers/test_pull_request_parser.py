@@ -241,5 +241,21 @@ def test_parse_validates_the_object_found_inside_a_fence() -> None:
     draft = valid_draft()
     del draft["why"]
 
-    with pytest.raises(InvalidPullRequestDraftError, match="invalid or missing"):
+    with pytest.raises(InvalidPullRequestDraftError, match="invalid fields: missing why"):
         PullRequestParser().parse(f"```json\n{json.dumps(draft)}\n```")
+
+
+@pytest.mark.parametrize(
+    ("content", "message"),
+    [
+        ("not json", "The pull request draft is not valid JSON."),
+        ("[1, 2]", "The pull request draft must be a JSON object."),
+    ],
+)
+def test_parse_errors_describe_the_draft_not_the_ai(content, message) -> None:
+    """The same messages are shown for AI replies and for the user's own edits."""
+
+    with pytest.raises(InvalidPullRequestDraftError) as raised:
+        PullRequestParser().parse(content)
+
+    assert raised.value.message == message

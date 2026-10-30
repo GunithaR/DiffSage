@@ -142,8 +142,8 @@ def pr(
 
             try:
                 draft = parser.parse(edited_content)
-            except InvalidPullRequestDraftError as e:
-                view.show_error(str(e))
+            except InvalidPullRequestDraftError as error:
+                view.show_error(error.message)
                 continue
 
             view.show_generated(draft)

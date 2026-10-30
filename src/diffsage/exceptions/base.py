@@ -35,7 +35,10 @@ class InvalidPullRequestDraftError(DiffSageError):
 class DetachedHeadError(DiffSageError):
     """Raised when git repository HEAD is detached."""
 
-    default_message = "Cannot generate a pull request from a detached HEAD."
+    default_message = (
+        "Cannot generate a pull request from a detached HEAD. Switch to a branch first: "
+        "git switch <branch>"
+    )
 
 
 class SameBranchError(DiffSageError):

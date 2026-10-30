@@ -412,3 +412,33 @@ def test_validate_remote_head_reports_an_unreachable_origin() -> None:
 
     with pytest.raises(RemoteUnavailableError, match="Could not reach origin"):
         GitService(client).validate_remote_head("feature")
+
+
+def test_unresolvable_base_branch_message_reads_as_two_sentences() -> None:
+    """Regression: the two sentences were joined without a space ("automatically.Specify")."""
+
+    client = Mock(spec=GitClient)
+    client.current_branch.return_value = "feature"
+    client.default_branch.return_value = None
+    client.branches.return_value = ["feature"]
+    client.ref_exists.return_value = False
+    client.remote_has_branch.return_value = False
+
+    with pytest.raises(BaseBranchNotFoundError) as raised:
+        GitService(client).resolve_base_branch()
+
+    assert raised.value.message == (
+        "Could not determine a base branch automatically. Specify one explicitly with "
+        "'diffsage pr <base-branch>'."
+    )
+
+
+@pytest.mark.parametrize("method", ["resolve_base_branch", "current_branch"])
+def test_detached_head_uses_one_message_everywhere(method) -> None:
+    client = Mock(spec=GitClient)
+    client.current_branch.return_value = ""
+
+    with pytest.raises(DetachedHeadError) as raised:
+        getattr(GitService(client), method)()
+
+    assert raised.value.message == DetachedHeadError.default_message

@@ -164,7 +164,10 @@ def test_pr_on_base_branch_exits() -> None:
     result = runner.invoke(app, ["pr"])
 
     assert result.exit_code == 1
-    assert "Current branch and base branch are the same" in result.output
+    assert (
+        "✗ 'main' is both the current branch and the base branch. Switch to the branch you "
+        "want to open a pull request for" in " ".join(result.output.split())
+    )
 
 
 @pytest.mark.usefixtures("feature_branch")
@@ -195,7 +198,7 @@ def test_pr_invalid_ai_json_exits(fake_provider, fake_gh) -> None:
     result = runner.invoke(app, ["pr"])
 
     assert result.exit_code == 1
-    assert "AI response is not valid JSON" in result.output
+    assert "The pull request draft is not valid JSON." in result.output
     assert pr_create_call(fake_gh.calls) is None
 
 
@@ -328,3 +331,46 @@ def test_pr_body_reaches_gh_intact_through_stdin(fake_provider, fake_gh) -> None
     assert result.exit_code == 0, result.output
     assert f"## Why\n{long_why}" in fake_gh.bodies[0]
     assert all(len(arg) < 1_000 for arg in pr_create_call(fake_gh.calls))
+
+
+@pytest.mark.usefixtures("feature_branch", "fake_gh")
+def test_invalid_pr_edit_names_the_bad_fields_without_blaming_the_ai(
+    fake_provider, monkeypatch, tmp_path
+) -> None:
+    """Regression: a hand edit with a missing field was reported as "AI response contains
+    invalid or missing pull request fields", without saying which."""
+
+    script = tmp_path / "break_draft.py"
+    script.write_text(
+        "import json, sys\n"
+        "path = sys.argv[1]\n"
+        "draft = json.load(open(path, encoding='utf-8'))\n"
+        "del draft['why']\n"
+        "draft['notes'] = 'extra'\n"
+        "json.dump(draft, open(path, 'w', encoding='utf-8'))\n"
+    )
+    python = sys.executable.replace("\\", "/")
+    monkeypatch.setenv("GIT_EDITOR", f'"{python}" "{script.as_posix()}"')
+    fake_provider.queue(draft_json())
+
+    result = runner.invoke(app, ["pr"], input="e\nn\n")
+
+    assert result.exit_code == 0, result.output
+    assert (
+        "✗ The pull request draft has invalid fields: missing why; unexpected notes."
+        in " ".join(result.output.split())
+    )
+    assert "AI response" not in result.output
+
+
+@pytest.mark.usefixtures("git_remote", "fake_provider", "fake_gh")
+def test_pr_on_detached_head_says_how_to_get_back_on_a_branch(git_repo) -> None:
+    run_git(["switch", "--detach"], git_repo)
+
+    result = runner.invoke(app, ["pr"])
+
+    assert result.exit_code == 1
+    assert (
+        "✗ Cannot generate a pull request from a detached HEAD. Switch to a branch first: "
+        "git switch <branch>" in " ".join(result.output.split())
+    )
