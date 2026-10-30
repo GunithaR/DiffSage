@@ -374,3 +374,16 @@ def test_pr_on_detached_head_says_how_to_get_back_on_a_branch(git_repo) -> None:
         "✗ Cannot generate a pull request from a detached HEAD. Switch to a branch first: "
         "git switch <branch>" in " ".join(result.output.split())
     )
+
+
+@pytest.mark.usefixtures("feature_branch")
+def test_pr_does_not_spend_a_network_call_on_gh_auth_status(fake_provider, fake_gh) -> None:
+    """The open-pull-request lookup already needs a login, so a separate `gh auth status`
+    round trip is not made."""
+
+    fake_provider.queue(draft_json())
+
+    runner.invoke(app, ["pr"], input="n\n")
+
+    assert ["auth", "status"] not in fake_gh.calls
+    assert [call[:2] for call in fake_gh.calls] == [["--version"], ["pr", "list"]]

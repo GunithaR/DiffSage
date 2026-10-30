@@ -637,7 +637,7 @@ def test_remote_has_branch_tells_missing_apart_from_unreachable(tmp_path: Path) 
 
     run_git(["remote", "set-url", "origin", str(tmp_path / "gone.git")], repo)
 
-    assert client.remote_has_branch("main") is None
+    assert GitClient(repo).remote_has_branch("main") is None
 
 
 def test_remote_has_branch_matches_the_whole_branch_name(tmp_path: Path) -> None:
@@ -682,3 +682,17 @@ def test_is_ancestor_answers_yes_no_or_unknown(tmp_path: Path) -> None:
     assert client.is_ancestor(first, second) is True
     assert client.is_ancestor(second, first) is False
     assert client.is_ancestor("0" * 40, second) is None
+
+
+def test_remote_heads_are_read_from_origin_once_per_client(tmp_path: Path) -> None:
+    """One ls-remote answers every branch question of a command, instead of one each."""
+
+    repo, _remote = repo_with_origin(tmp_path)
+    client = GitClient(repo)
+
+    with patch.object(client, "_run_git_command", wraps=client._run_git_command) as run:
+        assert client.remote_has_branch("main") is True
+        assert client.remote_branch_commit("main") == client.current_commit()
+        assert client.remote_has_branch("missing") is False
+
+    assert [call.args[0][0] for call in run.call_args_list].count("ls-remote") == 1

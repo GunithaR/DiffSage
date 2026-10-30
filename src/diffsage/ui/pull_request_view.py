@@ -25,6 +25,13 @@ class PullRequestView(BaseView):
             text.append("None\n", style="dim")
 
     @contextmanager
+    def checking(self):
+        """Spinner shown while the branch and GitHub are checked, before drafting."""
+
+        with self._console.status("Checking your branch...") as status:
+            yield status
+
+    @contextmanager
     def generating(self):
         with self._console.status("Generating pull request draft...") as status:
             yield status

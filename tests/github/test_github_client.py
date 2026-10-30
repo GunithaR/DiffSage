@@ -39,43 +39,6 @@ def test_is_available_returns_false_when_gh_is_not_installed(
         assert client.is_available() is False
 
 
-def test_is_authenticated_returns_true_when_authenticated(
-    tmp_path: Path,
-) -> None:
-    client = GitHubClient(tmp_path)
-
-    with patch(
-        "diffsage.github.client.subprocess.run",
-    ) as mock_run:
-        assert client.is_authenticated() is True
-
-        mock_run.assert_called_once_with(
-            ["gh", "auth", "status"],
-            cwd=tmp_path,
-            input=None,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            check=True,
-        )
-
-
-def test_is_authenticated_returns_false_when_not_authenticated(
-    tmp_path: Path,
-) -> None:
-    client = GitHubClient(tmp_path)
-
-    with patch(
-        "diffsage.github.client.subprocess.run",
-        side_effect=subprocess.CalledProcessError(
-            returncode=1,
-            cmd=["gh", "auth", "status"],
-        ),
-    ):
-        assert client.is_authenticated() is False
-
-
 def test_create_pull_request_returns_pull_request_url(
     tmp_path: Path,
 ) -> None:

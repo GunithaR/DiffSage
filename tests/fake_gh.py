@@ -32,6 +32,10 @@ def main(args: list[str]) -> int:
         return 0 if state["authenticated"] else 1
 
     if args[:2] == ["pr", "list"]:
+        if not state["authenticated"]:
+            print("To get started with GitHub CLI, please run:  gh auth login", file=sys.stderr)
+            return 4
+
         if state["pr_list_error"]:
             print(state["pr_list_error"], file=sys.stderr)
             return 1

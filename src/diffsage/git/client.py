@@ -27,6 +27,10 @@ class GitClient:
 
     def __init__(self, repo_path: Path | str | None = None) -> None:
         self._repo_path = Path(repo_path) if repo_path else Path.cwd()
+        # Branches on origin, read once per client (one network round trip); None after
+        # a failed read means origin could not be reached.
+        self._remote_heads: dict[str, str] | None = None
+        self._remote_heads_read = False
 
     def _run_git_command(
         self, args: list[str], input_text: str | None = None
@@ -212,19 +216,36 @@ class GitClient:
 
         return None
 
+    def remote_heads(self) -> dict[str, str] | None:
+        """Every branch on origin with its commit, or None if origin could not be reached.
+
+        Read with a single `git ls-remote` and kept for the life of this client, so the
+        branch checks of one command cost one network round trip instead of one each.
+        """
+
+        if not self._remote_heads_read:
+            self._remote_heads_read = True
+
+            try:
+                result = self._run_git_command(["ls-remote", "--heads", "origin"])
+            except subprocess.CalledProcessError:
+                self._remote_heads = None
+            else:
+                self._remote_heads = {
+                    ref.removeprefix("refs/heads/"): commit
+                    for commit, _tab, ref in (
+                        line.partition("\t") for line in result.stdout.splitlines()
+                    )
+                    if ref.startswith("refs/heads/")
+                }
+
+        return self._remote_heads
+
     def remote_has_branch(self, branch: str) -> bool | None:
         """Whether origin has the branch, or None if origin could not be reached."""
 
-        try:
-            self._run_git_command(
-                ["ls-remote", "--exit-code", "--heads", "origin", f"refs/heads/{branch}"]
-            )
-        except subprocess.CalledProcessError as error:
-            # With --exit-code, status 2 means origin answered but has no such branch;
-            # anything else (network, authentication, no origin) means we cannot tell.
-            return False if error.returncode == 2 else None
-
-        return True
+        heads = self.remote_heads()
+        return None if heads is None else branch in heads
 
     def remote_branch_exists(self, branch: str) -> bool:
         """Return True if the branch exists on the origin remote."""
@@ -299,14 +320,5 @@ class GitClient:
     def remote_branch_commit(self, branch: str) -> str | None:
         """Return the commit hash of the remote origin branch."""
 
-        try:
-            result = self._run_git_command(["ls-remote", "origin", f"refs/heads/{branch}"])
-        except subprocess.CalledProcessError:
-            return None
-
-        output = result.stdout.strip()
-
-        if not output:
-            return None
-
-        return output.split("\t", 1)[0]
+        heads = self.remote_heads()
+        return None if heads is None else heads.get(branch)

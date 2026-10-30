@@ -86,15 +86,14 @@ def test_fake_gh_validates_and_creates_pull_request(fake_gh) -> None:
 
     assert url == "https://github.com/example/repo/pull/1"
     assert fake_gh.calls[0] == ["--version"]
-    assert fake_gh.calls[1] == ["auth", "status"]
-    assert fake_gh.calls[2][:6] == ["pr", "create", "--base", "main", "--head", "feature"]
+    assert fake_gh.calls[1][:6] == ["pr", "create", "--base", "main", "--head", "feature"]
 
 
 def test_fake_gh_reports_unauthenticated(fake_gh) -> None:
     fake_gh.configure(authenticated=False)
 
     with pytest.raises(GitHubAuthenticationError):
-        GitHubService(GitHubClient()).validate()
+        GitHubService(GitHubClient()).ensure_no_open_pull_request("feature", "main")
 
 
 def test_fake_gh_reports_not_installed(fake_gh) -> None:

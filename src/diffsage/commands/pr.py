@@ -91,21 +91,30 @@ def pr(
         parser=parser,
     )
 
-    resolved_base_branch = git_service.resolve_base_branch(base_branch)
-    head_branch = git_service.current_branch()
+    # These checks talk to origin and GitHub, so they get a spinner that says which one
+    # is running; without it the command looks stuck for several seconds.
+    with view.checking() as status:
+        resolved_base_branch = git_service.resolve_base_branch(base_branch)
+        head_branch = git_service.current_branch()
 
-    git_service.validate_remote_head(head_branch)
-    github_service.validate()
-    # Before the AI call: GitHub would refuse a second open pull request at the end.
-    github_service.ensure_no_open_pull_request(head_branch, resolved_base_branch)
+        status.update(f"Checking that origin has {head_branch}...")
+        git_service.validate_remote_head(head_branch)
+
+        status.update("Checking GitHub for an open pull request...")
+        github_service.validate()
+        # Before the AI call: GitHub would refuse a second open pull request at the end.
+        github_service.ensure_no_open_pull_request(head_branch, resolved_base_branch)
+
+        status.update(f"Fetching origin/{resolved_base_branch}...")
+        # Compare with the base as it is on origin, which is what GitHub will show.
+        base_ref = git_service.base_comparison_ref(
+            resolved_base_branch, on_notice=view.show_warning
+        )
 
     view.show_branches(
         base_branch=resolved_base_branch,
         head_branch=head_branch,
     )
-
-    # Compare with the base as it is on origin, which is what GitHub will show.
-    base_ref = git_service.base_comparison_ref(resolved_base_branch, on_notice=view.show_warning)
 
     draft = _generate_draft(view, pull_request_service, resolved_base_branch, base_ref)
 

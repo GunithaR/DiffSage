@@ -40,15 +40,6 @@ class GitHubClient:
         except FileNotFoundError:
             return False
 
-    def is_authenticated(self) -> bool:
-        """Return True if the user is authenticated with GitHub."""
-
-        try:
-            self._run_gh_command(["auth", "status"])
-            return True
-        except subprocess.CalledProcessError:
-            return False
-
     def open_pull_request_url(self, head_branch: str, base_branch: str) -> str | None:
         """URL of the open pull request from `head_branch` into `base_branch`, if any."""
 

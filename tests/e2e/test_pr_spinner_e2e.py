@@ -46,6 +46,23 @@ def recorded_statuses(monkeypatch) -> list[RecordingStatus]:
 
 
 @pytest.fixture
+def recorded_checks(monkeypatch) -> list[RecordingStatus]:
+    """Replace the spinner shown during the branch and GitHub checks."""
+
+    statuses: list[RecordingStatus] = []
+
+    @contextmanager
+    def recording_checking(_self):
+        status = RecordingStatus()
+        statuses.append(status)
+        yield status
+
+    monkeypatch.setattr(PullRequestView, "checking", recording_checking)
+
+    return statuses
+
+
+@pytest.fixture
 def pushed_feature_branch(git_repo: Path, git_remote: Path) -> Path:
     run_git(["switch", "-c", "feature/spinner"], git_repo)
     (git_repo / "spinner.py").write_text("print('spin')\n")
@@ -93,3 +110,21 @@ def test_pr_regenerate_reports_attempt_on_its_own_spinner(fake_provider, recorde
     assert result.exit_code == 0, result.output
     assert len(recorded_statuses) == 2
     assert recorded_statuses[1].messages == ["Generating pull request draft... Attempt 1/4"]
+
+
+@pytest.mark.usefixtures("pushed_feature_branch", "fake_gh")
+def test_pr_shows_a_spinner_naming_each_check(fake_provider, recorded_checks) -> None:
+    """Regression: the branch and GitHub checks talked to the network for several seconds
+    with nothing on screen, so the command looked stuck."""
+
+    fake_provider.queue(DRAFT)
+
+    result = runner.invoke(app, ["pr"], input="n\n")
+
+    assert result.exit_code == 0, result.output
+    assert len(recorded_checks) == 1
+    assert recorded_checks[0].messages == [
+        "Checking that origin has feature/spinner...",
+        "Checking GitHub for an open pull request...",
+        "Fetching origin/main...",
+    ]
