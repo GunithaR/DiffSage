@@ -2,6 +2,27 @@
 
 ## [Unreleased]
 
+
+## [1.5.0] - 2026-10-30
+
+An AI-provider and pull-request release: clear messages for every Gemini failure, retries
+that respect rate limits, structured pull request drafts, pull requests compared with the
+base branch on origin, the repository's own pull request template, and limits you can
+configure.
+
+### Upgrade notes
+
+- `diffsage pr` now fetches the base branch from origin before comparing (this updates
+  `origin/<base>`, never your local branch). A base branch that exists only locally is
+  rejected before the AI is called, because GitHub cannot open a pull request against it.
+- If your repository has a `pull_request_template.md`, `diffsage pr` fills it in instead of
+  using DiffSage's own sections.
+- When your branch and its copy on origin differ, `diffsage pr` now says whether to push,
+  pull, or combine diverged branches, and stops before drafting if the branch already has
+  an open pull request into the base branch.
+- Two new settings, `max_output_tokens` (default 1000) and `max_diff_characters` (default
+  100,000), keep the previous limits unless you change them.
+
 ### Added
 
 - `max_output_tokens` setting (`[ai] max_output_tokens`, `DIFFSAGE_MAX_OUTPUT_TOKENS`, default 1000, allowed 1–65536) in place of the fixed limit of 1000 tokens on AI replies. `config list` and `doctor` show it.
