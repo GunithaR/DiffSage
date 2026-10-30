@@ -10,6 +10,7 @@ from typer.testing import CliRunner
 
 from diffsage.cli import app
 from diffsage.config.paths import display_path, get_local_config_path
+from diffsage.exit_codes import ExitCode
 from tests.helpers import init_git_repo_with_initial_commit, run_git
 
 runner = CliRunner()
@@ -36,7 +37,7 @@ def test_config_set_local_outside_repository_explains_the_problem() -> None:
 
     result = runner.invoke(app, ["config", "set", "model", "some-model", "--local"])
 
-    assert result.exit_code == 1
+    assert result.exit_code == ExitCode.CONFIGURATION
     assert "unexpected error" not in result.output.lower()
     assert "repository" in result.output.lower()
 
@@ -211,7 +212,7 @@ def test_config_set_rejects_invalid_values_and_writes_nothing(isolated_env, args
     # The explicit "--" form (end of options) must keep working for negative numbers.
     result = runner.invoke(app, ["config", "set", "--global", *args])
 
-    assert result.exit_code == 1
+    assert result.exit_code == ExitCode.CONFIGURATION
     assert f"✗ {expected}" in flat(result.output)
     assert not (isolated_env.config_dir / "config.toml").exists()
 
@@ -224,7 +225,7 @@ def test_misspelled_keys_in_config_file_are_reported(isolated_env) -> None:
 
     result = runner.invoke(app, ["config", "get", "model"])
 
-    assert result.exit_code == 1
+    assert result.exit_code == ExitCode.CONFIGURATION
     assert "ai.modle: Extra inputs are not permitted" in flat(result.output)
     assert "netwrok: Extra inputs are not permitted" in flat(result.output)
 
@@ -234,7 +235,7 @@ def test_invalid_environment_variable_is_named(monkeypatch) -> None:
 
     result = runner.invoke(app, ["config", "get", "timeout"])
 
-    assert result.exit_code == 1
+    assert result.exit_code == ExitCode.CONFIGURATION
     assert (
         "✗ Invalid environment variable DIFFSAGE_TIMEOUT: Input should be greater than or "
         "equal to 1 (got '0')" in flat(result.output)
@@ -317,7 +318,7 @@ def test_config_set_validates_negative_numbers_instead_of_reading_them_as_option
 
     key = next(arg for arg in args if not arg.startswith("-"))
     value = next(arg for arg in args if arg[1:2].isdigit())
-    assert result.exit_code == 1
+    assert result.exit_code == ExitCode.CONFIGURATION
     assert f"✗ Invalid value '{value}' for {key}:" in flat(result.output)
     assert "No such option" not in result.output
     assert not (isolated_env.config_dir / "config.toml").exists()

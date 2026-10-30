@@ -4,6 +4,7 @@ import pytest
 from typer.testing import CliRunner
 
 from diffsage.cli import app
+from diffsage.exit_codes import ExitCode
 
 runner = CliRunner()
 
@@ -28,7 +29,7 @@ def test_invalid_value_is_reported_without_traceback() -> None:
 
     result = runner.invoke(app, ["ask", "hello"])
 
-    assert result.exit_code == 1
+    assert result.exit_code == ExitCode.CONFIGURATION
     assert "✗ Invalid configuration in" in flat(result.output)
     assert "network.timeout: Input should be a valid integer" in flat(result.output)
     assert "Traceback" not in result.output
@@ -42,7 +43,7 @@ def test_invalid_toml_is_reported_with_position(broken_global_config) -> None:
 
     result = runner.invoke(app, ["ask", "hello"])
 
-    assert result.exit_code == 1
+    assert result.exit_code == ExitCode.CONFIGURATION
     assert "✗ Invalid TOML syntax in" in flat(result.output)
     assert "line 1" in flat(result.output)
     assert "Traceback" not in result.output
@@ -80,7 +81,7 @@ def test_partial_repair_saves_change_and_reports_remaining_problem(broken_global
 
     result = runner.invoke(app, ["config", "unset", "timeout", "--global"])
 
-    assert result.exit_code == 1
+    assert result.exit_code == ExitCode.CONFIGURATION
     assert "✗ Configuration updated, but it is still invalid:" in flat(result.output)
     assert "network.max_retries" in flat(result.output)
     assert "timeout" not in broken_global_config.read_text()
@@ -98,7 +99,7 @@ def test_config_list_global_shows_raw_file_values() -> None:
 def test_resolved_config_view_still_reports_the_error() -> None:
     result = runner.invoke(app, ["config", "list"])
 
-    assert result.exit_code == 1
+    assert result.exit_code == ExitCode.CONFIGURATION
     assert "✗ Invalid configuration in" in flat(result.output)
 
 
@@ -125,7 +126,7 @@ def test_doctor_reports_loaded_config() -> None:
 def test_other_commands_still_stop_on_broken_config() -> None:
     result = runner.invoke(app, ["commit"])
 
-    assert result.exit_code == 1
+    assert result.exit_code == ExitCode.CONFIGURATION
     assert "✗ Invalid configuration in" in flat(result.output)
 
 
@@ -149,7 +150,7 @@ def test_local_toml_syntax_error_is_reported_not_unexpected(git_repo, command) -
 
     result = runner.invoke(app, command)
 
-    assert result.exit_code == 1
+    assert result.exit_code == ExitCode.CONFIGURATION
     assert "✗ Invalid TOML syntax in" in flat(result.output)
     assert "line 3" in flat(result.output)
     assert "fix that line in a text editor" in flat(result.output)

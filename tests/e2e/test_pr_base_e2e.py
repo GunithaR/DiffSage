@@ -11,6 +11,7 @@ import pytest
 from typer.testing import CliRunner
 
 from diffsage.cli import app
+from diffsage.exit_codes import ExitCode
 from tests.helpers import run_git
 
 runner = CliRunner()
@@ -138,7 +139,7 @@ def test_pr_rejects_a_base_branch_that_is_not_on_origin(git_repo, fake_provider)
 
     result = runner.invoke(app, ["pr", "local-only"])
 
-    assert result.exit_code == 1
+    assert result.exit_code == ExitCode.GIT
     assert (
         "✗ Base branch 'local-only' does not exist on origin, so GitHub cannot open a pull "
         "request against it." in " ".join(result.output.split())

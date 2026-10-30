@@ -19,6 +19,7 @@ from diffsage.exceptions import (
     SameBranchError,
     UnpushedChangesError,
 )
+from diffsage.exit_codes import ExitCode
 from diffsage.models.pull_request import PullRequestDraft
 from tests.helpers import assert_error_shown
 
@@ -541,7 +542,7 @@ def test_pr_exits_when_github_cli_is_unavailable():
 
         result = runner.invoke(app, ["pr"])
 
-        assert result.exit_code == 1
+        assert result.exit_code == ExitCode.GITHUB
 
         mock_pr_service.return_value.generate_draft.assert_not_called()
         mock_github_service.return_value.create_pull_request.assert_not_called()
@@ -576,7 +577,7 @@ def test_pr_exits_when_github_cli_is_not_authenticated():
 
         result = runner.invoke(app, ["pr"])
 
-        assert result.exit_code == 1
+        assert result.exit_code == ExitCode.CREDENTIALS
 
         mock_pr_service.return_value.generate_draft.assert_not_called()
         mock_github_service.return_value.create_pull_request.assert_not_called()
@@ -608,7 +609,7 @@ def test_pr_exits_when_remote_branch_does_not_exist():
 
         result = runner.invoke(app, ["pr"])
 
-        assert result.exit_code == 1
+        assert result.exit_code == ExitCode.GIT
 
         mock_git_service.return_value.validate_remote_head.assert_called_once_with(
             "feature/pr-generation"
@@ -643,7 +644,7 @@ def test_pr_exits_when_branch_has_unpushed_commits():
 
         result = runner.invoke(app, ["pr"])
 
-        assert result.exit_code == 1
+        assert result.exit_code == ExitCode.GIT
 
         mock_git_service.return_value.validate_remote_head.assert_called_once_with(
             "feature/pr-generation"

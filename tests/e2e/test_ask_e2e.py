@@ -11,6 +11,7 @@ from diffsage.exceptions import (
     RateLimitError,
     ResponseTruncatedError,
 )
+from diffsage.exit_codes import ExitCode
 
 runner = CliRunner()
 
@@ -42,7 +43,7 @@ def test_ask_reports_provider_errors_instead_of_unexpected_error(fake_provider, 
 
     result = runner.invoke(app, ["ask", "hello"])
 
-    assert result.exit_code == 1
+    assert result.exit_code == ExitCode.AI_PROVIDER
     assert f"✗ {error}" in result.output
     assert UNEXPECTED_ERROR_MESSAGE not in result.output
 
@@ -62,5 +63,5 @@ def test_truncated_reply_says_how_to_raise_the_limit(fake_provider) -> None:
 
     result = runner.invoke(app, ["ask", "hello"])
 
-    assert result.exit_code == 1
+    assert result.exit_code == ExitCode.AI_PROVIDER
     assert "diffsage config set max_output_tokens <tokens>" in " ".join(result.output.split())

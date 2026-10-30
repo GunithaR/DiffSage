@@ -1,8 +1,11 @@
 from diffsage.exceptions.base import ProviderError
+from diffsage.exit_codes import ExitCode
 
 
 class AuthenticationError(ProviderError):
     """Raised when authentication with a provider fails."""
+
+    exit_code = ExitCode.CREDENTIALS
 
 
 class RateLimitError(ProviderError):

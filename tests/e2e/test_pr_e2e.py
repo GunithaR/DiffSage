@@ -10,6 +10,7 @@ from typer.testing import CliRunner
 
 from diffsage.cli import app
 from diffsage.commands.error_handler import UNEXPECTED_ERROR_MESSAGE
+from diffsage.exit_codes import ExitCode
 from diffsage.parsers.pull_request_parser import PULL_REQUEST_DRAFT_SCHEMA
 from tests.helpers import run_git
 
@@ -140,7 +141,7 @@ def test_pr_with_unpushed_commits_exits_before_ai(feature_branch, fake_provider)
 
     result = runner.invoke(app, ["pr"])
 
-    assert result.exit_code == 1
+    assert result.exit_code == ExitCode.GIT
     assert "commits that have not been pushed" in result.output
     assert fake_provider.requests == []
 
@@ -152,7 +153,7 @@ def test_pr_with_unpushed_branch_exits(git_repo) -> None:
 
     result = runner.invoke(app, ["pr"])
 
-    assert result.exit_code == 1
+    assert result.exit_code == ExitCode.GIT
     assert (
         "✗ Branch 'feature/local-only' does not exist on origin. Push it first: "
         "git push -u origin feature/local-only" in " ".join(result.output.split())
@@ -163,7 +164,7 @@ def test_pr_with_unpushed_branch_exits(git_repo) -> None:
 def test_pr_on_base_branch_exits() -> None:
     result = runner.invoke(app, ["pr"])
 
-    assert result.exit_code == 1
+    assert result.exit_code == ExitCode.GIT
     assert (
         "✗ 'main' is both the current branch and the base branch. Switch to the branch you "
         "want to open a pull request for" in " ".join(result.output.split())
@@ -176,7 +177,7 @@ def test_pr_unauthenticated_gh_exits_before_ai(fake_provider, fake_gh) -> None:
 
     result = runner.invoke(app, ["pr"])
 
-    assert result.exit_code == 1
+    assert result.exit_code == ExitCode.CREDENTIALS
     assert "gh auth login" in result.output
     assert fake_provider.requests == []
 
@@ -187,7 +188,7 @@ def test_pr_without_gh_installed_exits(fake_gh) -> None:
 
     result = runner.invoke(app, ["pr"])
 
-    assert result.exit_code == 1
+    assert result.exit_code == ExitCode.GITHUB
     assert "GitHub CLI is not installed" in result.output
 
 
@@ -197,7 +198,7 @@ def test_pr_invalid_ai_json_exits(fake_provider, fake_gh) -> None:
 
     result = runner.invoke(app, ["pr"])
 
-    assert result.exit_code == 1
+    assert result.exit_code == ExitCode.AI_OUTPUT
     assert "The pull request draft is not valid JSON." in result.output
     assert pr_create_call(fake_gh.calls) is None
 
@@ -214,7 +215,7 @@ def test_pr_reports_gh_create_failure_with_gh_message(fake_provider, fake_gh) ->
 
     result = runner.invoke(app, ["pr"], input="y\n")
 
-    assert result.exit_code == 1
+    assert result.exit_code == ExitCode.GITHUB
     assert (
         '✗ GitHub CLI could not create the pull request: a pull request for branch "feature/'
         'greeting" into branch "main" already exists:' in result.output
@@ -285,7 +286,7 @@ def test_pr_stops_before_the_ai_when_a_pull_request_is_already_open(fake_provide
 
     result = runner.invoke(app, ["pr"])
 
-    assert result.exit_code == 1
+    assert result.exit_code == ExitCode.GITHUB
     assert (
         f"✗ A pull request from 'feature/greeting' into 'main' is already open: {url}"
         in " ".join(result.output.split())
@@ -369,7 +370,7 @@ def test_pr_on_detached_head_says_how_to_get_back_on_a_branch(git_repo) -> None:
 
     result = runner.invoke(app, ["pr"])
 
-    assert result.exit_code == 1
+    assert result.exit_code == ExitCode.GIT
     assert (
         "✗ Cannot generate a pull request from a detached HEAD. Switch to a branch first: "
         "git switch <branch>" in " ".join(result.output.split())

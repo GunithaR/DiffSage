@@ -17,6 +17,7 @@ from diffsage.exceptions import (
     InvalidConfigurationValueError,
     UnknownConfigurationKeyError,
 )
+from diffsage.exit_codes import ExitCode
 from diffsage.models.config import ConfigReport, ConfigValueReport
 from tests.helpers import assert_error_shown, create_settings
 
@@ -540,7 +541,7 @@ def test_set_config_command_handles_unknown_key(capsys) -> None:
         with pytest.raises(SystemExit) as exception_info:
             set_config("invalid", "value", local=False, global_=True)
 
-    assert exception_info.value.code == 1
+    assert exception_info.value.code == ExitCode.CONFIGURATION
 
     mock_load_settings.assert_called_once()
     mock_resolve_path.assert_called_once_with(ConfigScope.GLOBAL)
@@ -587,7 +588,7 @@ def test_set_config_command_handles_invalid_integer(capsys) -> None:
                 global_=True,
             )
 
-    assert exception_info.value.code == 1
+    assert exception_info.value.code == ExitCode.CONFIGURATION
 
     mock_load_settings.assert_called_once()
     mock_resolve_path.assert_called_once_with(ConfigScope.GLOBAL)
@@ -850,7 +851,7 @@ def test_unset_config_command_handles_unknown_key(capsys) -> None:
                 global_=True,
             )
 
-    assert exception_info.value.code == 1
+    assert exception_info.value.code == ExitCode.CONFIGURATION
 
     mock_load_settings.assert_called_once()
     mock_resolve_path.assert_called_once_with(ConfigScope.GLOBAL)

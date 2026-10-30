@@ -6,6 +6,7 @@ import pytest
 from typer.testing import CliRunner
 
 from diffsage.cli import app
+from diffsage.exit_codes import ExitCode
 from tests.fakes import FakeProvider
 
 runner = CliRunner()
@@ -32,7 +33,7 @@ def test_auth_reports_unparseable_credentials_file(isolated_env) -> None:
 
     result = runner.invoke(app, ["auth", "list"])
 
-    assert result.exit_code == 1
+    assert result.exit_code == ExitCode.CREDENTIALS
     assert "✗ Invalid TOML syntax in" in flat(result.output)
     assert "unexpected error" not in result.output.lower()
 
@@ -118,7 +119,7 @@ def test_auth_set_reads_piped_key_without_prompt_or_warning(isolated_env) -> Non
 def test_auth_set_with_empty_pipe_saves_nothing(isolated_env) -> None:
     result = runner.invoke(app, ["auth", "set", "gemini"], input="\n")
 
-    assert result.exit_code == 1
+    assert result.exit_code == ExitCode.CREDENTIALS
     assert "✗ No API key was received on standard input." in result.output
     assert stored_key(isolated_env) is None
 
@@ -166,14 +167,14 @@ def test_empty_environment_key_is_reported(monkeypatch) -> None:
 
     result = runner.invoke(app, ["ask", "hello"])
 
-    assert result.exit_code == 1
+    assert result.exit_code == ExitCode.CREDENTIALS
     assert "✗ DIFFSAGE_API_KEY is set but empty." in flat(result.output)
 
 
 def test_missing_key_suggests_auth_set_or_environment_variable() -> None:
     result = runner.invoke(app, ["ask", "hello"])
 
-    assert result.exit_code == 1
+    assert result.exit_code == ExitCode.CREDENTIALS
     assert "Run 'diffsage auth set gemini', or set DIFFSAGE_API_KEY." in flat(result.output)
 
 
@@ -246,7 +247,7 @@ def test_missing_profile_explains_how_to_create_it(monkeypatch) -> None:
 
     result = runner.invoke(app, ["ask", "hello"])
 
-    assert result.exit_code == 1
+    assert result.exit_code == ExitCode.CREDENTIALS
     assert (
         "✗ Credential not found for provider 'gemini' and profile 'work'. Run 'diffsage auth "
         "set gemini --name work', or set DIFFSAGE_API_KEY." in flat(result.output)
@@ -268,6 +269,6 @@ def test_malformed_credentials_file_is_reported_by_every_command(isolated_env, c
 
     result = runner.invoke(app, command)
 
-    assert result.exit_code == 1
+    assert result.exit_code == ExitCode.CREDENTIALS
     assert "'credentials.gemini' should be a table, not string" in flat(result.output)
     assert "unexpected error" not in result.output.lower()

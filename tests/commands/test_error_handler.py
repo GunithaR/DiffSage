@@ -12,6 +12,7 @@ from diffsage.exceptions import (
     NotGitRepositoryError,
     RateLimitError,
 )
+from diffsage.exit_codes import ExitCode
 
 runner = CliRunner()
 
@@ -62,24 +63,29 @@ def test_preserved_signature_still_parses_arguments() -> None:
 
 
 @pytest.mark.parametrize(
-    ("error", "expected"),
+    ("error", "expected", "code"),
     [
-        (NotGitRepositoryError(), "Not inside a Git repository."),
-        (RateLimitError("Gemini API rate limit exceeded."), "Gemini API rate limit exceeded."),
+        (NotGitRepositoryError(), "Not inside a Git repository.", ExitCode.GIT),
+        (
+            RateLimitError("Gemini API rate limit exceeded."),
+            "Gemini API rate limit exceeded.",
+            ExitCode.AI_PROVIDER,
+        ),
         (
             CredentialNotFoundError("gemini"),
             "Credential not found for provider 'gemini' and profile 'default'.",
+            ExitCode.CREDENTIALS,
         ),
     ],
 )
-def test_diffsage_error_shows_message_and_exits_1(error, expected) -> None:
+def test_diffsage_error_shows_message_and_exits_with_its_code(error, expected, code) -> None:
     @handle_command_errors("fail")
     def fail() -> None:
         raise error
 
     result = invoke(fail)
 
-    assert result.exit_code == 1
+    assert result.exit_code == code
     assert result.output.strip() == f"✗ {expected}"
 
 
@@ -159,3 +165,14 @@ def test_bare_diffsage_errors_have_default_messages() -> None:
     assert str(NotGitRepositoryError()) == "Not inside a Git repository."
     assert str(DiffSageError()) == "DiffSage could not complete the command."
     assert str(NotGitRepositoryError("Custom text.")) == "Custom text."
+
+
+def test_ctrl_c_is_reported_as_interrupted_with_exit_code_130() -> None:
+    @handle_command_errors("slow")
+    def slow() -> None:
+        raise KeyboardInterrupt
+
+    result = invoke(slow)
+
+    assert result.exit_code == ExitCode.INTERRUPTED == 130
+    assert result.output.strip() == "! Interrupted."

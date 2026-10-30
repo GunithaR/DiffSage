@@ -9,6 +9,7 @@ from typer.testing import CliRunner
 
 from diffsage.cli import app
 from diffsage.commands.error_handler import UNEXPECTED_ERROR_MESSAGE
+from diffsage.exit_codes import ExitCode
 from tests.helpers import install_failing_pre_commit_hook, run_git
 
 runner = CliRunner()
@@ -107,7 +108,7 @@ def test_commit_rejects_invalid_option_then_commits(git_repo, fake_provider) -> 
 def test_commit_without_staged_changes_exits_without_calling_ai(fake_provider) -> None:
     result = runner.invoke(app, ["commit"])
 
-    assert result.exit_code == 1
+    assert result.exit_code == ExitCode.GIT
     assert "No staged changes found" in result.output
     assert fake_provider.requests == []
 
@@ -119,7 +120,7 @@ def test_commit_outside_git_repository_exits(tmp_path, monkeypatch, fake_provide
 
     result = runner.invoke(app, ["commit"])
 
-    assert result.exit_code == 1
+    assert result.exit_code == ExitCode.GIT
     assert "Not inside a Git repository" in result.output
     assert fake_provider.requests == []
 
@@ -130,7 +131,7 @@ def test_commit_without_credential_exits(git_repo) -> None:
 
     result = runner.invoke(app, ["commit"])
 
-    assert result.exit_code == 1
+    assert result.exit_code == ExitCode.CREDENTIALS
     assert "Credential not found for provider 'gemini'" in result.output
 
 
@@ -142,7 +143,7 @@ def test_commit_reports_unparseable_ai_message(git_repo, fake_provider) -> None:
 
     result = runner.invoke(app, ["commit"])
 
-    assert result.exit_code == 1
+    assert result.exit_code == ExitCode.AI_OUTPUT
     assert "✗ The first line must look like '<type>[(scope)][!]: <subject>'" in result.output
     assert "Got: 'Here is a summary of your change'" in result.output
     assert UNEXPECTED_ERROR_MESSAGE not in result.output
@@ -267,7 +268,7 @@ def test_commit_rejected_by_a_hook_shows_why(git_repo, fake_provider) -> None:
 
     result = runner.invoke(app, ["commit"], input="y\n")
 
-    assert result.exit_code == 1
+    assert result.exit_code == ExitCode.GIT
     assert "✗ git commit failed. Nothing was committed" in result.output
     assert "lint: trailing whitespace in app.py line 1" in result.output
     assert UNEXPECTED_ERROR_MESSAGE not in result.output

@@ -9,6 +9,7 @@ from diffsage.commands.auth import (
     unset_credential,
 )
 from diffsage.exceptions import InvalidCredentialError
+from diffsage.exit_codes import ExitCode
 from diffsage.models.credentials import Credential
 from tests.helpers import assert_error_shown
 
@@ -64,7 +65,7 @@ def test_set_credential_command_handles_value_error(capsys) -> None:
                 name="default",
             )
 
-    assert exception_info.value.code == 1
+    assert exception_info.value.code == ExitCode.CREDENTIALS
 
     mock_get_path.assert_called_once()
     mock_repository.assert_called_once_with(mock_get_path.return_value)
@@ -167,7 +168,7 @@ def test_get_credential_command_handles_missing_credential(capsys) -> None:
                 name="default",
             )
 
-    assert exception_info.value.code == 1
+    assert exception_info.value.code == ExitCode.CREDENTIALS
 
     mock_get_path.assert_called_once()
     mock_repository.assert_called_once_with(mock_get_path.return_value)
@@ -201,7 +202,7 @@ def test_get_credential_command_handles_value_error(capsys) -> None:
                 name="default",
             )
 
-    assert exception_info.value.code == 1
+    assert exception_info.value.code == ExitCode.CREDENTIALS
 
     mock_get_path.assert_called_once()
     mock_repository.assert_called_once_with(mock_get_path.return_value)
@@ -384,7 +385,7 @@ def test_unset_credential_command_handles_missing_credential(capsys) -> None:
                 name="default",
             )
 
-    assert exception_info.value.code == 1
+    assert exception_info.value.code == ExitCode.CREDENTIALS
 
     mock_get_path.assert_called_once()
     mock_repository.assert_called_once_with(mock_get_path.return_value)
@@ -420,7 +421,7 @@ def test_unset_credential_command_handles_value_error(capsys) -> None:
                 name="",
             )
 
-    assert exception_info.value.code == 1
+    assert exception_info.value.code == ExitCode.CREDENTIALS
 
     mock_get_path.assert_called_once()
     mock_repository.assert_called_once_with(mock_get_path.return_value)

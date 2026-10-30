@@ -11,6 +11,7 @@ from typer.testing import CliRunner
 
 import diffsage
 from diffsage.cli import app
+from diffsage.exit_codes import ExitCode
 from diffsage.providers.factory import PROVIDERS
 from tests.fakes import FakeProvider
 
@@ -86,5 +87,5 @@ def test_a_provider_registered_only_in_the_factory_works_end_to_end(
 def test_unknown_provider_lists_every_registered_provider() -> None:
     result = runner.invoke(app, ["config", "set", "provider", "openai", "--global"])
 
-    assert result.exit_code == 1
+    assert result.exit_code == ExitCode.CONFIGURATION
     assert "Input should be 'gemini' or 'local'" in " ".join(result.output.split())

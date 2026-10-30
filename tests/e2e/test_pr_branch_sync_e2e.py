@@ -10,6 +10,7 @@ import pytest
 from typer.testing import CliRunner
 
 from diffsage.cli import app
+from diffsage.exit_codes import ExitCode
 from tests.helpers import run_git
 
 runner = CliRunner()
@@ -50,7 +51,7 @@ def test_pr_says_to_push_when_local_commits_are_not_on_origin(
 
     result = runner.invoke(app, ["pr"])
 
-    assert result.exit_code == 1
+    assert result.exit_code == ExitCode.GIT
     assert (
         "✗ Local branch 'feature/mine' has commits that have not been pushed to origin. "
         "Push them first: git push" in flat(result.output)
@@ -71,7 +72,7 @@ def test_pr_says_to_pull_when_origin_has_commits_the_local_branch_lacks(
 
     result = runner.invoke(app, ["pr"])
 
-    assert result.exit_code == 1
+    assert result.exit_code == ExitCode.GIT
     assert (
         "✗ origin/feature/mine has commits that your local branch does not have. Pull them "
         "first: git pull" in flat(result.output)
@@ -91,7 +92,7 @@ def test_pr_says_to_combine_when_the_branches_have_diverged(
 
     result = runner.invoke(app, ["pr"])
 
-    assert result.exit_code == 1
+    assert result.exit_code == ExitCode.GIT
     assert (
         "✗ Local branch 'feature/mine' and origin/feature/mine have diverged: each has "
         "commits the other does not." in flat(result.output)
@@ -108,6 +109,6 @@ def test_pr_says_origin_is_unreachable_instead_of_branch_missing(pushed_feature,
 
     result = runner.invoke(app, ["pr", "main"])
 
-    assert result.exit_code == 1
+    assert result.exit_code == ExitCode.GIT
     assert "✗ Could not reach origin to check branch 'feature/mine'." in flat(result.output)
     assert "does not exist" not in result.output

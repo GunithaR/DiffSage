@@ -4,6 +4,7 @@ from collections.abc import Callable
 import typer
 
 from diffsage.exceptions import DiffSageError
+from diffsage.exit_codes import ExitCode
 from diffsage.logging.logger import get_logger
 from diffsage.ui.base import BaseView
 
@@ -23,6 +24,7 @@ def handle_command_errors[**P, R](
     - Typer control flow (Exit, Abort, BadParameter): passed through untouched, so
       --help, --version and argument validation keep working. Typer vendors its own
       copy of Click, so these must be Typer's classes, not the `click` package's.
+    - Ctrl+C: reported as interrupted, with exit code 130.
     - Anything else: logged with a traceback and reported as an unexpected error.
     """
 
@@ -42,10 +44,15 @@ def handle_command_errors[**P, R](
                 view.show_error(error.message)
                 raise SystemExit(error.exit_code) from None
 
+            except KeyboardInterrupt:
+                logger.info("%s command interrupted.", command)
+                view.show_warning("Interrupted.")
+                raise SystemExit(ExitCode.INTERRUPTED) from None
+
             except Exception:
                 logger.exception("Unexpected error while executing %s command.", command)
                 view.show_error(UNEXPECTED_ERROR_MESSAGE)
-                raise SystemExit(1) from None
+                raise SystemExit(ExitCode.ERROR) from None
 
         return wrapper
 

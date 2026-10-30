@@ -478,6 +478,38 @@ for that section, so clear comments give better drafts:
 
 ---
 
+# Exit Codes
+
+DiffSage exits with a code that says what kind of problem stopped it, so scripts, git
+hooks and CI can react without reading the message. These codes are stable: new ones may
+be added, but existing ones keep their meaning.
+
+| Code | Meaning | Examples |
+|------|---------|----------|
+| 0 | Success | Committed or created; also `--dry-run`, and answering `N` |
+| 1 | Unexpected error, or a problem in no group below | An editor that cannot be started |
+| 2 | Command used wrongly | Unknown or clashing options; no terminal without `--yes` or `--dry-run` |
+| 3 | Configuration | Invalid config file, unknown key or value, `--local` outside a repository |
+| 4 | Credentials and logins | No API key, a key the provider rejects, a broken credentials file, `gh` not logged in |
+| 5 | Git or repository state | Not a repository, nothing staged, detached HEAD, branch not pushed or behind origin, a hook rejected the commit |
+| 6 | AI provider | Outage, rate limit, blocked, empty or truncated reply, unknown model |
+| 7 | Unusable AI output | A commit message or pull request draft that cannot be parsed |
+| 8 | GitHub | GitHub CLI not installed, a pull request already open, `gh pr create` failed |
+| 130 | Interrupted | Ctrl+C |
+
+For example, in a git hook:
+
+```bash
+diffsage commit --yes
+case $? in
+  0) ;;
+  6) echo "AI provider unavailable; commit manually." ;;
+  *) exit 1 ;;
+esac
+```
+
+---
+
 # Architecture Overview
 
 DiffSage follows a layered architecture to separate responsibilities and improve maintainability.

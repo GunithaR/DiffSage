@@ -9,6 +9,7 @@ from diffsage.exceptions import (
     ModelNotFoundError,
     ProviderUnavailableError,
 )
+from diffsage.exit_codes import ExitCode
 from diffsage.models.provider import ProviderResponse
 from tests.helpers import assert_error_shown
 
@@ -77,7 +78,7 @@ def test_ask_command_handles_authentication_error(capsys) -> None:
         with pytest.raises(SystemExit) as exception_info:
             ask("Hello")
 
-    assert exception_info.value.code == 1
+    assert exception_info.value.code == ExitCode.CREDENTIALS
 
     service.ask.assert_called_once_with("Hello")
     assert_error_shown(capsys, "Invalid API key")
@@ -101,7 +102,7 @@ def test_ask_command_handles_model_not_found_error(capsys) -> None:
         with pytest.raises(SystemExit) as exception_info:
             ask("Hello")
 
-    assert exception_info.value.code == 1
+    assert exception_info.value.code == ExitCode.AI_PROVIDER
 
     service.ask.assert_called_once_with("Hello")
     assert_error_shown(capsys, "Model 'gemini-3.5-flash-lit' was not found.")
@@ -125,7 +126,7 @@ def test_ask_command_handles_provider_unavailable_error(capsys) -> None:
         with pytest.raises(SystemExit) as exception_info:
             ask("Hello")
 
-    assert exception_info.value.code == 1
+    assert exception_info.value.code == ExitCode.AI_PROVIDER
 
     service.ask.assert_called_once_with("Hello")
     assert_error_shown(capsys, "Provider temporarily unavailable.")
@@ -149,7 +150,7 @@ def test_ask_command_handles_config_error(capsys) -> None:
         with pytest.raises(SystemExit) as exception_info:
             ask("Hello")
 
-    assert exception_info.value.code == 1
+    assert exception_info.value.code == ExitCode.CONFIGURATION
 
     service.ask.assert_called_once_with("Hello")
     assert_error_shown(capsys, "Invalid configuration.")

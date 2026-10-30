@@ -1,3 +1,6 @@
+from diffsage.exit_codes import ExitCode
+
+
 class DiffSageError(Exception):
     """Base exception for all DiffSage errors.
 
@@ -6,7 +9,7 @@ class DiffSageError(Exception):
     """
 
     default_message = "DiffSage could not complete the command."
-    exit_code = 1
+    exit_code: int = ExitCode.ERROR
 
     def __init__(self, message: str | None = None) -> None:
         super().__init__(message or self.default_message)
@@ -19,20 +22,28 @@ class DiffSageError(Exception):
 class ProviderError(DiffSageError):
     """Raised when an AI provider fails."""
 
+    exit_code = ExitCode.AI_PROVIDER
+
 
 class GitError(DiffSageError):
-    """Raised when git operations fail."""
+    """Raised when git operations fail, or the repository is not in a usable state."""
+
+    exit_code = ExitCode.GIT
 
 
 class InvalidCommitMessageError(DiffSageError):
     """Raised when an AI-generated commit message cannot be parsed."""
 
+    exit_code = ExitCode.AI_OUTPUT
+
 
 class InvalidPullRequestDraftError(DiffSageError):
     """Raised when an AI-generated pull request draft is invalid."""
 
+    exit_code = ExitCode.AI_OUTPUT
 
-class DetachedHeadError(DiffSageError):
+
+class DetachedHeadError(GitError):
     """Raised when git repository HEAD is detached."""
 
     default_message = (
@@ -41,7 +52,7 @@ class DetachedHeadError(DiffSageError):
     )
 
 
-class SameBranchError(DiffSageError):
+class SameBranchError(GitError):
     """Raised when the current branch and base branch are the same."""
 
     default_message = "Current branch and base branch are the same."
@@ -51,7 +62,7 @@ class NoTerminalError(DiffSageError):
     """Raised when a command would ask for confirmation but there is no terminal to ask in,
     as in CI, git hooks and pipes."""
 
-    exit_code = 2
+    exit_code = ExitCode.USAGE
 
 
 class EditorError(DiffSageError):
@@ -60,6 +71,8 @@ class EditorError(DiffSageError):
 
 class ConfigError(DiffSageError):
     """Raised when configuration is invalid."""
+
+    exit_code = ExitCode.CONFIGURATION
 
 
 class LocalConfigUnavailableError(ConfigError):
