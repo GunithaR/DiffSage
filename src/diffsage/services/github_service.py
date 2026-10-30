@@ -4,9 +4,13 @@ from diffsage.exceptions import (
     GitHubAuthenticationError,
     GitHubCLIUnavailableError,
     GitHubError,
+    PullRequestExistsError,
 )
 from diffsage.github.client import GitHubClient
+from diffsage.logging.logger import get_logger
 from diffsage.models.pull_request import PullRequestDraft
+
+logger = get_logger(__name__)
 
 
 class GitHubService:
@@ -58,6 +62,25 @@ class GitHubService:
         if not self._github_client.is_authenticated():
             raise GitHubAuthenticationError(
                 "GitHub CLI is not authenticated. Run 'gh auth login' and try again."
+            )
+
+    def ensure_no_open_pull_request(self, head_branch: str, base_branch: str) -> None:
+        """Stop before drafting if the branch already has an open pull request.
+
+        GitHub allows one open pull request per branch pair, so a new draft could
+        never be created. If the check itself fails, carry on: `gh pr create` still
+        reports any problem at the end.
+        """
+
+        try:
+            url = self._github_client.open_pull_request_url(head_branch, base_branch)
+        except (subprocess.CalledProcessError, ValueError) as error:
+            logger.warning("Could not check for an open pull request: %s", error)
+            return
+
+        if url:
+            raise PullRequestExistsError(
+                f"A pull request from '{head_branch}' into '{base_branch}' is already open: {url}"
             )
 
     def create_pull_request(

@@ -17,6 +17,10 @@ def main(args: list[str]) -> int:
 
     state["calls"].append(args)
 
+    if args[:2] == ["pr", "create"] and "--body-file" in args:
+        if args[args.index("--body-file") + 1] == "-":
+            state["bodies"].append(sys.stdin.read())
+
     with open(state_path, "w", encoding="utf-8") as file:
         json.dump(state, file)
 
@@ -26,6 +30,21 @@ def main(args: list[str]) -> int:
 
     if args[:2] == ["auth", "status"]:
         return 0 if state["authenticated"] else 1
+
+    if args[:2] == ["pr", "list"]:
+        if state["pr_list_error"]:
+            print(state["pr_list_error"], file=sys.stderr)
+            return 1
+
+        head = args[args.index("--head") + 1]
+        base = args[args.index("--base") + 1]
+        matches = [
+            {"number": number, "url": pr["url"]}
+            for number, pr in enumerate(state["open_prs"], start=1)
+            if pr["head"] == head and pr["base"] == base
+        ]
+        print(json.dumps(matches[:1]))
+        return 0
 
     if args[:2] == ["pr", "create"]:
         if state["pr_create_error"]:

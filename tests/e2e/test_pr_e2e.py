@@ -74,7 +74,8 @@ def test_pr_accept_creates_pull_request(fake_provider, fake_gh) -> None:
         "--title",
         "Add greeting script",
     ]
-    assert "## Summary\nAdds a script that prints a greeting." in call[9]
+    assert call[8:10] == ["--body-file", "-"]
+    assert "## Summary\nAdds a script that prints a greeting." in fake_gh.bodies[0]
 
 
 @pytest.mark.usefixtures("feature_branch", "fake_gh")
@@ -269,3 +270,61 @@ def test_pr_accepts_a_draft_wrapped_in_a_code_fence(fake_provider, fake_gh) -> N
     assert result.exit_code == 0, result.output
     assert "Pull request created successfully" in result.output
     assert pr_create_call(fake_gh.calls) is not None
+
+
+@pytest.mark.usefixtures("feature_branch")
+def test_pr_stops_before_the_ai_when_a_pull_request_is_already_open(fake_provider, fake_gh) -> None:
+    """Regression: the AI drafted a whole PR, and only `gh pr create` at the end failed
+    with "a pull request already exists"."""
+
+    url = "https://github.com/example/repo/pull/9"
+    fake_gh.configure(open_prs=[{"url": url, "head": "feature/greeting", "base": "main"}])
+
+    result = runner.invoke(app, ["pr"])
+
+    assert result.exit_code == 1
+    assert (
+        f"✗ A pull request from 'feature/greeting' into 'main' is already open: {url}"
+        in " ".join(result.output.split())
+    )
+    assert fake_provider.requests == []
+    assert pr_create_call(fake_gh.calls) is None
+
+
+@pytest.mark.usefixtures("feature_branch")
+def test_pr_into_another_base_is_not_blocked_by_an_open_pr(fake_provider, fake_gh) -> None:
+    fake_gh.configure(
+        open_prs=[{"url": "https://example/pull/9", "head": "feature/greeting", "base": "dev"}]
+    )
+    fake_provider.queue(draft_json())
+
+    result = runner.invoke(app, ["pr"], input="y\n")
+
+    assert result.exit_code == 0, result.output
+    assert pr_create_call(fake_gh.calls) is not None
+
+
+@pytest.mark.usefixtures("feature_branch")
+def test_pr_continues_when_open_prs_cannot_be_listed(fake_provider, fake_gh) -> None:
+    fake_gh.configure(pr_list_error="HTTP 502: Bad Gateway")
+    fake_provider.queue(draft_json())
+
+    result = runner.invoke(app, ["pr"], input="y\n")
+
+    assert result.exit_code == 0, result.output
+    assert pr_create_call(fake_gh.calls) is not None
+
+
+@pytest.mark.usefixtures("feature_branch")
+def test_pr_body_reaches_gh_intact_through_stdin(fake_provider, fake_gh) -> None:
+    """Long and non-ASCII bodies go through stdin, not the command line, which is limited
+    to 32,767 characters on Windows."""
+
+    long_why = "Café ✓ — " + "x" * 40_000
+    fake_provider.queue(draft_json(why=long_why))
+
+    result = runner.invoke(app, ["pr"], input="y\n")
+
+    assert result.exit_code == 0, result.output
+    assert f"## Why\n{long_why}" in fake_gh.bodies[0]
+    assert all(len(arg) < 1_000 for arg in pr_create_call(fake_gh.calls))

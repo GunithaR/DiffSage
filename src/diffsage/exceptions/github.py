@@ -11,3 +11,7 @@ class GitHubCLIUnavailableError(GitHubError):
 
 class GitHubAuthenticationError(GitHubError):
     """Raised when the user is not authenticated with GitHub."""
+
+
+class PullRequestExistsError(GitHubError):
+    """Raised when the branch already has an open pull request into the base branch."""

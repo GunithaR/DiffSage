@@ -33,6 +33,7 @@ from .github import (
     GitHubAuthenticationError,
     GitHubCLIUnavailableError,
     GitHubError,
+    PullRequestExistsError,
 )
 from .provider import (
     AuthenticationError,
@@ -74,6 +75,7 @@ __all__ = [
     "GitHubAuthenticationError",
     "GitHubCLIUnavailableError",
     "GitHubError",
+    "PullRequestExistsError",
     "AuthenticationError",
     "ContentBlockedError",
     "EmptyResponseError",

@@ -60,6 +60,9 @@ class FakeGitHubCLI:
                 "authenticated": True,
                 "pr_url": "https://github.com/example/repo/pull/1",
                 "pr_create_error": None,
+                "pr_list_error": None,
+                "open_prs": [],
+                "bodies": [],
                 "calls": [],
             }
         )
@@ -71,7 +74,8 @@ class FakeGitHubCLI:
         self._state_path.write_text(json.dumps(state), encoding="utf-8")
 
     def configure(self, **changes: object) -> None:
-        """Change fake behaviour: authenticated, pr_url or pr_create_error."""
+        """Change fake behaviour: authenticated, pr_url, pr_create_error, pr_list_error,
+        or open_prs (a list of {"url", "head", "base"})."""
 
         state = self._load()
         state.update(changes)
@@ -81,7 +85,15 @@ class FakeGitHubCLI:
     def calls(self) -> list[list[str]]:
         return self._load()["calls"]
 
-    def run(self, args: list[str]) -> subprocess.CompletedProcess[str]:
+    @property
+    def bodies(self) -> list[str]:
+        """Pull request bodies received on stdin by `gh pr create --body-file -`."""
+
+        return self._load()["bodies"]
+
+    def run(
+        self, args: list[str], input_text: str | None = None
+    ) -> subprocess.CompletedProcess[str]:
         """Run the fake CLI the same way GitHubClient runs the real one."""
 
         if not self.installed:
@@ -89,8 +101,10 @@ class FakeGitHubCLI:
 
         return subprocess.run(
             [sys.executable, str(FAKE_GH_SCRIPT), *args],
-            env={**os.environ, "FAKE_GH_STATE": str(self._state_path)},
+            env={**os.environ, "FAKE_GH_STATE": str(self._state_path), "PYTHONUTF8": "1"},
+            input=input_text,
             capture_output=True,
             text=True,
+            encoding="utf-8",
             check=True,
         )

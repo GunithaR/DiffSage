@@ -95,6 +95,8 @@ def pr(
 
     git_service.validate_remote_head(head_branch)
     github_service.validate()
+    # Before the AI call: GitHub would refuse a second open pull request at the end.
+    github_service.ensure_no_open_pull_request(head_branch, resolved_base_branch)
 
     view.show_branches(
         base_branch=resolved_base_branch,

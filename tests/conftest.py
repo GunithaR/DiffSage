@@ -195,7 +195,7 @@ def fake_gh(tmp_path, monkeypatch) -> FakeGitHubCLI:
     monkeypatch.setattr(
         GitHubClient,
         "_run_gh_command",
-        lambda _self, args: cli.run(args),
+        lambda _self, args, input_text=None: cli.run(args, input_text),
     )
 
     return cli
