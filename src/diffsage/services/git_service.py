@@ -14,6 +14,10 @@ from diffsage.exceptions import (
 from diffsage.git.client import GitClient
 from diffsage.models.git import CommitContext, PullRequestContext
 
+PULL_REQUEST_TEMPLATE_NAME = "pull_request_template.md"
+# Where GitHub looks for a single pull request template, in this order.
+PULL_REQUEST_TEMPLATE_DIRECTORIES = (".github", None, "docs")
+
 
 def _remote_tracking_ref(branch: str) -> str:
     return f"refs/remotes/origin/{branch}"
@@ -175,6 +179,26 @@ class GitService:
         raise BaseBranchNotFoundError(
             f"Could not fetch base branch '{base_branch}' from origin ({reason})."
         )
+
+    def pull_request_template(self, ref: str) -> tuple[str, str] | None:
+        """The repository's pull request template at `ref`, as (path, text).
+
+        Looked up like GitHub does: pull_request_template.md in any letter case, in
+        .github/, the repository root, then docs/. Read from the base branch, so it
+        is the template GitHub itself would show.
+        """
+
+        for directory in PULL_REQUEST_TEMPLATE_DIRECTORIES:
+            for path in self._git_client.list_files(ref, directory):
+                if path.rsplit("/", 1)[-1].lower() != PULL_REQUEST_TEMPLATE_NAME:
+                    continue
+
+                text = self._git_client.read_file(ref, path)
+
+                if text is not None and text.strip():
+                    return path, text
+
+        return None
 
     def current_branch(self) -> str:
         branch = self._git_client.current_branch()

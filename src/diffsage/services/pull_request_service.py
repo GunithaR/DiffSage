@@ -3,7 +3,11 @@ from dataclasses import replace
 
 from diffsage.logging.logger import get_logger
 from diffsage.models.pull_request import PullRequestDraft
-from diffsage.parsers.pull_request_parser import PULL_REQUEST_DRAFT_SCHEMA, PullRequestParser
+from diffsage.parsers.pull_request_parser import (
+    PULL_REQUEST_DRAFT_SCHEMA,
+    TEMPLATED_DRAFT_SCHEMA,
+    PullRequestParser,
+)
 from diffsage.services.ai_service import AIService
 from diffsage.services.diff_sanitizer import sanitize
 from diffsage.services.git_service import GitService
@@ -34,8 +38,16 @@ class PullRequestService:
         on_attempt: Callable[[int, int], None] | None = None,
         on_notice: Callable[[str], None] | None = None,
         base_ref: str | None = None,
+        on_info: Callable[[str], None] | None = None,
     ) -> PullRequestDraft:
         context = self._git_service.build_pull_request_context(base_branch, base_ref)
+        template = self._git_service.pull_request_template(base_ref or base_branch)
+
+        if template is not None:
+            logger.info("Using pull request template %s", template[0])
+
+            if on_info is not None:
+                on_info(f"Filling in the repository's pull request template ({template[0]}).")
 
         analysis = self._analysis_service.analyze(context)
 
@@ -53,12 +65,13 @@ class PullRequestService:
             context,
             analysis,
             notes,
+            template=template[1] if template else None,
         )
 
         response = self._ai_service.ask(
             prompt,
             on_attempt=on_attempt,
-            response_schema=PULL_REQUEST_DRAFT_SCHEMA,
+            response_schema=TEMPLATED_DRAFT_SCHEMA if template else PULL_REQUEST_DRAFT_SCHEMA,
         )
 
         return self._parser.parse(response.content)

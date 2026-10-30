@@ -210,3 +210,28 @@ def test_pull_request_prompt_treats_the_risk_level_as_advisory() -> None:
     assert "authoritative" not in instructions
     assert "Do not upgrade, downgrade" not in instructions
     assert "judge the actual risk from the Git diff" in " ".join(instructions.split())
+
+
+def test_pull_request_prompt_with_a_template_asks_for_the_filled_template() -> None:
+    context = PullRequestContext(
+        current_branch="feature",
+        base_branch="main",
+        merge_base="abc",
+        commits=[],
+        changed_files=["a.py"],
+        diff="diff",
+    )
+    template = "## What\n<!-- describe -->\n- [ ] Tests"
+
+    prompt = PromptService().build_pull_request_prompt(
+        context, PullRequestAnalysis(), template=template
+    )
+
+    assert prompt.endswith(f"Pull Request Template:\n{template}")
+    assert "body: string (the filled-in template, as Markdown)" in prompt
+    assert "Tick a checkbox only when the supplied evidence confirms it" in prompt
+    # The fixed-section output rules are gone, including "no Markdown".
+    assert "reviewer_focus: array of strings" not in prompt
+    assert "Do not include Markdown." not in prompt
+    # The shared evidence rules stay.
+    assert "Do not invent repository facts" in prompt

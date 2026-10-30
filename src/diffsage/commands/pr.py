@@ -47,6 +47,7 @@ def _generate_draft(
             ),
             on_notice=view.show_warning,
             base_ref=base_ref,
+            on_info=view.show_info,
         )
 
 

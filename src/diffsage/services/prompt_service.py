@@ -188,14 +188,42 @@ class PromptService:
     - Do not include explanations outside the JSON object.
     """.strip()
 
+    def _build_template_instructions(self) -> str:
+        """Output rules used instead of the fixed sections when the repository has its
+        own pull request template."""
+
+        return """
+    The repository has its own pull request template, given below under
+    "Pull Request Template". Write the pull request body by filling it in:
+    - Keep the template's headings, their order, and its checklists.
+    - Replace placeholder text and instructions, including HTML comments, with
+    content from the supplied evidence.
+    - Tick a checkbox only when the supplied evidence confirms it; otherwise leave it unticked.
+    - Under a heading that does not apply, write "Not applicable."
+    - Return ONLY a valid JSON object with exactly these fields:
+        - title: string
+        - body: string (the filled-in template, as Markdown)
+    - Do not include code fences around the JSON object.
+    - Do not include explanations outside the JSON object.
+    """.strip()
+
     def build_pull_request_prompt(
         self,
         context: PullRequestContext,
         analysis: PullRequestAnalysis,
         notes: list[str] | None = None,
+        template: str | None = None,
     ) -> str:
+        instructions = self._build_pull_request_instructions()
+        evidence = self._build_pull_request_context(context, analysis)
+
+        if template is None:
+            return f"{instructions}\n\n{evidence}{self._build_diff_notes(notes)}"
+
+        # The fixed-section output rules are replaced by the template's.
+        requirements = instructions.split("    - Return ONLY a valid JSON object.")[0].rstrip()
+
         return (
-            f"{self._build_pull_request_instructions()}\n\n"
-            f"{self._build_pull_request_context(context, analysis)}"
-            f"{self._build_diff_notes(notes)}"
+            f"{requirements}\n\n{self._build_template_instructions()}\n\n{evidence}"
+            f"{self._build_diff_notes(notes)}\n\nPull Request Template:\n{template.strip()}"
         )

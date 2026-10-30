@@ -91,7 +91,7 @@ class GitHubService:
     ) -> str:
         """Create a GitHub pull request from a generated draft."""
 
-        body = self._build_pull_request_body(draft)
+        body = draft.body if draft.body is not None else self._build_pull_request_body(draft)
 
         try:
             return self._github_client.create_pull_request(

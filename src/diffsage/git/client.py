@@ -249,6 +249,31 @@ class GitClient:
             lines = [line.strip() for line in (error.stderr or "").splitlines() if line.strip()]
             raise FetchFailedError(lines[-1] if lines else None) from error
 
+    def list_files(self, ref: str, directory: str | None = None) -> list[str]:
+        """Paths of the entries directly inside `directory` (default: the root) at `ref`."""
+
+        args = ["ls-tree", "--name-only", ref]
+
+        if directory is not None:
+            args += ["--", f"{directory.rstrip('/')}/"]
+
+        try:
+            result = self._run_git_command(args)
+        except subprocess.CalledProcessError:
+            return []
+
+        return result.stdout.splitlines()
+
+    def read_file(self, ref: str, path: str) -> str | None:
+        """Contents of `path` at `ref`, or None if it does not exist there."""
+
+        try:
+            result = self._run_git_command(["show", f"{ref}:{path}"])
+        except subprocess.CalledProcessError:
+            return None
+
+        return result.stdout
+
     def is_ancestor(self, ancestor: str, descendant: str) -> bool | None:
         """Whether commit `ancestor` is contained in `descendant`, or None if either
         commit is not in this repository (for example, not fetched yet)."""

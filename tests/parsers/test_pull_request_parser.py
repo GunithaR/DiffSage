@@ -171,7 +171,8 @@ def test_parse_list_with_non_string_item_raises_error() -> None:
 def test_draft_schema_matches_the_draft_model() -> None:
     """The schema sent to the AI and the model the parser builds must not drift apart."""
 
-    names = [field.name for field in fields(PullRequestDraft)]
+    # body belongs to templated drafts (TEMPLATED_DRAFT_SCHEMA), not the fixed sections.
+    names = [field.name for field in fields(PullRequestDraft) if field.name != "body"]
 
     assert list(PULL_REQUEST_DRAFT_SCHEMA["properties"]) == names
     assert PULL_REQUEST_DRAFT_SCHEMA["required"] == names
@@ -259,3 +260,18 @@ def test_parse_errors_describe_the_draft_not_the_ai(content, message) -> None:
         PullRequestParser().parse(content)
 
     assert raised.value.message == message
+
+
+def test_parse_reads_a_templated_draft() -> None:
+    body = "## What\nAdds retries.\n\n- [ ] Docs updated"
+
+    draft = PullRequestParser().parse(json.dumps({"title": "Add retries", "body": body}))
+
+    assert draft.title == "Add retries"
+    assert draft.body == body
+    assert draft.to_dict() == {"title": "Add retries", "body": body}
+
+
+def test_parse_rejects_a_templated_draft_with_an_empty_body() -> None:
+    with pytest.raises(InvalidPullRequestDraftError, match="body must be non-empty"):
+        PullRequestParser().parse(json.dumps({"title": "Add retries", "body": "  "}))

@@ -154,3 +154,13 @@ def test_create_pull_request_reports_exit_status_when_gh_is_silent() -> None:
     assert str(error.value) == (
         "GitHub CLI could not create the pull request: gh exited with status 4."
     )
+
+
+def test_create_pull_request_posts_a_filled_template_body_as_is() -> None:
+    client = Mock(spec=GitHubClient)
+    client.create_pull_request.return_value = "https://example/pull/1"
+    draft = PullRequestDraft(title="Add retries", summary="", why="", body="## What\nRetries.")
+
+    GitHubService(client).create_pull_request(draft, base_branch="main", head_branch="feature")
+
+    assert client.create_pull_request.call_args.kwargs["body"] == "## What\nRetries."

@@ -43,12 +43,31 @@ def _load_json(content: str) -> Any:
         raise InvalidPullRequestDraftError("The pull request draft is not valid JSON.") from error
 
 
+# A draft written by filling in the repository's own pull request template.
+TEMPLATED_DRAFT_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {"title": {"type": "string"}, "body": {"type": "string"}},
+    "required": ["title", "body"],
+}
+
+
+def _parse_templated(data: dict[str, Any]) -> PullRequestDraft:
+    for name in ("title", "body"):
+        if not isinstance(data[name], str) or not data[name].strip():
+            raise InvalidPullRequestDraftError(f"Pull request {name} must be non-empty text.")
+
+    return PullRequestDraft(title=data["title"], summary="", why="", body=data["body"])
+
+
 class PullRequestParser:
     def parse(self, content: str) -> PullRequestDraft:
         data = _load_json(content)
 
         if not isinstance(data, dict):
             raise InvalidPullRequestDraftError("The pull request draft must be a JSON object.")
+
+        if set(data) == set(TEMPLATED_DRAFT_SCHEMA["required"]):
+            return _parse_templated(data)
 
         required = PULL_REQUEST_DRAFT_SCHEMA["required"]
         missing = [name for name in required if name not in data]
