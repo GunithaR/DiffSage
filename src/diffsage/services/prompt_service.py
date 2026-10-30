@@ -196,8 +196,11 @@ class PromptService:
     The repository has its own pull request template, given below under
     "Pull Request Template". Write the pull request body by filling it in:
     - Keep the template's headings, their order, and its checklists.
-    - Replace placeholder text and instructions, including HTML comments, with
-    content from the supplied evidence.
+    - Decide what belongs under each heading from what the heading asks for, using
+    the supplied evidence: for example, the changed files and what they do under a
+    heading about changes, and the testing evidence under a heading about testing.
+    - Treat placeholder text and HTML comments under a heading as instructions for
+    that section: follow them, then replace them with the content they ask for.
     - Tick a checkbox only when the supplied evidence confirms it; otherwise leave it unticked.
     - Under a heading that does not apply, write "Not applicable."
     - Return ONLY a valid JSON object with exactly these fields:

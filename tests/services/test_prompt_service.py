@@ -230,6 +230,9 @@ def test_pull_request_prompt_with_a_template_asks_for_the_filled_template() -> N
     assert prompt.endswith(f"Pull Request Template:\n{template}")
     assert "body: string (the filled-in template, as Markdown)" in prompt
     assert "Tick a checkbox only when the supplied evidence confirms it" in prompt
+    flat = " ".join(prompt.split())
+    assert "Decide what belongs under each heading from what the heading asks for" in flat
+    assert "Treat placeholder text and HTML comments under a heading as instructions" in flat
     # The fixed-section output rules are gone, including "no Markdown".
     assert "reviewer_focus: array of strings" not in prompt
     assert "Do not include Markdown." not in prompt
