@@ -18,6 +18,8 @@
 - `diffsage pr` stops before generating a draft when the branch already has an open pull request into the base branch, and shows its URL.
 - The pull request risk level is guessed more carefully: paths are matched on whole words (`AUTHORS` is no longer "authentication"), test files are recognised in more languages and folders, tests and documentation about a risky area are not themselves risky, and command-line code is medium rather than high risk. The AI now treats the risk level as a starting point and judges the actual risk from the diff.
 - The pull request body is passed to `gh` on standard input instead of the command line, so long bodies work on Windows (32,767-character command-line limit), and `gh` output is read as UTF-8.
+- `diffsage pr` shows a spinner from the start, naming each check as it runs ("Checking that origin has …", "Checking GitHub for an open pull request…", "Fetching origin/main…"), instead of several silent seconds. The checks also make three network calls instead of five: origin's branches are listed once and reused, and the separate `gh auth status` call is gone, because the open-pull-request lookup already reports a missing login.
+- The notice about values replaced with `[REDACTED]` names the files they were in (never the values), so you can find and check them.
 
 ### Fixed
 
@@ -30,6 +32,7 @@
 - A stale local base branch made pull request drafts describe commits that were already on origin.
 - A base branch that existed only locally was accepted, and `gh pr create` failed at the very end. It is now rejected before the AI is called, with how to fix it.
 - Any difference between your branch and its copy on origin was reported as unpushed commits, so DiffSage suggested a push that Git would reject. It now says whether to push, pull, or combine diverged branches, and an unreachable origin is no longer reported as a missing branch.
+- Field names that contain a secret-like word were redacted as if they were secrets, for example `"max_output_tokens": "max_output_tokens"`. Identifier values that name such a field are now left alone; random-looking values, and identifiers that do not name one (such as `sk_live_…`), are still redacted.
 - Unclear `diffsage pr` errors: two sentences joined without a space when no base branch could be found, two different detached-HEAD messages, a same-branch message that did not name the branch, and an invalid hand-edited draft blamed on the "AI response" without naming the bad fields.
 
 ### Development
