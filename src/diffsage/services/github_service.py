@@ -4,9 +4,15 @@ from diffsage.exceptions import (
     GitHubAuthenticationError,
     GitHubCLIUnavailableError,
     GitHubError,
+    PullRequestExistsError,
 )
 from diffsage.github.client import GitHubClient
+from diffsage.logging.logger import get_logger
 from diffsage.models.pull_request import PullRequestDraft
+
+logger = get_logger(__name__)
+
+GH_AUTHENTICATION_REQUIRED = 4
 
 
 class GitHubService:
@@ -48,16 +54,44 @@ class GitHubService:
         return "\n\n".join(sections)
 
     def validate(self) -> None:
-        """Validate that GitHub CLI is available and authenticated."""
+        """Validate that the GitHub CLI is installed.
+
+        Whether it is logged in is checked by ensure_no_open_pull_request, whose request
+        needs a login anyway; that saves a separate network call (`gh auth status`).
+        """
 
         if not self._github_client.is_available():
             raise GitHubCLIUnavailableError(
                 "GitHub CLI is not installed. Install it and try again."
             )
 
-        if not self._github_client.is_authenticated():
-            raise GitHubAuthenticationError(
-                "GitHub CLI is not authenticated. Run 'gh auth login' and try again."
+    def ensure_no_open_pull_request(self, head_branch: str, base_branch: str) -> None:
+        """Stop before drafting if gh is not logged in, or if the branch already has an
+        open pull request.
+
+        GitHub allows one open pull request per branch pair, so a new draft could
+        never be created. If the check fails for another reason, carry on:
+        `gh pr create` still reports any problem at the end.
+        """
+
+        try:
+            url = self._github_client.open_pull_request_url(head_branch, base_branch)
+        except subprocess.CalledProcessError as error:
+            # gh exits with 4 when a command needs a login it does not have.
+            if error.returncode == GH_AUTHENTICATION_REQUIRED:
+                raise GitHubAuthenticationError(
+                    "GitHub CLI is not authenticated. Run 'gh auth login' and try again."
+                ) from error
+
+            logger.warning("Could not check for an open pull request: %s", error)
+            return
+        except ValueError as error:
+            logger.warning("Could not check for an open pull request: %s", error)
+            return
+
+        if url:
+            raise PullRequestExistsError(
+                f"A pull request from '{head_branch}' into '{base_branch}' is already open: {url}"
             )
 
     def create_pull_request(
@@ -68,7 +102,7 @@ class GitHubService:
     ) -> str:
         """Create a GitHub pull request from a generated draft."""
 
-        body = self._build_pull_request_body(draft)
+        body = draft.body if draft.body is not None else self._build_pull_request_body(draft)
 
         try:
             return self._github_client.create_pull_request(

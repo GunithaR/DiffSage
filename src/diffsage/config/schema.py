@@ -25,6 +25,9 @@ MAX_RETRIES = 10
 # Upper bound of the output limit current Gemini models accept.
 MIN_OUTPUT_TOKENS = 1
 MAX_OUTPUT_TOKENS = 65_536
+# Diff size sent to the AI, in characters (about four per token).
+MIN_DIFF_CHARACTERS = 1_000
+MAX_DIFF_CHARACTERS = 1_000_000
 
 # CLI key -> (config file section, option)
 CONFIG_KEYS: dict[str, tuple[str, str]] = {
@@ -32,6 +35,7 @@ CONFIG_KEYS: dict[str, tuple[str, str]] = {
     "model": ("ai", "model"),
     "credential_profile": ("ai", "credential_profile"),
     "max_output_tokens": ("ai", "max_output_tokens"),
+    "max_diff_characters": ("ai", "max_diff_characters"),
     "timeout": ("network", "timeout"),
     "max_retries": ("network", "max_retries"),
     "log_level": ("logging", "level"),
@@ -68,6 +72,7 @@ CredentialProfile = Annotated[
 Timeout = Annotated[int, Field(ge=MIN_TIMEOUT_SECONDS, le=MAX_TIMEOUT_SECONDS)]
 MaxRetries = Annotated[int, Field(ge=MIN_RETRIES, le=MAX_RETRIES)]
 MaxOutputTokens = Annotated[int, Field(ge=MIN_OUTPUT_TOKENS, le=MAX_OUTPUT_TOKENS)]
+MaxDiffCharacters = Annotated[int, Field(ge=MIN_DIFF_CHARACTERS, le=MAX_DIFF_CHARACTERS)]
 LogLevel = Annotated[
     Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], BeforeValidator(_upper)
 ]
@@ -83,6 +88,7 @@ class AIConfig(_Section):
     model: Model
     credential_profile: CredentialProfile
     max_output_tokens: MaxOutputTokens
+    max_diff_characters: MaxDiffCharacters
 
 
 class NetworkConfig(_Section):
@@ -105,6 +111,7 @@ class PartialAIConfig(_Section):
     model: Model | None = None
     credential_profile: CredentialProfile | None = None
     max_output_tokens: MaxOutputTokens | None = None
+    max_diff_characters: MaxDiffCharacters | None = None
 
 
 class PartialNetworkConfig(_Section):

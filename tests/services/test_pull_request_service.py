@@ -11,7 +11,11 @@ from diffsage.models.pull_request_analysis import (
     PullRequestAnalysis,
     RiskLevel,
 )
-from diffsage.parsers.pull_request_parser import PULL_REQUEST_DRAFT_SCHEMA, PullRequestParser
+from diffsage.parsers.pull_request_parser import (
+    PULL_REQUEST_DRAFT_SCHEMA,
+    TEMPLATED_DRAFT_SCHEMA,
+    PullRequestParser,
+)
 from diffsage.services.ai_service import AIService
 from diffsage.services.git_service import GitService
 from diffsage.services.prompt_service import PromptService
@@ -98,6 +102,7 @@ def create_service() -> tuple[
     Mock,
 ]:
     git_service = Mock(spec=GitService)
+    git_service.pull_request_template.return_value = None
     analysis_service = Mock(spec=PullRequestAnalysisService)
     prompt_service = Mock(spec=PromptService)
     ai_service = Mock(spec=AIService)
@@ -151,12 +156,13 @@ def test_generate_draft_returns_generated_pull_request_draft() -> None:
 
     assert result == draft
 
-    git_service.build_pull_request_context.assert_called_once_with("main")
+    git_service.build_pull_request_context.assert_called_once_with("main", None)
     analysis_service.analyze.assert_called_once_with(context)
     prompt_service.build_pull_request_prompt.assert_called_once_with(
         context,
         analysis,
         [],
+        template=None,
     )
 
     call = ai_service.ask.call_args
@@ -194,3 +200,29 @@ def test_generate_draft_propagates_invalid_pull_request_draft_error() -> None:
         service.generate_draft("main")
 
     parser.parse.assert_called_once_with(response.content)
+
+
+def test_generate_draft_fills_in_the_repository_template() -> None:
+    (
+        service,
+        git_service,
+        analysis_service,
+        prompt_service,
+        ai_service,
+        parser,
+    ) = create_service()
+    git_service.build_pull_request_context.return_value = create_pull_request_context()
+    analysis_service.analyze.return_value = create_pull_request_analysis()
+    git_service.pull_request_template.return_value = (".github/pull_request_template.md", "## What")
+    prompt_service.build_pull_request_prompt.return_value = "templated prompt"
+    ai_service.ask.return_value = create_provider_response()
+    infos: list[str] = []
+
+    service.generate_draft("main", base_ref="refs/remotes/origin/main", on_info=infos.append)
+
+    git_service.pull_request_template.assert_called_once_with("refs/remotes/origin/main")
+    assert prompt_service.build_pull_request_prompt.call_args.kwargs["template"] == "## What"
+    assert ai_service.ask.call_args.kwargs["response_schema"] is TEMPLATED_DRAFT_SCHEMA
+    assert infos == [
+        "Filling in the repository's pull request template (.github/pull_request_template.md)."
+    ]

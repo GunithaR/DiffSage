@@ -163,9 +163,9 @@ class PromptService:
     "Testing status was not provided."
     - Do not mention DiffSage, its execution, its internal analysis, or whether
     DiffSage itself ran repository checks.
-    - Treat the supplied risk level as authoritative.
-    - Do not upgrade, downgrade, or replace the supplied risk classification.
-    - Explain the risk using the supplied risk signals and actual Git diff.
+    - The supplied risk level and risk signals come from file-path rules. Use them
+    as a starting point, but judge the actual risk from the Git diff: if the diff
+    shows the risk is higher or lower than suggested, describe the risk the diff shows.
     - Identify the areas reviewers should focus on using the supplied reviewer-focus signals.
     - Identify breaking changes only when supported by repository evidence.
     - Do not invent repository facts, changes, tests, risks, or breaking changes.
@@ -188,14 +188,45 @@ class PromptService:
     - Do not include explanations outside the JSON object.
     """.strip()
 
+    def _build_template_instructions(self) -> str:
+        """Output rules used instead of the fixed sections when the repository has its
+        own pull request template."""
+
+        return """
+    The repository has its own pull request template, given below under
+    "Pull Request Template". Write the pull request body by filling it in:
+    - Keep the template's headings, their order, and its checklists.
+    - Decide what belongs under each heading from what the heading asks for, using
+    the supplied evidence: for example, the changed files and what they do under a
+    heading about changes, and the testing evidence under a heading about testing.
+    - Treat placeholder text and HTML comments under a heading as instructions for
+    that section: follow them, then replace them with the content they ask for.
+    - Tick a checkbox only when the supplied evidence confirms it; otherwise leave it unticked.
+    - Under a heading that does not apply, write "Not applicable."
+    - Return ONLY a valid JSON object with exactly these fields:
+        - title: string
+        - body: string (the filled-in template, as Markdown)
+    - Do not include code fences around the JSON object.
+    - Do not include explanations outside the JSON object.
+    """.strip()
+
     def build_pull_request_prompt(
         self,
         context: PullRequestContext,
         analysis: PullRequestAnalysis,
         notes: list[str] | None = None,
+        template: str | None = None,
     ) -> str:
+        instructions = self._build_pull_request_instructions()
+        evidence = self._build_pull_request_context(context, analysis)
+
+        if template is None:
+            return f"{instructions}\n\n{evidence}{self._build_diff_notes(notes)}"
+
+        # The fixed-section output rules are replaced by the template's.
+        requirements = instructions.split("    - Return ONLY a valid JSON object.")[0].rstrip()
+
         return (
-            f"{self._build_pull_request_instructions()}\n\n"
-            f"{self._build_pull_request_context(context, analysis)}"
-            f"{self._build_diff_notes(notes)}"
+            f"{requirements}\n\n{self._build_template_instructions()}\n\n{evidence}"
+            f"{self._build_diff_notes(notes)}\n\nPull Request Template:\n{template.strip()}"
         )

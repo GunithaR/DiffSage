@@ -48,16 +48,14 @@ def create_service() -> tuple[GitHubService, Mock]:
     return service, github_client
 
 
-def test_validate_succeeds_when_github_cli_is_available_and_authenticated() -> None:
+def test_validate_succeeds_when_github_cli_is_available() -> None:
     service, github_client = create_service()
 
     github_client.is_available.return_value = True
-    github_client.is_authenticated.return_value = True
 
     service.validate()
 
     github_client.is_available.assert_called_once()
-    github_client.is_authenticated.assert_called_once()
 
 
 def test_validate_raises_when_github_cli_is_unavailable() -> None:
@@ -69,27 +67,34 @@ def test_validate_raises_when_github_cli_is_unavailable() -> None:
         service.validate()
 
     github_client.is_available.assert_called_once()
-    github_client.is_authenticated.assert_not_called()
 
 
-def test_validate_raises_when_github_cli_is_not_authenticated() -> None:
+def test_open_pull_request_check_reports_a_missing_login() -> None:
+    """gh exits with 4 when a command needs a login: the same request that looks for an
+    open pull request also tells us whether gh is logged in."""
+
     service, github_client = create_service()
+    github_client.open_pull_request_url.side_effect = subprocess.CalledProcessError(
+        4, ["gh", "pr", "list"], stderr="To get started with GitHub CLI, please run: gh auth login"
+    )
 
-    github_client.is_available.return_value = True
-    github_client.is_authenticated.return_value = False
+    with pytest.raises(GitHubAuthenticationError, match="gh auth login"):
+        service.ensure_no_open_pull_request("feature", "main")
 
-    with pytest.raises(GitHubAuthenticationError):
-        service.validate()
 
-    github_client.is_available.assert_called_once()
-    github_client.is_authenticated.assert_called_once()
+def test_open_pull_request_check_carries_on_after_other_gh_failures() -> None:
+    service, github_client = create_service()
+    github_client.open_pull_request_url.side_effect = subprocess.CalledProcessError(
+        1, ["gh", "pr", "list"], stderr="HTTP 502"
+    )
+
+    service.ensure_no_open_pull_request("feature", "main")
 
 
 def test_create_pull_request_creates_pull_request() -> None:
     service, github_client = create_service()
 
     github_client.is_available.return_value = True
-    github_client.is_authenticated.return_value = True
     github_client.create_pull_request.return_value = "https://github.com/example/repo/pull/42"
 
     draft = create_pull_request_draft()
@@ -154,3 +159,13 @@ def test_create_pull_request_reports_exit_status_when_gh_is_silent() -> None:
     assert str(error.value) == (
         "GitHub CLI could not create the pull request: gh exited with status 4."
     )
+
+
+def test_create_pull_request_posts_a_filled_template_body_as_is() -> None:
+    client = Mock(spec=GitHubClient)
+    client.create_pull_request.return_value = "https://example/pull/1"
+    draft = PullRequestDraft(title="Add retries", summary="", why="", body="## What\nRetries.")
+
+    GitHubService(client).create_pull_request(draft, base_branch="main", head_branch="feature")
+
+    assert client.create_pull_request.call_args.kwargs["body"] == "## What\nRetries."

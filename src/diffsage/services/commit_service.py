@@ -5,7 +5,7 @@ from diffsage.exceptions import NoStagedChangesError, NotGitRepositoryError
 from diffsage.git.client import GitClient
 from diffsage.logging.logger import get_logger
 from diffsage.services.ai_service import AIService
-from diffsage.services.diff_sanitizer import sanitize
+from diffsage.services.diff_sanitizer import MAX_DIFF_CHARACTERS, RAISE_LIMIT_HINT, sanitize
 from diffsage.services.git_service import GitService
 from diffsage.services.prompt_service import PromptService
 
@@ -19,8 +19,10 @@ class CommitService:
         git_service: GitService,
         prompt_service: PromptService,
         ai_service: AIService,
+        max_diff_characters: int = MAX_DIFF_CHARACTERS,
     ) -> None:
         self._git_client = git_client
+        self._max_diff_characters = max_diff_characters
         self._git_service = git_service
         self._prompt_service = prompt_service
         self._ai_service = ai_service
@@ -38,7 +40,7 @@ class CommitService:
 
         context = self._git_service.build_commit_context()
 
-        staged = sanitize(context.staged_diff)
+        staged = sanitize(context.staged_diff, max_characters=self._max_diff_characters)
         context = replace(context, staged_diff=staged.text)
         notes = staged.notices()
 
@@ -47,6 +49,10 @@ class CommitService:
 
             if on_notice is not None:
                 on_notice(note)
+
+        # Only the user is told how to raise the limit; the AI does not need to know.
+        if staged.cut and on_notice is not None:
+            on_notice(RAISE_LIMIT_HINT)
 
         prompt = self._prompt_service.build_commit_prompt(context, notes)
 

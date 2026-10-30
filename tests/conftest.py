@@ -20,6 +20,7 @@ DIFFSAGE_ENV_VARIABLES = [
     "DIFFSAGE_API_KEY",
     "DIFFSAGE_CREDENTIAL_PROFILE",
     "DIFFSAGE_MAX_OUTPUT_TOKENS",
+    "DIFFSAGE_MAX_DIFF_CHARACTERS",
 ]
 
 
@@ -195,7 +196,7 @@ def fake_gh(tmp_path, monkeypatch) -> FakeGitHubCLI:
     monkeypatch.setattr(
         GitHubClient,
         "_run_gh_command",
-        lambda _self, args: cli.run(args),
+        lambda _self, args, input_text=None: cli.run(args, input_text),
     )
 
     return cli

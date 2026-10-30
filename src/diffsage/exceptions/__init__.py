@@ -19,16 +19,21 @@ from .credentials import (
 )
 from .git import (
     BaseBranchNotFoundError,
+    BranchesDivergedError,
     CommitFailedError,
+    FetchFailedError,
     NoStagedChangesError,
     NotGitRepositoryError,
+    RemoteAheadError,
     RemoteBranchNotFoundError,
+    RemoteUnavailableError,
     UnpushedChangesError,
 )
 from .github import (
     GitHubAuthenticationError,
     GitHubCLIUnavailableError,
     GitHubError,
+    PullRequestExistsError,
 )
 from .provider import (
     AuthenticationError,
@@ -58,14 +63,19 @@ __all__ = [
     "InvalidCredentialError",
     "InvalidCredentialsFileError",
     "BaseBranchNotFoundError",
+    "BranchesDivergedError",
     "CommitFailedError",
+    "FetchFailedError",
     "NoStagedChangesError",
     "NotGitRepositoryError",
+    "RemoteAheadError",
     "RemoteBranchNotFoundError",
+    "RemoteUnavailableError",
     "UnpushedChangesError",
     "GitHubAuthenticationError",
     "GitHubCLIUnavailableError",
     "GitHubError",
+    "PullRequestExistsError",
     "AuthenticationError",
     "ContentBlockedError",
     "EmptyResponseError",

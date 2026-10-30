@@ -13,8 +13,14 @@ class PullRequestDraft:
     risks: list[str] = field(default_factory=list)
     reviewer_focus: list[str] = field(default_factory=list)
     breaking_changes: list[str] = field(default_factory=list)
+    # The repository's own pull request template, filled in. When set, it is the whole
+    # pull request body and the fixed sections above are unused.
+    body: str | None = None
 
     def to_dict(self) -> dict:
+        if self.body is not None:
+            return {"title": self.title, "body": self.body}
+
         return {
             "title": self.title,
             "summary": self.summary,

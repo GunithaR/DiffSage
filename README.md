@@ -217,6 +217,7 @@ DIFFSAGE_LOG_LEVEL=INFO
 DIFFSAGE_TIMEOUT=60
 DIFFSAGE_MAX_RETRIES=3
 DIFFSAGE_MAX_OUTPUT_TOKENS=1000
+DIFFSAGE_MAX_DIFF_CHARACTERS=100000
 ```
 
 The configured model must be supported by the selected AI provider.
@@ -237,6 +238,15 @@ reasoning:
 
 ```bash
 diffsage config set max_output_tokens 4000
+```
+
+`max_diff_characters` (default `100000`, about 25,000 tokens; allowed 1000–1000000) caps
+how much of the diff `commit` and `pr` send to the AI provider. Whole files that do not fit
+are left out, and DiffSage names them. Raise it for large pull requests; a bigger diff makes
+each request slower and, on paid plans, more expensive:
+
+```bash
+diffsage config set max_diff_characters 300000
 ```
 
 ---
@@ -436,6 +446,34 @@ Edit  Regenerate      Cancel
                 │
                 ▼
         Display pull request URL
+```
+
+Your branch is compared with the base branch as it is on origin (DiffSage fetches it
+first), which is what GitHub shows. If the branch already has an open pull request into
+the base branch, DiffSage stops before generating a draft and shows its URL.
+
+### Pull Request Templates
+
+If the repository has a pull request template, `diffsage pr` fills it in instead of using
+DiffSage's own sections. Like GitHub, it looks for `pull_request_template.md` (any letter
+case) in `.github/`, the repository root, then `docs/`, on the base branch.
+
+The template's headings, their order and its checklists are kept, and checkboxes are only
+ticked when the evidence confirms them. DiffSage decides what goes under each heading from
+what the heading asks for, and follows placeholder text and HTML comments as instructions
+for that section, so clear comments give better drafts:
+
+```markdown
+## What does this change?
+<!-- Summarise the change, then list the main files or modules it touches. -->
+
+## How was it tested?
+<!-- Tests added or changed, and how to run them. -->
+
+## Ticket
+<!-- The issue or ticket this closes, for example Closes #123. -->
+
+- [ ] Documentation updated
 ```
 
 ---

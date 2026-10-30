@@ -25,6 +25,13 @@ class PullRequestView(BaseView):
             text.append("None\n", style="dim")
 
     @contextmanager
+    def checking(self):
+        """Spinner shown while the branch and GitHub are checked, before drafting."""
+
+        with self._console.status("Checking your branch...") as status:
+            yield status
+
+    @contextmanager
     def generating(self):
         with self._console.status("Generating pull request draft...") as status:
             yield status
@@ -34,6 +41,13 @@ class PullRequestView(BaseView):
 
         content.append("Title\n", style="bold cyan")
         content.append(f"{draft.title}\n\n")
+
+        if draft.body is not None:
+            # A filled-in repository template: shown exactly as it will be posted.
+            content.append("Body\n", style="bold cyan")
+            content.append(draft.body.strip())
+            self._print_draft(content)
+            return
 
         content.append("Summary\n", style="bold cyan")
         content.append(f"{draft.summary}\n\n")
@@ -63,6 +77,9 @@ class PullRequestView(BaseView):
             draft.breaking_changes,
         )
 
+        self._print_draft(content)
+
+    def _print_draft(self, content: Text) -> None:
         self._console.print()
         self._console.print(
             Panel(

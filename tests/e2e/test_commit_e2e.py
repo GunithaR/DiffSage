@@ -181,7 +181,10 @@ def test_commit_never_sends_secrets_to_the_ai(git_repo, fake_provider) -> None:
     assert "sk_live_abcdefgh" not in prompt
     assert "lockfileVersion" not in prompt
     assert "Diff Notes:" in prompt
-    assert "! 1 value(s) that looked like secrets were replaced with [REDACTED]." in result.output
+    assert (
+        "! 1 value(s) that looked like secrets were replaced with [REDACTED] in: settings.py"
+        in result.output
+    )
     assert "! Contents of files that may hold secrets were not sent: .env" in result.output
     assert "! Lockfile contents were not sent: package-lock.json" in result.output
 
@@ -424,3 +427,41 @@ def test_commit_output_token_limit_follows_the_environment(
     runner.invoke(app, ["commit"], input="n\n")
 
     assert fake_provider.requests[0].max_tokens == 2500
+
+
+def stage_two_large_files(repo: Path) -> None:
+    stage_file(repo, "first.py", "# first\n" + "a = 1\n" * 150)
+    stage_file(repo, "second.py", "# second\n" + "b = 2\n" * 150)
+
+
+def test_commit_sends_only_what_fits_the_configured_diff_limit(git_repo, fake_provider) -> None:
+    """Regression: the diff limit was fixed at 100,000 characters."""
+
+    assert (
+        runner.invoke(app, ["config", "set", "max_diff_characters", "1000", "--global"]).exit_code
+        == 0
+    )
+    stage_two_large_files(git_repo)
+    fake_provider.queue("feat: add two files")
+
+    result = runner.invoke(app, ["commit"], input="n\n")
+
+    assert result.exit_code == 0, result.output
+    prompt = fake_provider.prompts[0]
+    assert "# first" in prompt
+    assert "# second" not in prompt
+    output = flat(result.output)
+    assert "1 file(s) were left out: second.py" in output
+    assert "diffsage config set max_diff_characters <characters>" in output
+    # The hint is for the user only.
+    assert "max_diff_characters" not in prompt
+
+
+def test_commit_sends_the_whole_diff_under_the_default_limit(git_repo, fake_provider) -> None:
+    stage_two_large_files(git_repo)
+    fake_provider.queue("feat: add two files")
+
+    result = runner.invoke(app, ["commit"], input="n\n")
+
+    assert "# second" in fake_provider.prompts[0]
+    assert "max_diff_characters" not in result.output

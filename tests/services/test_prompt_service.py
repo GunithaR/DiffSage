@@ -200,3 +200,41 @@ def test_prompt_without_notes_has_no_notes_section() -> None:
 
     assert "Diff Notes" not in service.build_commit_prompt(context)
     assert "Diff Notes" not in service.build_commit_prompt(context, [])
+
+
+def test_pull_request_prompt_treats_the_risk_level_as_advisory() -> None:
+    """The risk level comes from file-path rules; the AI must be free to judge the diff."""
+
+    instructions = PromptService()._build_pull_request_instructions()
+
+    assert "authoritative" not in instructions
+    assert "Do not upgrade, downgrade" not in instructions
+    assert "judge the actual risk from the Git diff" in " ".join(instructions.split())
+
+
+def test_pull_request_prompt_with_a_template_asks_for_the_filled_template() -> None:
+    context = PullRequestContext(
+        current_branch="feature",
+        base_branch="main",
+        merge_base="abc",
+        commits=[],
+        changed_files=["a.py"],
+        diff="diff",
+    )
+    template = "## What\n<!-- describe -->\n- [ ] Tests"
+
+    prompt = PromptService().build_pull_request_prompt(
+        context, PullRequestAnalysis(), template=template
+    )
+
+    assert prompt.endswith(f"Pull Request Template:\n{template}")
+    assert "body: string (the filled-in template, as Markdown)" in prompt
+    assert "Tick a checkbox only when the supplied evidence confirms it" in prompt
+    flat = " ".join(prompt.split())
+    assert "Decide what belongs under each heading from what the heading asks for" in flat
+    assert "Treat placeholder text and HTML comments under a heading as instructions" in flat
+    # The fixed-section output rules are gone, including "no Markdown".
+    assert "reviewer_focus: array of strings" not in prompt
+    assert "Do not include Markdown." not in prompt
+    # The shared evidence rules stay.
+    assert "Do not invent repository facts" in prompt

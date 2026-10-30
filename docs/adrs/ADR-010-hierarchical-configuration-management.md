@@ -194,6 +194,7 @@ Example:
 provider = "gemini"
 model = "gemini-3.5-flash-lite"
 max_output_tokens = 1000
+max_diff_characters = 100000
 
 [network]
 timeout = 60

@@ -8,6 +8,7 @@ class ChangeCategory(str, Enum):
     PROVIDER = "provider"
     DEPENDENCY = "dependency"
     PUBLIC_INTERFACE = "public_interface"
+    COMMAND_LINE = "command_line"
     TEST = "test"
     DOCUMENTATION = "documentation"
 

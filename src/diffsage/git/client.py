@@ -2,7 +2,7 @@ import subprocess
 from datetime import datetime
 from pathlib import Path
 
-from diffsage.exceptions import CommitFailedError
+from diffsage.exceptions import CommitFailedError, FetchFailedError
 from diffsage.models.git import GitCommit
 
 # hash, author, ISO date, subject. The subject goes last because it is the only field
@@ -27,6 +27,10 @@ class GitClient:
 
     def __init__(self, repo_path: Path | str | None = None) -> None:
         self._repo_path = Path(repo_path) if repo_path else Path.cwd()
+        # Branches on origin, read once per client (one network round trip); None after
+        # a failed read means origin could not be reached.
+        self._remote_heads: dict[str, str] | None = None
+        self._remote_heads_read = False
 
     def _run_git_command(
         self, args: list[str], input_text: str | None = None
@@ -212,26 +216,109 @@ class GitClient:
 
         return None
 
+    def remote_heads(self) -> dict[str, str] | None:
+        """Every branch on origin with its commit, or None if origin could not be reached.
+
+        Read with a single `git ls-remote` and kept for the life of this client, so the
+        branch checks of one command cost one network round trip instead of one each.
+        """
+
+        if not self._remote_heads_read:
+            self._remote_heads_read = True
+
+            try:
+                result = self._run_git_command(["ls-remote", "--heads", "origin"])
+            except subprocess.CalledProcessError:
+                self._remote_heads = None
+            else:
+                self._remote_heads = {
+                    ref.removeprefix("refs/heads/"): commit
+                    for commit, _tab, ref in (
+                        line.partition("\t") for line in result.stdout.splitlines()
+                    )
+                    if ref.startswith("refs/heads/")
+                }
+
+        return self._remote_heads
+
+    def remote_has_branch(self, branch: str) -> bool | None:
+        """Whether origin has the branch, or None if origin could not be reached."""
+
+        heads = self.remote_heads()
+        return None if heads is None else branch in heads
+
     def remote_branch_exists(self, branch: str) -> bool:
         """Return True if the branch exists on the origin remote."""
 
+        return self.remote_has_branch(branch) is True
+
+    def fetch_branch(self, branch: str) -> None:
+        """Update the remote-tracking branch origin/<branch> from origin."""
+
         try:
-            self._run_git_command(["ls-remote", "--exit-code", "--heads", "origin", branch])
-            return True
+            self._run_git_command(
+                [
+                    "fetch",
+                    "--quiet",
+                    "--no-tags",
+                    "origin",
+                    # "+": follow origin exactly, even if the branch was force-pushed.
+                    f"+refs/heads/{branch}:refs/remotes/origin/{branch}",
+                ]
+            )
+        except subprocess.CalledProcessError as error:
+            lines = [line.strip() for line in (error.stderr or "").splitlines() if line.strip()]
+            raise FetchFailedError(lines[-1] if lines else None) from error
+
+    def list_files(self, ref: str, directory: str | None = None) -> list[str]:
+        """Paths of the entries directly inside `directory` (default: the root) at `ref`."""
+
+        args = ["ls-tree", "--name-only", ref]
+
+        if directory is not None:
+            args += ["--", f"{directory.rstrip('/')}/"]
+
+        try:
+            result = self._run_git_command(args)
+        except subprocess.CalledProcessError:
+            return []
+
+        return result.stdout.splitlines()
+
+    def read_file(self, ref: str, path: str) -> str | None:
+        """Contents of `path` at `ref`, or None if it does not exist there."""
+
+        try:
+            result = self._run_git_command(["show", f"{ref}:{path}"])
+        except subprocess.CalledProcessError:
+            return None
+
+        return result.stdout
+
+    def is_ancestor(self, ancestor: str, descendant: str) -> bool | None:
+        """Whether commit `ancestor` is contained in `descendant`, or None if either
+        commit is not in this repository (for example, not fetched yet)."""
+
+        try:
+            self._run_git_command(["merge-base", "--is-ancestor", ancestor, descendant])
+        except subprocess.CalledProcessError as error:
+            # Status 1 is a plain "no"; anything else means Git could not tell.
+            return False if error.returncode == 1 else None
+
+        return True
+
+    def ref_exists(self, ref: str) -> bool:
+        """Return True if `ref` names a commit in this repository."""
+
+        try:
+            self._run_git_command(["rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}"])
         except subprocess.CalledProcessError:
             return False
+
+        return True
 
     def remote_branch_commit(self, branch: str) -> str | None:
         """Return the commit hash of the remote origin branch."""
 
-        try:
-            result = self._run_git_command(["ls-remote", "origin", f"refs/heads/{branch}"])
-        except subprocess.CalledProcessError:
-            return None
-
-        output = result.stdout.strip()
-
-        if not output:
-            return None
-
-        return output.split("\t", 1)[0]
+        heads = self.remote_heads()
+        return None if heads is None else heads.get(branch)

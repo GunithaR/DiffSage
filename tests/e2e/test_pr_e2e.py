@@ -74,7 +74,8 @@ def test_pr_accept_creates_pull_request(fake_provider, fake_gh) -> None:
         "--title",
         "Add greeting script",
     ]
-    assert "## Summary\nAdds a script that prints a greeting." in call[9]
+    assert call[8:10] == ["--body-file", "-"]
+    assert "## Summary\nAdds a script that prints a greeting." in fake_gh.bodies[0]
 
 
 @pytest.mark.usefixtures("feature_branch", "fake_gh")
@@ -124,6 +125,7 @@ def test_pr_regenerate_uses_second_draft(fake_provider, fake_gh) -> None:
 
 def test_pr_against_explicit_base_branch(feature_branch, fake_provider, fake_gh) -> None:
     run_git(["branch", "develop", "main"], feature_branch)
+    run_git(["push", "origin", "develop"], feature_branch)
     fake_provider.queue(draft_json())
 
     result = runner.invoke(app, ["pr", "develop"], input="y\n")
@@ -151,7 +153,10 @@ def test_pr_with_unpushed_branch_exits(git_repo) -> None:
     result = runner.invoke(app, ["pr"])
 
     assert result.exit_code == 1
-    assert "Remote branch 'feature/local-only' does not exist on origin." in result.output
+    assert (
+        "✗ Branch 'feature/local-only' does not exist on origin. Push it first: "
+        "git push -u origin feature/local-only" in " ".join(result.output.split())
+    )
 
 
 @pytest.mark.usefixtures("git_remote", "fake_provider", "fake_gh")
@@ -159,7 +164,10 @@ def test_pr_on_base_branch_exits() -> None:
     result = runner.invoke(app, ["pr"])
 
     assert result.exit_code == 1
-    assert "Current branch and base branch are the same" in result.output
+    assert (
+        "✗ 'main' is both the current branch and the base branch. Switch to the branch you "
+        "want to open a pull request for" in " ".join(result.output.split())
+    )
 
 
 @pytest.mark.usefixtures("feature_branch")
@@ -190,7 +198,7 @@ def test_pr_invalid_ai_json_exits(fake_provider, fake_gh) -> None:
     result = runner.invoke(app, ["pr"])
 
     assert result.exit_code == 1
-    assert "AI response is not valid JSON" in result.output
+    assert "The pull request draft is not valid JSON." in result.output
     assert pr_create_call(fake_gh.calls) is None
 
 
@@ -265,3 +273,133 @@ def test_pr_accepts_a_draft_wrapped_in_a_code_fence(fake_provider, fake_gh) -> N
     assert result.exit_code == 0, result.output
     assert "Pull request created successfully" in result.output
     assert pr_create_call(fake_gh.calls) is not None
+
+
+@pytest.mark.usefixtures("feature_branch")
+def test_pr_stops_before_the_ai_when_a_pull_request_is_already_open(fake_provider, fake_gh) -> None:
+    """Regression: the AI drafted a whole PR, and only `gh pr create` at the end failed
+    with "a pull request already exists"."""
+
+    url = "https://github.com/example/repo/pull/9"
+    fake_gh.configure(open_prs=[{"url": url, "head": "feature/greeting", "base": "main"}])
+
+    result = runner.invoke(app, ["pr"])
+
+    assert result.exit_code == 1
+    assert (
+        f"✗ A pull request from 'feature/greeting' into 'main' is already open: {url}"
+        in " ".join(result.output.split())
+    )
+    assert fake_provider.requests == []
+    assert pr_create_call(fake_gh.calls) is None
+
+
+@pytest.mark.usefixtures("feature_branch")
+def test_pr_into_another_base_is_not_blocked_by_an_open_pr(fake_provider, fake_gh) -> None:
+    fake_gh.configure(
+        open_prs=[{"url": "https://example/pull/9", "head": "feature/greeting", "base": "dev"}]
+    )
+    fake_provider.queue(draft_json())
+
+    result = runner.invoke(app, ["pr"], input="y\n")
+
+    assert result.exit_code == 0, result.output
+    assert pr_create_call(fake_gh.calls) is not None
+
+
+@pytest.mark.usefixtures("feature_branch")
+def test_pr_continues_when_open_prs_cannot_be_listed(fake_provider, fake_gh) -> None:
+    fake_gh.configure(pr_list_error="HTTP 502: Bad Gateway")
+    fake_provider.queue(draft_json())
+
+    result = runner.invoke(app, ["pr"], input="y\n")
+
+    assert result.exit_code == 0, result.output
+    assert pr_create_call(fake_gh.calls) is not None
+
+
+@pytest.mark.usefixtures("feature_branch")
+def test_pr_body_reaches_gh_intact_through_stdin(fake_provider, fake_gh) -> None:
+    """Long and non-ASCII bodies go through stdin, not the command line, which is limited
+    to 32,767 characters on Windows."""
+
+    long_why = "Café ✓ — " + "x" * 40_000
+    fake_provider.queue(draft_json(why=long_why))
+
+    result = runner.invoke(app, ["pr"], input="y\n")
+
+    assert result.exit_code == 0, result.output
+    assert f"## Why\n{long_why}" in fake_gh.bodies[0]
+    assert all(len(arg) < 1_000 for arg in pr_create_call(fake_gh.calls))
+
+
+@pytest.mark.usefixtures("feature_branch", "fake_gh")
+def test_invalid_pr_edit_names_the_bad_fields_without_blaming_the_ai(
+    fake_provider, monkeypatch, tmp_path
+) -> None:
+    """Regression: a hand edit with a missing field was reported as "AI response contains
+    invalid or missing pull request fields", without saying which."""
+
+    script = tmp_path / "break_draft.py"
+    script.write_text(
+        "import json, sys\n"
+        "path = sys.argv[1]\n"
+        "draft = json.load(open(path, encoding='utf-8'))\n"
+        "del draft['why']\n"
+        "draft['notes'] = 'extra'\n"
+        "json.dump(draft, open(path, 'w', encoding='utf-8'))\n"
+    )
+    python = sys.executable.replace("\\", "/")
+    monkeypatch.setenv("GIT_EDITOR", f'"{python}" "{script.as_posix()}"')
+    fake_provider.queue(draft_json())
+
+    result = runner.invoke(app, ["pr"], input="e\nn\n")
+
+    assert result.exit_code == 0, result.output
+    assert (
+        "✗ The pull request draft has invalid fields: missing why; unexpected notes."
+        in " ".join(result.output.split())
+    )
+    assert "AI response" not in result.output
+
+
+@pytest.mark.usefixtures("git_remote", "fake_provider", "fake_gh")
+def test_pr_on_detached_head_says_how_to_get_back_on_a_branch(git_repo) -> None:
+    run_git(["switch", "--detach"], git_repo)
+
+    result = runner.invoke(app, ["pr"])
+
+    assert result.exit_code == 1
+    assert (
+        "✗ Cannot generate a pull request from a detached HEAD. Switch to a branch first: "
+        "git switch <branch>" in " ".join(result.output.split())
+    )
+
+
+@pytest.mark.usefixtures("feature_branch")
+def test_pr_does_not_spend_a_network_call_on_gh_auth_status(fake_provider, fake_gh) -> None:
+    """The open-pull-request lookup already needs a login, so a separate `gh auth status`
+    round trip is not made."""
+
+    fake_provider.queue(draft_json())
+
+    runner.invoke(app, ["pr"], input="n\n")
+
+    assert ["auth", "status"] not in fake_gh.calls
+    assert [call[:2] for call in fake_gh.calls] == [["--version"], ["pr", "list"]]
+
+
+def test_pr_diff_limit_follows_the_environment(
+    feature_branch, fake_provider, fake_gh, monkeypatch
+) -> None:
+    commit_file(feature_branch, "big.py", "# big\n" + "x = 1\n" * 400, "feat: add big file")
+    run_git(["push"], feature_branch)
+    monkeypatch.setenv("DIFFSAGE_MAX_DIFF_CHARACTERS", "1000")
+    fake_provider.queue(draft_json())
+
+    result = runner.invoke(app, ["pr"], input="n\n")
+
+    assert result.exit_code == 0, result.output
+    assert "x = 1\n" * 400 not in fake_provider.prompts[0]
+    assert "diffsage config set max_diff_characters <characters>" in " ".join(result.output.split())
+    assert fake_gh.calls
